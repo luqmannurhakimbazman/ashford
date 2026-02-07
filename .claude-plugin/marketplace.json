@@ -1,13 +1,16 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "kapitan-marketplace",
+  "description": "Claude Code plugin marketplace for development workflows",
   "owner": {
-    "name": "AISG"
+    "name": "Luqman Nurhakim"
   },
   "plugins": [
     {
       "name": "kapitan-claude-plugin",
       "source": "./kapitan-claude-plugin",
-      "description": "A comprehensive Claude Code plugin with commands, agents, skills, hooks, and MCP servers"
+      "description": "Commands, agents, skills, hooks, and MCP servers for enhanced development workflows",
+      "version": "1.2.0"
     }
   ]
 }

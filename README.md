@@ -10,54 +10,47 @@ A Claude Code plugin marketplace providing commands, agents, skills, and MCP ser
 | `/status` | Check project status including git state, recent changes, and pending tasks |
 | `code-reviewer` agent | Automated code review for quality, security, and performance |
 | `mlx-dev` skill | Apple MLX development guide with critical API patterns and gotchas |
-| MCP servers | Pre-configured git, context7, gitlab, and chrome-devtools integrations |
+| `doc-generator` skill | Automated documentation generation |
+| `ml-paper-writing` skill | ML research paper writing assistance |
+| MCP servers | Pre-configured git, context7, gitlab, chrome-devtools, and exa integrations |
 
-## Quick Install
+## Quick Install (Marketplace)
 
-Add this plugin as a git submodule to any project:
+Install via the Claude Code plugin marketplace:
 
 ```bash
-# Add plugin as submodule
-git submodule add https://github.com/LuqDaMan/kapitan-marketplace.git .claude-plugins/kapitan
+# Add this marketplace to Claude Code
+/plugin marketplace add LuqDaMan/kapitan-marketplace
 
-# Copy MCP config template to your project root
-cp .claude-plugins/kapitan/templates/mcp-minimal.json .mcp.json
-
-# (Optional) Customize .mcp.json for your project needs
+# Install the plugin
+/plugin install kapitan-claude-plugin@kapitan-marketplace
 ```
 
-For existing clones:
+That's it — commands, agents, skills, hooks, and MCP servers are all available immediately.
+
+### Verification
+
+After installation, verify all components loaded:
 
 ```bash
-git submodule update --init --recursive
+# Commands should be recognized
+/commit
+/status
+
+# Check agents list
+/agents
+
+# Check for errors
+/plugin   # Navigate to Errors tab — should be empty
 ```
 
 ## Per-Project Configuration
 
 The plugin separates **commands/skills** (always available) from **MCP servers** (project-specific). Configure MCP servers in your project's `.mcp.json`:
 
-### Minimal Setup (Most Common)
+### Personal Setup (Most Common)
 
-For general development projects:
-
-```json
-{
-  "mcpServers": {
-    "git": {
-      "command": "uvx",
-      "args": ["mcp-server-git"]
-    },
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp@latest"]
-    }
-  }
-}
-```
-
-### Full Stack Web Development
-
-Add chrome-devtools for browser automation and debugging:
+For personal development projects (everything except GitLab):
 
 ```json
 {
@@ -73,14 +66,18 @@ Add chrome-devtools for browser automation and debugging:
     "chrome-devtools": {
       "command": "npx",
       "args": ["-y", "chrome-devtools-mcp@latest"]
+    },
+    "exa": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,deep_search_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check"]
     }
   }
 }
 ```
 
-### GitLab Projects
+### All Servers (Including GitLab)
 
-Add GitLab MCP server for API access:
+For projects that also need GitLab API access:
 
 ```json
 {
@@ -99,6 +96,14 @@ Add GitLab MCP server for API access:
       "env": {
         "GITLAB_PERSONAL_ACCESS_TOKEN": "${GITLAB_PERSONAL_ACCESS_TOKEN}"
       }
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
+    },
+    "exa": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,deep_search_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check"]
     }
   }
 }
@@ -110,14 +115,13 @@ Ready-to-use templates are available in `templates/`:
 
 | Template | Use Case |
 |----------|----------|
-| `mcp-minimal.json` | Git + context7 (most projects) |
-| `mcp-all.json` | All MCP servers enabled |
-| `mcp-web.json` | Web development with chrome-devtools |
+| `mcp-personal.json` | Git + context7 + chrome-devtools + exa (most projects) |
+| `mcp-all.json` | All servers including GitLab |
 
 Copy the template that matches your needs:
 
 ```bash
-cp .claude-plugins/kapitan/templates/mcp-minimal.json .mcp.json
+cp .claude-plugins/kapitan/templates/mcp-personal.json .mcp.json
 ```
 
 ## Environment Variables
@@ -125,6 +129,26 @@ cp .claude-plugins/kapitan/templates/mcp-minimal.json .mcp.json
 | Variable | Required For | Description |
 |----------|--------------|-------------|
 | `GITLAB_PERSONAL_ACCESS_TOKEN` | gitlab MCP | GitLab API access token |
+
+## Legacy Install (Submodule — MCP Only)
+
+If you only need MCP server configs (commands/agents/skills/hooks are **not** discovered via submodules):
+
+```bash
+# Add plugin as submodule
+git submodule add https://github.com/LuqDaMan/kapitan-marketplace.git .claude-plugins/kapitan
+
+# Copy MCP config template to your project root
+cp .claude-plugins/kapitan/templates/mcp-personal.json .mcp.json
+
+# (Optional) Customize .mcp.json for your project needs
+```
+
+For existing clones:
+
+```bash
+git submodule update --init --recursive
+```
 
 ## Feature Reference
 
@@ -157,32 +181,38 @@ cp .claude-plugins/kapitan/templates/mcp-minimal.json .mcp.json
 - Memory optimization and quantization patterns
 - Complete reference docs for common tasks
 
+**`doc-generator`** - Automated documentation generation
+
+**`ml-paper-writing`** - ML research paper writing assistance
+
 ## Structure
 
 ```
 kapitan-marketplace/
+├── .claude-plugin/
+│   └── marketplace.json          # Marketplace registry
 ├── kapitan-claude-plugin/
 │   ├── .claude-plugin/
-│   │   └── plugin.json          # Plugin metadata (required)
-│   ├── commands/                # Slash commands (.md files)
+│   │   └── plugin.json           # Plugin manifest with component declarations
+│   ├── commands/                  # Slash commands (.md files)
 │   │   ├── commit.md
 │   │   └── status.md
-│   ├── agents/                  # Subagent definitions (.md files)
+│   ├── agents/                    # Subagent definitions (.md files)
 │   │   └── code-reviewer.md
-│   ├── skills/                  # Skills (subdirectories with SKILL.md)
+│   ├── skills/                    # Skills (subdirectories with SKILL.md)
 │   │   ├── mlx-dev/
 │   │   │   ├── SKILL.md
 │   │   │   ├── references/
 │   │   │   └── scripts/
-│   │   └── example-skill/
+│   │   ├── doc-generator/
+│   │   └── ml-paper-writing/
 │   ├── hooks/
-│   │   └── hooks.json           # Event handler configuration
-│   ├── scripts/                 # Helper scripts
-│   └── .mcp.json                # MCP server definitions
+│   │   └── hooks.json             # Event handler configuration
+│   ├── scripts/                   # Helper scripts
+│   └── .mcp.json                  # MCP server definitions
 └── templates/
-    ├── mcp-minimal.json
-    ├── mcp-all.json
-    └── mcp-web.json
+    ├── mcp-personal.json
+    └── mcp-all.json
 ```
 
 ---

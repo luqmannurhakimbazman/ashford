@@ -1,6 +1,7 @@
 ---
+name: code-reviewer
 description: Reviews code for quality, best practices, and potential issues
-capabilities: ["code-review", "security-analysis", "performance-review"]
+model: inherit
 ---
 
 # Code Reviewer Agent
