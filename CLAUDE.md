@@ -6,7 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **kapitan-marketplace** is a Claude Code plugin marketplace that provides slash commands, agents, skills, hooks, and MCP server configurations. It's installed via the Claude Code marketplace system (`/plugin marketplace add` + `/plugin install`) and all components are auto-discovered at runtime.
 
-- **Version:** 1.2.3
 - **Author:** Luqman Nurhakim
 - **No build system** — all components are Markdown/JSON files auto-discovered by Claude Code. No compilation, bundling, or package management needed for the plugin itself.
 
@@ -42,8 +41,8 @@ A `PostToolUse` hook (`hooks/hooks.json`) runs `scripts/python-lint.sh` on every
 - **Ignored:** D203, D213 (to enforce Google-style docstrings — D211 + D212)
 - **Line length:** 100 characters
 - **Style:** Google Python Style Guide + PEP 8
-- **Behavior:** Auto-formats and auto-fixes first, then reports unfixable issues (exit 2)
-- **Requires:** `ruff` installed (`pip install ruff` or `uv pip install ruff`)
+- **Behavior:** Auto-formats and auto-fixes first, then reports unfixable issues (exit 1). Skips silently if `ruff` is not installed.
+- **Optional:** `ruff` (`pip install ruff` or `uv pip install ruff`) — hook is a no-op without it
 
 ## Frontmatter Conventions
 
@@ -59,7 +58,7 @@ All components are auto-discovered — create files in the right directory and t
 
 ## MCP Servers
 
-Defined in `kapitan-claude-plugin/.mcp.json`: context7 (npx), gitlab (npx, needs `GITLAB_PERSONAL_ACCESS_TOKEN`), git (uvx), chrome-devtools (npx), exa (npx via mcp-remote). Two templates in `templates/`: `mcp-personal.json` (everything except gitlab) and `mcp-all.json` (everything). Projects copy a template to their root `.mcp.json` and customize.
+Defined in `kapitan-claude-plugin/.mcp.json`: context7 (npx), git (uvx), chrome-devtools (npx), exa (npx via mcp-remote). Two templates in `templates/`: `mcp-personal.json` (everything except gitlab) and `mcp-all.json` (everything including gitlab). Projects copy a template to their root `.mcp.json` and customize.
 
 ## Installation Model
 

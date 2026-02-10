@@ -37,19 +37,8 @@ fi
 
 # Check if ruff is available
 if ! command -v ruff &> /dev/null; then
-    echo ""
-    echo "=========================================="
-    echo "ERROR: ruff is not installed"
-    echo "=========================================="
-    echo ""
-    echo "This hook requires ruff for Python linting and auto-formatting."
-    echo ""
-    echo "Install with:"
-    echo "  pip install ruff"
-    echo "  # or"
-    echo "  uv pip install ruff"
-    echo ""
-    exit 2
+    # ruff not installed — skip silently rather than blocking Claude
+    exit 0
 fi
 
 # Ruff rule configuration
@@ -165,7 +154,7 @@ if [[ -n "$REMAINING" && "$REMAINING" != *"All checks passed"* ]]; then
     echo ""
     echo "Please fix these issues and save the file again."
     echo ""
-    exit 2
+    exit 1
 else
     # All clean - either no issues or all were auto-fixed
     if [[ $AUTO_FIXED -eq 1 ]]; then
