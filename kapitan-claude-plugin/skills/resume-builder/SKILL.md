@@ -81,7 +81,33 @@ Map each JD requirement to existing resume content. Identify:
 - **Reframeable**: Experience exists but needs rephrasing to highlight relevance
 - **Gaps**: No matching experience (document honestly in notes.md — do NOT fabricate)
 
-### Step 6: XYZ Bullet Optimization
+### Step 6: Avenues to Strengthen Application
+
+For each gap identified in Step 5, generate an actionable mitigation entry. This section helps the candidate understand what they can do *before or alongside* applying to improve their chances.
+
+For each gap, provide:
+
+- **Severity**:
+  - 🔴 High — hard requirement explicitly listed in the JD; candidate has no evidence of it
+  - 🟡 Medium — preferred/advantageous qualification; candidate lacks it but it's not a dealbreaker
+  - 🟢 Low — nice-to-have, or the gap is easily bridged by reframing existing experience
+
+- **Mitigation Strategy**: A specific, actionable recommendation — not generic advice. Examples of good mitigations:
+  - "Build a small MCP server in Python that wraps a public API — add it to your Projects section"
+  - "In your cover letter, explicitly bridge your equity factor strategy experience to orderbook data"
+  - "Complete the fast.ai Transformer course and implement a small attention-based model"
+  - "Contribute a PR to an open-source Jax project to demonstrate working proficiency"
+
+- **Why it works**: Brief explanation of what signal it sends to the hiring manager
+
+Rules:
+1. Prioritize 🔴 High gaps — these need the most attention and should appear first
+2. Include at least one concrete project idea that could be added to the resume's Projects section if completed
+3. Be honest about gaps that cannot be easily closed (e.g., "Do not list C++ if you don't know it — acknowledge it as a growth area in your cover letter instead")
+4. **Never recommend fabricating experience** — this is a strict rule across the entire skill
+5. For 🟢 Low gaps, it's acceptable to say "No action needed" if existing experience covers it sufficiently
+
+### Step 7: XYZ Bullet Optimization
 
 Rewrite experience bullets using the XYZ formula, incorporating target keywords naturally. See `references/xyz-formula.md` for methodology and examples.
 
@@ -91,7 +117,7 @@ Priority order for keyword placement (optimized for human readers — recruiters
 3. Projects/Leadership section
 4. Skills section (highest ATS hit rate — see `references/ats-keywords.md` for ATS-specific priority)
 
-### Step 7: Strategic Uncommenting & Commenting
+### Step 8: Strategic Uncommenting & Commenting
 
 Review commented-out sections in the master resume. Uncomment entries that strengthen the application:
 
@@ -109,11 +135,11 @@ Similarly, comment out entries that are irrelevant or that weaken the narrative 
 
 When including projects, ensure project names link to GitHub repos where possible using `\href{https://github.com/...}{\textbf{Project Name}}`.
 
-### Step 8: Skills Reordering
+### Step 9: Skills Reordering
 
 Reorder skills categories and items within each category to front-load the most relevant ones. The first items in each line are what ATS and recruiters see first.
 
-### Step 9: Output Generation
+### Step 10: Output Generation
 
 Create the output directory and files:
 
@@ -138,6 +164,15 @@ hojicha/<company>-<role>-resume/
 | Requirement | Status | Resume Evidence |
 |-------------|--------|-----------------|
 | ... | Strong Match / Reframed / Gap | ... |
+
+## Avenues to Strengthen Application
+
+| Gap | Severity | Mitigation Strategy |
+|-----|----------|---------------------|
+| **<Skill/Requirement>** | 🔴 High — <why it's critical> | <Specific, actionable recommendation> |
+| **<Skill/Requirement>** | 🟡 Medium — <why it matters> | <Specific, actionable recommendation> |
+| **<Skill/Requirement>** | 🟢 Low — <why it's minor> | <Recommendation or "No action needed"> |
+| ... | ... | ... |
 
 ## Changes Made
 - <List of specific changes: reworded bullets, uncommenting, reordering>
