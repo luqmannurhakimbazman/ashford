@@ -1,6 +1,139 @@
 # Array Techniques
 
-Five essential array manipulation patterns. Each transforms brute-force O(N) or O(N^2) range operations into elegant O(1) or O(N) solutions.
+Array fundamentals and essential manipulation patterns. Covers core concepts, interview tips, and five key patterns that transform brute-force O(N) or O(N^2) range operations into elegant O(1) or O(N) solutions.
+
+---
+
+## Array Fundamentals
+
+### Common Terms
+
+- **Subarray** — a contiguous sequence of elements within an array. Example: `[2, 3, 6, 1, 5, 4]` → `[3, 6, 1]` is a subarray.
+- **Subsequence** — a sequence derived by deleting zero or more elements without changing order. Example: `[2, 3, 6, 1, 5, 4]` → `[3, 1, 5]` is a subsequence (not necessarily contiguous).
+
+### Time Complexity
+
+| Operation | Complexity | Notes |
+|-----------|-----------|-------|
+| Access `arr[i]` | O(1) | Direct index calculation |
+| Search (unsorted) | O(N) | Linear scan |
+| Search (sorted) | O(log N) | Binary search |
+| Insert (at end) | O(1) amortized | Dynamic array resize |
+| Insert (at index) | O(N) | Shift elements right |
+| Remove (at end) | O(1) | No shifting needed |
+| Remove (at index) | O(N) | Shift elements left |
+
+### Interview Tips
+
+- **Slicing creates copies.** In Python, `arr[i:j]` is O(j - i). Avoid slicing inside loops — pass indices instead.
+- **Beware off-by-one errors.** Clarify whether indices are inclusive or exclusive. Fencepost errors are the #1 bug in array problems.
+- **Clarify duplicates.** Ask: "Can the array contain duplicates?" This often changes the approach entirely (e.g., Two Sum with duplicates, binary search with duplicates).
+- **In-place vs extra space.** Many interviewers prefer in-place solutions. Ask about space constraints.
+- **Pre-sorting unlocks techniques.** If the array isn't required to stay in order, sorting enables binary search, two pointers, and duplicate skipping.
+
+### Corner Cases
+
+- Empty array
+- Array with 1 or 2 elements
+- Array with all identical elements
+- Array with duplicates (affects uniqueness assumptions)
+- Very large or very small numbers (overflow)
+
+---
+
+## Core Array Techniques
+
+### Sliding Window
+
+Maintain a window `[left, right]` that expands and shrinks based on a condition. See `references/algorithm-frameworks.md` for the full sliding window template with the three-question framework (when to expand, when to shrink, when to update).
+
+### Two Pointers
+
+**Opposite direction:** Start pointers at both ends, move inward. Used for sorted array problems and palindrome checks.
+
+```python
+def two_sum_sorted(nums, target):
+    """Two Sum II (sorted array). O(N) time, O(1) space."""
+    left, right = 0, len(nums) - 1
+    while left < right:
+        total = nums[left] + nums[right]
+        if total == target:
+            return [left, right]
+        elif total < target:
+            left += 1
+        else:
+            right -= 1
+```
+
+**Same direction:** Both pointers move forward, often at different speeds. Used for removing duplicates, partitioning.
+
+```python
+def remove_duplicates(nums):
+    """Remove duplicates in-place from sorted array. O(N) time, O(1) space."""
+    if not nums:
+        return 0
+    slow = 0
+    for fast in range(1, len(nums)):
+        if nums[fast] != nums[slow]:
+            slow += 1
+            nums[slow] = nums[fast]
+    return slow + 1
+```
+
+### Traversing from the Right
+
+Some problems become simpler when you iterate from right to left. Useful for "next greater element" and cumulative computations from the end.
+
+### Sorting the Array First
+
+Sorting (O(N log N)) can simplify an O(N^2) or harder problem. After sorting, you can apply binary search or two pointers. Ask: "Would sorting help here, and is it allowed?"
+
+### Index as a Hash Key
+
+For arrays of integers in range `[0, N-1]` or `[1, N]`, use the array index itself as a hash key. This achieves O(1) space for problems that would otherwise need a hash set.
+
+```python
+def find_duplicates(nums):
+    """Find duplicates in [1, N] range. O(N) time, O(1) space."""
+    result = []
+    for num in nums:
+        idx = abs(num) - 1
+        if nums[idx] < 0:
+            result.append(abs(num))  # Already seen
+        else:
+            nums[idx] = -nums[idx]   # Mark as seen
+    return result
+```
+
+### Traversing the Array More Than Once
+
+Two passes through the array is still O(N). Don't be afraid to make a first pass to collect information and a second pass to compute the answer. Example: "Product of Array Except Self" uses left-pass and right-pass prefix products.
+
+---
+
+## Essential & Recommended Practice Questions
+
+### Essential (Do These First)
+
+| Problem | Difficulty | Key Technique |
+|---------|-----------|---------------|
+| Two Sum (1) | Easy | Hash map |
+| Best Time to Buy and Sell Stock (121) | Easy | Track min price |
+| Product of Array Except Self (238) | Medium | Left/right prefix products |
+| Maximum Subarray (53) | Medium | Kadane's algorithm |
+| Contains Duplicate (217) | Easy | Hash set |
+| Maximum Product Subarray (152) | Medium | Track min and max products |
+
+### Recommended (Build Depth)
+
+| Problem | Difficulty | Key Technique |
+|---------|-----------|---------------|
+| 3Sum (15) | Medium | Sort + two pointers |
+| Container With Most Water (11) | Medium | Two pointers (opposite) |
+| Sliding Window Maximum (239) | Hard | Monotonic deque |
+| Trapping Rain Water (42) | Hard | Two pointers or stack |
+| First Missing Positive (41) | Hard | Index as hash key |
+| Subarray Sum Equals K (560) | Medium | Prefix sum + hash map |
 
 ---
 

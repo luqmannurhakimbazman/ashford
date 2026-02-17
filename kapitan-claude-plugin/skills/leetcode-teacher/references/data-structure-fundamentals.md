@@ -211,6 +211,35 @@ With a good hash function and low load factor, each bucket has ~1 entry → O(1)
 
 **Socratic prompt:** *"If hash tables are O(1), why don't we use them for everything? What are the hidden costs?"*
 
+### Language Implementations
+
+| Language | Hash Map | Hash Set | Ordered Map |
+|----------|---------|---------|-------------|
+| C++ | `std::unordered_map` | `std::unordered_set` | `std::map` (red-black tree) |
+| Java | `HashMap` | `HashSet` | `TreeMap` (red-black tree) |
+| Python | `dict` | `set` | `collections.OrderedDict` |
+| JavaScript | `Map` / `Object` | `Set` | `Map` (insertion order) |
+| Go | `map[K]V` | — (use `map[K]bool`) | — |
+
+**Interview tip:** Know the difference between O(1) **average** and O(1) **amortized**. Hash table operations are O(1) on average (assuming good hash function and low load factor), but a single operation can be O(N) when rehashing occurs. Amortized O(1) means the expensive rehash is "paid for" by the many cheap operations that preceded it.
+
+### Hash Table Interview Questions
+
+- **Design an LRU Cache (LC 146):** Hash map (O(1) lookup) + doubly-linked list (O(1) eviction) — the canonical augmented data structure. See `references/advanced-patterns.md`.
+- **Hash map with linked list buckets:** Implement `put`, `get`, `remove` with chaining collision resolution. Tests understanding of the hash table internals above.
+- **Implement a hash set without using built-in hash libraries (LC 705):** Choose bucket count, hash function, and collision strategy.
+
+### Essential & Recommended Practice Questions for Hash Tables
+
+| Problem | Difficulty | Key Twist |
+|---------|-----------|-----------|
+| Two Sum (1) | Easy | Hash map for complement lookup |
+| Ransom Note (383) | Easy | Character frequency counting |
+| LRU Cache (146) | Medium | Hash map + doubly-linked list |
+| Group Anagrams (49) | Medium | Sorted string or frequency tuple as key |
+| Insert Delete GetRandom O(1) (380) | Medium | Hash map + array for random access |
+| Longest Consecutive Sequence (128) | Medium | Hash set for O(1) membership check |
+
 ---
 
 ## Binary Tree Centrality

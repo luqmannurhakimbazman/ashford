@@ -33,6 +33,36 @@ This reframes optimization: you are not inventing a new algorithm — you are ma
 
 ---
 
+## General Interview Tips
+
+Practical advice for approaching any algorithmic problem in an interview setting.
+
+### Before Coding
+
+- **Clarify assumptions.** Repeat the problem in your own words. Ask about input constraints (size, range, types), edge cases, and expected output format.
+- **Ask about time/space constraints.** "Should I optimize for time or space?" and "What's the expected input size?" help determine the required complexity.
+- **Work through examples.** Trace through the given example by hand before writing code. Create your own small test case.
+- **Think before you code.** Spend 2-3 minutes planning your approach. Interviewers prefer a well-thought-out solution over a hastily coded one.
+
+### While Coding
+
+- **Check off-by-one errors.** These are the most common interview bugs. Double-check loop bounds, index calculations, and boundary conditions.
+- **Test with examples after coding.** Mentally trace through your code with the example input to catch bugs before the interviewer does.
+
+### When Stuck
+
+- **Enumerate data structures as weapons.** When you don't see a path forward, systematically consider each data structure: would a hash map help? A heap? A stack? A trie? A sorted array with binary search?
+- **Consider augmented data structures.** Combine two structures to get the best of both. Classic example: hash map + doubly-linked list = O(1) LRU cache.
+- **Think about the brute force first.** Even if it's too slow, it clarifies what you're optimizing and often reveals the bottleneck.
+
+### Functional vs Imperative
+
+- **Pure functions** (no side effects, return values) are easier to reason about and test. Prefer them when possible.
+- **Mutation** (modifying data in place) saves space but makes code harder to debug. Use it deliberately, not by accident.
+- In interviews, choose whichever style lets you communicate your thinking most clearly.
+
+---
+
 ## Binary Tree Centrality
 
 **Labuladong's thesis:** Binary trees aren't just one data structure among many — they are THE mental model for algorithmic thinking.
@@ -121,6 +151,55 @@ def merge_sort(arr, lo, hi):
 **Why this matters for problem solving:** When you see a divide-and-conquer problem, ask: "Do I need to make a decision before recursing (pre-order/quick sort pattern) or combine results after recursing (post-order/merge sort pattern)?" This instantly narrows your approach.
 
 For full implementations of all 10 sorting algorithms including non-comparison sorts, see `sorting-algorithms.md`.
+
+---
+
+## Recursion Interview Tips
+
+Practical guidance for recursion problems in interviews.
+
+### Base Cases
+
+The number of base cases should match the depth of recursive calls. If you recurse on `n-1` and `n-2` (like Fibonacci), you need base cases for both `n=0` and `n=1`.
+
+### Stack Overflow Awareness
+
+- **Default recursion limits:** Python = 1000, Java ~5000-10000 (stack size dependent), C++ ~10000-50000.
+- If N can be large (>1000 in Python), consider converting to an **iterative** solution with an explicit stack.
+- Tail-call optimization eliminates stack growth for tail-recursive functions, but only Scheme/Haskell/Scala guarantee it. Python, Java, and C++ do **not** optimize tail calls.
+
+### Recursion for Common Problem Types
+
+- **Permutations/combinations:** Recursion with backtracking is the standard approach. See `references/brute-force-search.md` for the 9-variant framework.
+- **Tree problems:** Recursion maps directly to tree traversal. Choose pre-order, in-order, or post-order based on when you need to process the node.
+- **DP problems:** Start with recursive (top-down) solution, add memoization, then optionally convert to bottom-up.
+
+### Corner Cases
+
+- `n = 0` (empty input — what should the recursion return?)
+- `n = 1` (single element — does the recursive case handle it, or do you need a separate base case?)
+
+### Memoization: The Bridge from Recursion to DP
+
+If your recursive solution has **overlapping subproblems** (the same inputs are computed multiple times), add a cache. This is the conceptual bridge between recursion and dynamic programming:
+
+1. Write the recursive solution (correct but potentially exponential)
+2. Identify overlapping subproblems (same arguments → same result)
+3. Add memoization (cache results by arguments)
+4. Optionally convert to bottom-up DP (fill table iteratively)
+
+### Essential & Recommended Practice Questions
+
+| Problem | Difficulty | Key Technique |
+|---------|-----------|---------------|
+| Subsets (78) | Medium | Backtracking or bit manipulation |
+| Combinations (77) | Medium | Backtracking with start index |
+| Generate Parentheses (22) | Medium | Backtracking with validity constraint |
+| Permutations (46) | Medium | Backtracking with used set |
+| Letter Combinations of a Phone Number (17) | Medium | Backtracking with mapping |
+| Sudoku Solver (37) | Hard | Backtracking with constraint checking |
+
+---
 
 ### Choosing a Mode
 

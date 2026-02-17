@@ -283,6 +283,7 @@ Walk through the optimal solution with:
 - When the problem is a brain teaser or game theory puzzle (Nim game, stone game, bulb switcher), reference `references/brain-teasers-games.md`
 - When the problem involves probability or randomized algorithms (shuffle, reservoir sampling, random selection from stream), reference `references/probability-random.md`
 - When the problem is a classic interview problem (trapping rain water, ugly numbers, pancake sorting, perfect rectangle, missing/duplicate elements, consecutive subsequences, interval merge/intersection, string multiplication), reference `references/classic-interview-problems.md`
+- When the problem involves string manipulation (anagrams, palindromes, character counting, substring matching, string encoding/decoding), reference `references/string-techniques.md`
 
 ### Step 6: Alternative Solutions
 
@@ -472,4 +473,5 @@ Skip ahead: "Since you know the approach, let's focus on [implementation details
 | `references/math-techniques.md` | Modular arithmetic, fast exponentiation, GCD/LCM (Euclidean), Sieve of Eratosthenes, factorial trailing zeros |
 | `references/brain-teasers-games.md` | Mathematical brain teasers: Nim game (modulo), Stone game (first-player advantage), Bulb switcher (square root), random map generation |
 | `references/probability-random.md` | Probability fundamentals, classic paradoxes (boy-girl, birthday, Monty Hall), Fisher-Yates shuffle, reservoir sampling |
+| `references/string-techniques.md` | String techniques: character counting, bitmask trick, anagram detection (3 methods), palindrome patterns (two-pointer, expand-from-center, DP), KMP, practice questions |
 | `references/classic-interview-problems.md` | Trapping rain water, ugly numbers, missing/duplicate elements, pancake sorting, perfect rectangle, consecutive subsequences, interval operations, string multiplication |

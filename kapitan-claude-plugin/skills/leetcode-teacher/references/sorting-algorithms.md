@@ -23,6 +23,45 @@ All 10 major sorting algorithms with labuladong's framework-first approach. Cove
 
 ---
 
+## Interview Tips
+
+### Know Your Language's Default Sort
+
+| Language | Default Sort | Type |
+|----------|-------------|------|
+| Python 3.11+ | Powersort (Timsort variant) | Stable, O(N log N) |
+| Java | Timsort for objects, Dual-Pivot Quicksort for primitives | Stable (objects), unstable (primitives) |
+| C++ | Introsort (quicksort + heapsort + insertion sort) | Unstable, O(N log N) guaranteed |
+| JavaScript | Implementation-dependent (often Timsort) | Stable (ES2019+) |
+
+**In interviews:** Use your language's built-in sort confidently. You don't need to implement sorting unless the problem specifically asks for it. Know the time complexity (O(N log N)) and stability guarantees.
+
+### When Counting Sort Beats Comparison Sort
+
+If the input values have a **limited range** (e.g., ages 0-150, grades A-F, numbers 1-1000), counting sort achieves O(N + K) which beats O(N log N). Example: H-Index (LC 274) — citation counts are bounded by the number of papers, making counting sort ideal.
+
+### Corner Cases for Sorting Problems
+
+- Array with all identical elements (should remain unchanged)
+- Array with exactly two elements (boundary for divide-and-conquer)
+- Array with one element (already sorted, check base case handling)
+- Empty array (check for edge case handling)
+- Array already sorted in ascending or descending order
+- Array with negative numbers (affects counting/radix sort)
+
+### Essential & Recommended Practice Questions
+
+| Problem | Difficulty | Key Technique |
+|---------|-----------|---------------|
+| Binary Search (704) | Easy | Prerequisite: searching sorted arrays |
+| Search in Rotated Sorted Array (33) | Medium | Modified binary search |
+| Kth Largest Element in an Array (215) | Medium | Quickselect or heap |
+| Merge Intervals (56) | Medium | Sort by start, then merge |
+| Median of Two Sorted Arrays (4) | Hard | Binary search on partition |
+| Sort Colors (75) | Medium | Dutch national flag / counting sort |
+
+---
+
 ## The Comparison Sort Lower Bound
 
 **Theorem:** Any comparison-based sort requires at least O(N log N) comparisons in the worst case.
