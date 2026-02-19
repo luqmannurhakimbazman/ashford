@@ -345,6 +345,8 @@ Metacognition prompts:
 - "If you saw a similar problem tomorrow, what would you look for first?"
 - "What part of this problem was hardest for you? Why?"
 
+For structured post-problem reflection and the problem-solving thinking checklist, see `references/practice-strategy.md` Sections 4-5.
+
 ### Step 8: Output Generation
 
 Produce structured Markdown study notes (see Output Format below). Offer to save to a file.
@@ -551,6 +553,7 @@ Synthesize and present:
 - **Short-term resolutions** due for retest (2+ weeks since last test)
 - **Verdict distribution** — ratio of independent solves vs. scaffolded sessions
 - **Actionable next steps** — specific problems or patterns to focus on
+- **Practice plan suggestions** — based on session frequency and weakness patterns, suggest session structure and difficulty adjustments per `references/practice-strategy.md` Sections 2-3, 6
 
 After presenting the summary, ask: "Want to edit anything in your profile? You can update About Me, remove a weakness you think is resolved, or correct anything that looks wrong."
 
@@ -831,4 +834,5 @@ If the user doesn't want any of these and says something like "just review it" o
 | `references/geometry.md` | Computational geometry for interviews: distance comparison (skip sqrt), overlapping circles/rectangles, rectangle area, K Closest Points |
 | `references/classic-interview-problems.md` | Trapping rain water, ugly numbers, missing/duplicate elements, pancake sorting, perfect rectangle, consecutive subsequences, interval operations, string multiplication |
 | `references/recall-drills.md` | Question banks for Recall Mode: edge case drills by problem type, complexity challenge probes, pattern classification questions, variation banks, mock interview simulation scripts |
+| `references/practice-strategy.md` | Deliberate practice methodology: difficulty calibration, session design (90-min blocks), time budget per problem, post-problem reflection protocol, condensed thinking checklist, long-term study planning with weekly templates, implementation discipline, progression milestones |
 | `references/learner-profile-spec.md` | Persistent learner profile + ledger format specification: file formats, weakness lifecycle, session history format, verdict labels, dual-write rules |
