@@ -158,6 +158,8 @@ def subsets_bitmask(nums: list[int]) -> list[list[int]]:
     return result
 ```
 
+> **Submask enumeration:** Need to iterate all submasks of a given mask (not all 2^n masks)? The `(s-1) & mask` trick does this in O(2^k) where k is the popcount of the mask. Total work across all masks is O(3^n). See `bit-representations.md` Section 2 for the template and complexity proof — this is the core pattern behind bitmask DP transitions.
+
 ### Application: Counting Bits (LC 338)
 
 For every number from 0 to n, count the number of 1-bits.

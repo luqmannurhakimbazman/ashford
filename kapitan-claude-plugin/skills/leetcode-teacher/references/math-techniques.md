@@ -57,6 +57,8 @@ When a problem says "return the answer modulo 10^9 + 7," you must apply modular 
 
 **Critical:** Division does NOT distribute over modulo directly. You must use the modular multiplicative inverse (Fermat's little theorem when m is prime).
 
+> **Non-prime modulus?** When m is not prime, Fermat's little theorem doesn't apply. Use the Extended Euclidean Algorithm instead — see `modular-arithmetic-advanced.md` Section 1 and `number-theory-advanced.md` Section 1 for the general modular inverse.
+
 ### Why 10^9 + 7?
 
 - It's prime (so Fermat's little theorem works for modular inverse)
