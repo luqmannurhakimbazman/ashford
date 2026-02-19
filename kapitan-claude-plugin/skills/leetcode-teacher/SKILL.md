@@ -1,11 +1,13 @@
 ---
 name: leetcode-teacher
-description: This skill should be used when the user asks to learn, practice, or be tested on coding interview problems (LeetCode, NeetCode, DSA), ML implementations, or data structures and algorithms. Common triggers include "teach me", "explain this problem", "walk me through", "help me understand", "how to solve", "coding interview", "implement [algorithm/optimizer/layer]", or providing a leetcode.com or neetcode.io URL. It also handles recall testing and mock interview modes when the user says "quiz me", "test my recall", "mock interview", or "drill me on". It acts as a Socratic teacher that guides through structured problem breakdowns with progressive hints rather than direct answers. References cover numerical search (bisection, ternary search, Newton's method, simulated annealing), numerical integration (Simpson's rule, trapezoidal rule), advanced graph algorithms (bridges, articulation points, SCC, advanced shortest paths, MST variants, LCA/RMQ, network flow, bipartite matching, 2-SAT, HLD), and all standard DSA topics.
+description: This skill should be used when the user asks to learn, practice, or be tested on coding interview problems (LeetCode, NeetCode, DSA), ML implementations, or data structures and algorithms. Common triggers include "teach me", "explain this problem", "walk me through", "help me understand", "how to solve", "coding interview", "implement [algorithm/optimizer/layer]", or providing a leetcode.com or neetcode.io URL. It also handles recall testing and mock interview modes when the user says "quiz me", "test my recall", "mock interview", or "drill me on". It acts as a Socratic teacher that guides through structured problem breakdowns with progressive hints rather than direct answers.
 ---
 
 # LeetCode & ML Implementation Teacher
 
 A Socratic teacher for algorithmic (LeetCode) and ML implementation problems. Guides learners through structured problem breakdowns using evidence-based learning science.
+
+> **Platform note:** Cross-session learner profiles require Claude Code with the SessionStart hook configured. On other platforms (claude.ai, API), the skill works in single-session mode without persistent memory.
 
 ---
 
@@ -196,7 +198,7 @@ The SessionStart hook automatically loads the learner profile into context. Look
 - **Session continuity:** Read the last 5 session history entries. Acknowledge trajectory ("Last time you worked on sliding window and caught the edge case you'd been missing — nice progress").
 - **About Me:** Use for calibration (language preference, level, goals). If `[FIRST SESSION]` tag is present, populate About Me from observations during the session and confirm at end.
 
-**Post-compaction recovery:** If `~/.claude/leetcode-session-state.md` exists, read it for procedural reminders (session ID, **session timestamp**, write-back requirements). Delete the file after reading.
+**Post-compaction recovery:** If `~/.claude/leetcode-session-state.md` exists, read it for procedural reminders (session ID, **session timestamp**, write-back requirements). Rename the file to `~/.claude/leetcode-session-state.md.processed` after reading.
 
 **Fallback** (hook didn't fire, no `=== LEARNER PROFILE ===` in context): Read `~/.claude/leetcode-teacher-profile.md` manually. If it doesn't exist, create both files with templates per `references/learner-profile-spec.md`.
 
