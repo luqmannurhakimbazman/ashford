@@ -23,7 +23,7 @@ if [ ! -f "$PROFILE" ]; then
 
 ## Known Weaknesses
 
-<!-- Active weaknesses tracked across sessions (max 10). -->
+<!-- Active weaknesses tracked across sessions (max 20). -->
 
 ### Resolved
 
@@ -88,8 +88,14 @@ fi
 # Get last session history entry timestamp from profile
 LAST_PROFILE_TS=$(grep -E '^### [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2} \|' "$PROFILE" 2>/dev/null | head -1 | sed 's/^### //' | cut -d'|' -f1 | xargs)
 
-# Get last ledger row timestamp
-LAST_LEDGER_TS=$(tail -1 "$LEDGER" 2>/dev/null | grep -E '^\|' | sed 's/^| *//' | cut -d'|' -f1 | xargs)
+# Get latest ledger row timestamp (robust to out-of-order rows)
+LAST_LEDGER_TS=$(grep -E '^\|' "$LEDGER" 2>/dev/null \
+  | sed 's/^| *//' \
+  | cut -d'|' -f1 \
+  | tr -d ' ' \
+  | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}$' \
+  | sort -r \
+  | head -1)
 
 if [ -n "$LAST_PROFILE_TS" ] && [ -n "$LAST_LEDGER_TS" ]; then
   # Check if profile has a newer entry than ledger
@@ -157,44 +163,87 @@ fi
 
 # --- Retest suggestions for resolved (short-term) weaknesses ---
 RETEST_OUTPUT=""
-while IFS= read -r line; do
-  # Extract the label and find the Last tested timestamp
-  LABEL=$(echo "$line" | sed 's/^- \*\*\(.*\)\*\*.*/\1/')
-
-  # Look for Last tested in the next few lines after this entry in the profile
-  LINE_NUM=$(grep -n "^- \*\*${LABEL}\*\*" "$PROFILE" | head -1 | cut -d: -f1)
-  if [ -n "$LINE_NUM" ]; then
-    # Search the next 3 lines for Last tested
-    LAST_TESTED=$(sed -n "$((LINE_NUM+1)),$((LINE_NUM+3))p" "$PROFILE" | grep -o 'Last tested: [0-9T:-]*' | sed 's/Last tested: //')
-
-    if [ -n "$LAST_TESTED" ]; then
-      # Compare dates (strip time for date arithmetic)
-      TESTED_DATE=$(echo "$LAST_TESTED" | cut -dT -f1)
-      TODAY=$(date +%Y-%m-%d)
-
-      # Calculate weeks difference using portable date arithmetic
-      if command -v python3 &>/dev/null; then
-        WEEKS_AGO=$(python3 -c "
+if command -v python3 &>/dev/null; then
+  RETEST_OUTPUT=$(python3 - "$PROFILE" <<'PY' 2>/dev/null
 from datetime import datetime
-d1 = datetime.strptime('${TESTED_DATE}', '%Y-%m-%d')
-d2 = datetime.strptime('${TODAY}', '%Y-%m-%d')
-print((d2-d1).days // 7)
-" 2>/dev/null)
-      else
-        WEEKS_AGO=0
-      fi
+import re
+import sys
 
-      if [ -n "$WEEKS_AGO" ] && [ "$WEEKS_AGO" -ge 2 ] 2>/dev/null; then
-        RETEST_OUTPUT="${RETEST_OUTPUT}- ${LABEL} (last tested ${LAST_TESTED}, ${WEEKS_AGO} weeks ago)\n"
-      fi
-    fi
-  fi
-done < <(grep "resolved (short-term)" "$PROFILE" | grep "^- \*\*")
+profile_path = sys.argv[1]
+
+try:
+    with open(profile_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+except OSError:
+    sys.exit(0)
+
+known_weaknesses = []
+in_known_weaknesses = False
+for line in lines:
+    stripped = line.rstrip("\n")
+    if stripped.startswith("## Known Weaknesses"):
+        in_known_weaknesses = True
+        continue
+    if in_known_weaknesses and stripped.startswith("## Session History"):
+        break
+    if in_known_weaknesses:
+        known_weaknesses.append(stripped)
+
+label_re = re.compile(r"^- \*\*(.+?)\*\*")
+last_tested_re = re.compile(r"Last tested:\s*([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2})")
+today = datetime.now()
+results = []
+
+i = 0
+while i < len(known_weaknesses):
+    current = known_weaknesses[i].strip()
+    label_match = label_re.match(current)
+    if not label_match:
+        i += 1
+        continue
+
+    label = label_match.group(1).strip()
+    block_lines = [current]
+    i += 1
+
+    while i < len(known_weaknesses):
+        peek = known_weaknesses[i].strip()
+        if label_re.match(peek) or peek.startswith("## ") or peek.startswith("### "):
+            break
+        block_lines.append(peek)
+        i += 1
+
+    block_text = " ".join(block_lines)
+    if "resolved (short-term)" not in block_text:
+        continue
+
+    tested_match = last_tested_re.search(block_text)
+    if not tested_match:
+        continue
+
+    last_tested = tested_match.group(1)
+    try:
+        tested_dt = datetime.strptime(last_tested, "%Y-%m-%dT%H:%M")
+    except ValueError:
+        continue
+
+    days_ago = (today - tested_dt).days
+    if days_ago >= 14:
+        weeks_ago = days_ago // 7
+        results.append(
+            f"- {label} (last tested {last_tested}, {weeks_ago} weeks ago)"
+        )
+
+if results:
+    print("\n".join(results))
+PY
+)
+fi
 
 if [ -n "$RETEST_OUTPUT" ]; then
   echo ""
   echo "=== RETEST SUGGESTIONS ==="
-  echo -e "$RETEST_OUTPUT"
+  printf '%s\n' "$RETEST_OUTPUT"
   echo "=== END RETEST SUGGESTIONS ==="
 fi
 

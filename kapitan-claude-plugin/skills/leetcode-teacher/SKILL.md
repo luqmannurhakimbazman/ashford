@@ -375,7 +375,7 @@ After generating study notes, update the persistent learner profile. **Write led
    - **Gap observed again** → update `Last tested`, `Last failed`, reset `Last clean streak start` to empty, set `Sessions since last failure` to 0. Status → `recurring` if was `new`, stays `recurring` if already was. All timestamps use Session Timestamp.
    - **Gap NOT observed when expected** → update `Last tested`, increment `Sessions since last failure`. If streak just started, set `Last clean streak start` to Session Timestamp. After 3+ consecutive clean sessions: mark `resolved (short-term)`. For long-term: check that `Last clean streak start` spans 4+ weeks (verify against ledger).
    - **New gap** → add with status `new`, `First observed: [Session Timestamp]`. Description **must** name a specific input class or code pattern (not "struggles with edge cases" but "misses empty input check on array problems").
-   - Enforce 10-entry active cap. If full, promote the most-resolved entry or ask the learner which to archive.
+   - Enforce 20-entry active cap. If full, promote the most-resolved entry or ask the learner which to archive.
 
 4. **Confirm** briefly — don't dump the full profile. On first session (if `[FIRST SESSION]` tag was present), show the About Me draft populated from session observations and ask the learner to correct/confirm.
 
@@ -487,7 +487,7 @@ After the R7 debrief, update the persistent learner profile. **Write ledger firs
    - Gap observed again → update `Last tested`, `Last failed`, reset `Last clean streak start`, status to `recurring`. All timestamps use Session Timestamp.
    - Gap NOT observed → update `Last tested`, increment `Sessions since last failure`, manage streak/resolution. All timestamps use Session Timestamp.
    - New gap → add with status `new`, `First observed: [Session Timestamp]`, must name specific input class or code pattern
-   - Enforce 10-entry active cap
+   - Enforce 20-entry active cap
 
 4. **Confirm** briefly. On first session, show About Me draft and ask learner to correct.
 

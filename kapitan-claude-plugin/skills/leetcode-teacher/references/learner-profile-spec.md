@@ -14,7 +14,7 @@ Learner-written. Contains goals, timeline, preferred language, self-assessed lev
 
 ### Section: Known Weaknesses
 
-Max 10 active entries + max 10 resolved entries (in a `### Resolved` subsection).
+Max 20 active entries + max 10 resolved entries (in a `### Resolved` subsection).
 
 Each entry format:
 
