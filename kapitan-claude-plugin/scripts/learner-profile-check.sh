@@ -33,11 +33,18 @@ if [ "${REFS_READ:-0}" -eq 0 ]; then
   exit 0
 fi
 
-# Teaching requires multi-turn Socratic Q&A before reaching Step 8B/R7B.
-# A session with fewer than 3 user messages hasn't progressed far enough.
-USER_TURNS=$(grep -c '"type"\s*:\s*"user"' "$TRANSCRIPT" 2>/dev/null)
+# Count genuine human messages — tool-result carriers are user-role messages
+# whose content is exclusively tool_result entries. A message counts as human
+# if it contains any non-tool_result content (future-proofs against mixed messages).
+USER_TURNS=$(jq -r '
+  select(.type == "user")
+  | select((.content // []) | any(.type != "tool_result"))
+  | 1
+' "$TRANSCRIPT" 2>/dev/null | wc -l | tr -d ' ')
 USER_TURNS=${USER_TURNS:-0}
-if [ "$USER_TURNS" -lt 3 ]; then
+# Require at least 2 real human turns: the problem prompt + at least one
+# Socratic Q&A response, meaning teaching has genuinely begun.
+if [ "$USER_TURNS" -lt 2 ]; then
   exit 0
 fi
 
