@@ -293,10 +293,13 @@ When the optimal solution uses a specific technique, load the matching reference
 |-----------------|-----------|
 | Sliding window, DP framework, backtracking, BFS, state machine, divide-and-conquer | `algorithm-frameworks.md` |
 | Data structure internals (hash table, heap, trie, linked list, tree, graph) | `data-structure-fundamentals.md` |
+| Min-stack, min-queue, sparse table, static RMQ | `advanced-ds-fundamentals.md` |
+| DSU/Union-Find, Fenwick tree/BIT, segment tree (advanced/lazy), treap, sqrt decomposition, mergeable heaps | `advanced-tree-structures.md` |
 | Prefix sums, difference arrays, 2D traversal | `array-techniques.md` |
 | Monotonic stack/queue, expression evaluation | `stack-queue-monotonic.md` |
 | Backtracking variants, grid DFS (islands), state-space BFS (puzzles) | `brute-force-search.md` |
 | DP families (knapsack, grid, interval, game theory, string, egg drop) | `dynamic-programming-core.md` |
+| D&C DP, Knuth optimization, bitmask DP, O(N log N) LIS, bounded knapsack optimizations, largest zero submatrix | `dynamic-programming-advanced.md` |
 | Classic interview problems (trapping rain water, ugly numbers, intervals) | `classic-interview-problems.md` |
 | N-Sum, LRU/LFU Cache, state machine DP, subsequence DP, Dijkstra | `advanced-patterns.md` |
 
