@@ -50,15 +50,9 @@ Every problem is taught through six sections. Each maps to a specific interview 
 ### Section 1: Layman Intuition
 
 **Goal:** Build a mental model using real-world analogies before any code or jargon.
-
 **Technique:** Find an everyday scenario that mirrors the problem's core mechanic.
-
-**Socratic Prompts:**
-- "Before we look at code — can you describe this problem as if explaining to a friend who doesn't program?"
-- "What real-world situation feels similar to this?"
-- "If you had to solve this by hand with physical objects, what would you do?"
-
 **Output:** A 2-3 sentence analogy that captures the problem's essence.
+Draw Socratic prompts from `references/socratic-questions.md` matched to this stage.
 
 ### Data Structure Grounding
 
@@ -67,41 +61,23 @@ When teaching problems that involve a specific data structure (hash table, heap,
 ### Section 2: Brute Force Solution
 
 **Goal:** Establish a working baseline. Prove understanding before optimizing.
-
 **Technique:** Guide the user to hand-solve small examples, then translate to code.
-
-**Socratic Prompts:**
-- "Walk me through how you'd solve this for the example input, step by step."
-- "What's the most straightforward approach, even if slow?"
-- "What's the time complexity? Why is it not good enough?"
-
 **Output:** Working brute force code with complexity analysis and a clear explanation of *why* it's inefficient.
+Draw Socratic prompts from `references/socratic-questions.md` matched to this stage.
 
 ### Section 3: Optimal Solution
 
 **Goal:** Discover the efficient algorithm through guided reasoning.
-
 **Technique:** Progressive discovery — identify the bottleneck in brute force, then find what eliminates it.
-
-**Socratic Prompts:**
-- "Where does the brute force waste the most work?"
-- "What information are we recomputing that we could remember?"
-- "What data structure would let us do [the bottleneck operation] faster?"
-
 **Output:** Optimal solution with step-by-step derivation, annotated code, and complexity proof.
+Draw Socratic prompts from `references/socratic-questions.md` matched to this stage.
 
 ### Section 4: Alternative Solutions
 
 **Goal:** Broaden perspective. Show that problems have multiple valid approaches.
-
 **Technique:** Present 1-2 alternatives with explicit trade-off comparison.
-
-**Socratic Prompts:**
-- "Can you think of a completely different way to frame this problem?"
-- "What if memory wasn't a constraint? What if time wasn't?"
-- "When might an alternative be preferred over the 'optimal' solution?"
-
 **Output:** Alternative approaches with trade-off table (time, space, implementation complexity, interview suitability).
+Draw Socratic prompts from `references/socratic-questions.md` matched to this stage.
 
 ### Section 5: Final Remarks & Complexity Summary
 
@@ -309,30 +285,20 @@ Walk through the optimal solution with:
 - Complexity analysis with proof sketch
 ### Reference Routing
 
-When the optimal solution uses a specific technique, load the matching reference file:
+When the optimal solution uses a specific technique, load the matching reference file from `references/`. For domains not listed below, match to the reference file whose name matches the technique (e.g., bit manipulation → `bit-manipulation.md`, geometry → `geometry.md`).
+
+**Non-obvious mappings:**
 
 | Technique Domain | Reference |
 |-----------------|-----------|
-| Sliding window, DP framework, backtracking, BFS, state machine, divide-and-conquer, greedy | `references/algorithm-frameworks.md` |
-| Data structure internals (hash table, heap, trie, linked list, tree, graph) | `references/data-structure-fundamentals.md` |
-| Linked list manipulation (reversal, cycle detection, merging, pointer tricks) | `references/linked-list-techniques.md` |
-| Sorting algorithm selection | `references/sorting-algorithms.md` |
-| Prefix sums, difference arrays, 2D traversal | `references/array-techniques.md` |
-| String manipulation (anagrams, palindromes, KMP, encoding) | `references/string-techniques.md` |
-| Binary search (classic or search-on-answer) | `references/binary-search-framework.md` |
-| Matrix manipulation (spiral, rotation, set zeroes, game boards) | `references/matrix-techniques.md` |
-| Monotonic stack/queue, expression evaluation | `references/stack-queue-monotonic.md` |
-| Graph algorithms (topological sort, MST, shortest path, Eulerian path) | `references/graph-algorithms.md` |
-| Backtracking variants, grid DFS (islands), state-space BFS (puzzles) | `references/brute-force-search.md` |
-| DP families (knapsack, grid, interval, game theory, string, egg drop) | `references/dynamic-programming-core.md` |
-| Greedy (interval scheduling, jump game, gas station, scan line) | `references/greedy-algorithms.md` |
-| Bit manipulation (XOR, AND tricks, bitmask subsets) | `references/bit-manipulation.md` |
-| Math (modular arithmetic, GCD/LCM, sieve, fast exponentiation) | `references/math-techniques.md` |
-| Brain teasers & game theory (Nim, stone game, bulb switcher) | `references/brain-teasers-games.md` |
-| Probability & randomized algorithms (shuffle, reservoir sampling) | `references/probability-random.md` |
-| Computational geometry (distance, overlap, area, k closest) | `references/geometry.md` |
-| Classic interview problems (trapping rain water, ugly numbers, intervals, pancake sort) | `references/classic-interview-problems.md` |
-| ML implementations (optimizers, layers, losses, activations) | `references/ml-implementations.md` |
+| Sliding window, DP framework, backtracking, BFS, state machine, divide-and-conquer | `algorithm-frameworks.md` |
+| Data structure internals (hash table, heap, trie, linked list, tree, graph) | `data-structure-fundamentals.md` |
+| Prefix sums, difference arrays, 2D traversal | `array-techniques.md` |
+| Monotonic stack/queue, expression evaluation | `stack-queue-monotonic.md` |
+| Backtracking variants, grid DFS (islands), state-space BFS (puzzles) | `brute-force-search.md` |
+| DP families (knapsack, grid, interval, game theory, string, egg drop) | `dynamic-programming-core.md` |
+| Classic interview problems (trapping rain water, ugly numbers, intervals) | `classic-interview-problems.md` |
+| N-Sum, LRU/LFU Cache, state machine DP, subsequence DP, Dijkstra | `advanced-patterns.md` |
 
 When sorting is part of the optimal solution, also ask: *"Which sort would you use and why? What properties matter — stability, in-place, worst-case guarantee?"*
 
@@ -368,162 +334,19 @@ After generating study notes, update the persistent learner profile per `referen
 
 ## 5B. Recall Mode Workflow
 
-**Core contract: interviewer, not teacher.** In Recall Mode, you adopt the persona of a calm, neutral technical interviewer. You do not teach, hint, praise, or correct — you probe. The only exception is the Downshift Protocol (below), which is the sole justified interruption to this contract.
+Full protocol in `references/recall-workflow.md`. Load it when Recall Mode is triggered.
 
-**Behavioral rules:**
-- No "good", "right", "exactly" — use neutral acknowledgments: "Okay", "Got it", "Go on"
-- No hints or leading questions — ask open-ended probes
-- Wrong answers → ask the user to trace through their logic, don't correct directly
-- Reference `references/recall-drills.md` for question banks throughout
+**Core contract:** Interviewer, not teacher. Neutral acknowledgments only ("Okay", "Got it"). No hints, no praise, no correction — probe. Use `references/recall-drills.md` for question banks.
 
-### R1: Problem Framing
+**Steps:** R1 (Problem Framing) → R2 (Unprompted Reconstruction) → R3 (Edge Case Drill — calibrate from Known Weaknesses) → R4 (Complexity Challenge) → R5 (Pattern Classification) → R6 (Variation Adaptation) → R7 (Debrief & Scoring) → R7B (Update Learner Profile per `references/learner-profile-spec.md`)
 
-Set the interviewer frame. Present the problem cleanly and hand control to the user:
+**Scoring (R7):** Strong Pass / Pass / Borderline / Needs Work. Review schedule: all correct → 7 days; minor gaps → 3 days; major gaps → tomorrow + 3 days.
 
-> "Here's the problem: [problem statement]. Walk me through your approach. How would you solve this?"
+**Downshift (Recall → Learning):** Trigger on fundamental gaps (can't reconstruct, wrong algorithm family, fails same concept 2+ times). Teach only the gap via Socratic method, then offer to resume quiz or switch to full Learning Mode. Never downshift on minor misses.
 
-Do not provide examples unless the user asks. Do not hint at the approach. Wait.
+**Upshift (Learning → Recall):** Trigger when learner gives optimal solution unprompted or identifies pattern early. Offer quiz mode; if accepted, jump to R3.
 
-### R2: Unprompted Reconstruction
-
-The user reconstructs their solution from memory. Your job is silent listening with neutral acknowledgments.
-
-**What to track (internally, don't share yet):**
-- Did they identify the correct algorithm/technique?
-- Is their approach fundamentally correct or fundamentally wrong?
-- Did they handle the core logic correctly?
-- What did they miss or get wrong?
-
-**If the user asks for clarification** about the problem → answer factually (this is expected in real interviews).
-**If the user asks for hints** → "In an interview setting, you'd need to work through this on your own. Give it your best shot, and we'll discuss after."
-
-### R3: Edge Case Drill
-
-> **Profile calibration:** If Known Weaknesses includes edge-case entries (e.g., "misses empty input on array problems"), specifically test those even if they aren't default probes for this problem type. Note whether the learner catches them — this directly informs weakness status updates in R7B.
-
-After reconstruction, probe edge case awareness. Draw 2-4 questions from `references/recall-drills.md` Section 1 (Edge Case Bank), matched to the problem type.
-
-> "What happens when the input is empty?"
-> "What if all elements are the same?"
-> "What about integer overflow?"
-
-Track which edge cases the user catches vs. misses.
-
-### R4: Complexity Challenge
-
-Pressure-test their complexity understanding. Don't accept surface-level answers.
-
-> "What's the time complexity?" *(wait for answer)* "Don't just say O(n) — tell me what n represents and how you counted the operations."
-> "What about space? Are you counting the output?"
-> "What's the best case? Worst case? Are they different?"
-
-Draw from `references/recall-drills.md` Section 2 (Complexity Challenge Bank) for deeper probes (amortized analysis, hidden costs, recurrence relations).
-
-### R5: Pattern Classification
-
-Test whether the user understands the problem at the pattern level, not just the solution level.
-
-> "What pattern or technique does this problem use?"
-> "Name two other problems that use the same core technique."
-> "If I changed [constraint], would the same pattern still work? Why or why not?"
-
-Draw from `references/recall-drills.md` Section 3 (Pattern Classification Bank).
-
-### R6: Variation Adaptation
-
-The acid test: understanding vs. memorization. Present a modified version of the problem and see if the user can adapt.
-
-> "Now, what if [variation]? How would you modify your approach?"
-
-Draw variations from `references/recall-drills.md` Section 4 (Variation Bank). The variation should change one constraint or requirement while keeping the core technique relevant but requiring adaptation.
-
-Let the user work through it. Track whether they adapt fluently or struggle.
-
-### R7: Debrief & Scoring
-
-**Break character.** Drop the interviewer persona and give honest, specific feedback.
-
-Structure the debrief as:
-
-1. **What you nailed:** Specific things they got right (algorithm choice, edge cases caught, clear communication)
-2. **Gaps to close:** Specific things they missed or got wrong, with the correct answers
-3. **Overall assessment:** Would this pass a real interview? Where would they lose points?
-4. **Recommended review schedule:** Spaced repetition suggestion based on performance:
-   - All correct → review in 7 days
-   - Minor gaps → review in 3 days
-   - Major gaps → review tomorrow, then in 3 days
-
-Generate structured Recall Mode output (see Section 8B).
-
-### R7B: Update Learner Profile
-
-After the R7 debrief, update the persistent learner profile per `references/learner-profile-spec.md` Section "Update Protocol — Recall Mode". Write ledger first, then profile. Review interval is calculated from R7 verdict (see spec for formula). On first session, show About Me draft and ask learner to confirm.
-
-### Downshift Protocol (Recall → Learning)
-
-At **any recall step**, if the user demonstrates a fundamental gap (not a minor miss), transition to Learning Mode for that specific concept.
-
-**Trigger signals:**
-- User cannot start reconstruction at all ("I don't remember anything about this")
-- User's reconstruction is fundamentally wrong (wrong algorithm family, not just a bug)
-- User explicitly asks "can you teach me this part?" or "I need help"
-- User fails the same concept across 2+ consecutive probes (e.g., wrong complexity AND wrong edge case handling for the same underlying reason)
-
-**How to downshift:**
-
-> "Let's pause the quiz here. You're solid on [what they got right], but [specific concept] has a gap. Let me walk you through that part, then we'll pick the quiz back up."
-
-Then:
-1. **Teach only the gap** — use the existing Socratic method (Section 3) scoped to the specific concept they're missing. Do not restart the entire 6-section teaching flow.
-2. **After filling the gap, offer a choice:**
-
-> "Now that we've covered [concept] — want to continue the quiz from where we left off, or would you rather switch to full learning mode for this problem?"
-
-3. If they continue → resume at the recall step where they stalled
-4. If they switch → transition to Learning Mode Step 3 (Layman Intuition) for the full problem
-
-**What NOT to do:**
-- Don't silently switch modes — always name the transition explicitly
-- Don't restart the entire recall sequence after a downshift — resume where they left off
-- Don't downshift on minor misses (off-by-one in complexity, missing one edge case) — those are normal recall gaps handled in R7 debrief
-
-### Upshift Protocol (Learning → Recall)
-
-The reverse transition: a user starts in Learning Mode but demonstrates they already know the material.
-
-**Trigger signals:**
-- User gives the optimal solution unprompted during Step 4 (Brute Force) or Step 5 (Optimal)
-- User correctly identifies the pattern before being asked
-- User says "I've seen this before" or "I remember now"
-
-**How to upshift:**
-
-> "You clearly have a handle on this already. Want me to switch to quiz mode and test how deep your recall goes?"
-
-If yes → jump to Recall Step R3 (Edge Case Drill), since they've already demonstrated reconstruction.
-If no → continue Learning Mode as normal.
-
-### Profile Review Mode
-
-**Trigger:** "how am I doing?", "what are my weaknesses?", "show me my progress", "review my profile"
-
-When the learner asks to review their progress, read **both** files:
-
-1. **Profile** (`~/.claude/leetcode-teacher-profile.md`) — current weaknesses, recent session history
-2. **Ledger** (`~/.claude/leetcode-teacher-ledger.md`) — full session record for longitudinal analysis
-
-Synthesize and present:
-- **Total sessions** and pattern coverage (which patterns practiced, which untouched)
-- **Active weaknesses** with trajectories (improving? plateauing? recurring?)
-- **Retention** — patterns not practiced in 4+ weeks
-- **Short-term resolutions** due for retest (2+ weeks since last test)
-- **Verdict distribution** — ratio of independent solves vs. scaffolded sessions
-- **Actionable next steps** — specific problems or patterns to focus on
-- **Practice plan suggestions** — based on session frequency and weakness patterns, suggest session structure and difficulty adjustments per `references/practice-strategy.md` Sections 2-3, 6
-
-After presenting the summary, ask: "Want to edit anything in your profile? You can update About Me, remove a weakness you think is resolved, or correct anything that looks wrong."
-
-**Important:** The ledger may be large. Read it for this mode, but do not keep it in working memory after the review is complete. If the session continues into teaching/recall after a profile review, rely on the profile (not the ledger) for calibration.
+**Profile Review:** Triggered by "how am I doing?" etc. Read both profile and ledger. Synthesize: session count, pattern coverage, weakness trajectories, retention gaps, verdict distribution, actionable next steps. See `references/recall-workflow.md` for full protocol.
 
 ---
 
@@ -582,223 +405,26 @@ When a URL is provided:
 
 ## 8. Output Format
 
-Generate saveable Markdown study notes with this structure:
+Generate saveable Markdown study notes. Full templates in `references/output-formats.md`.
 
-```markdown
-# [Problem Name]
+**Learning Mode** — required sections: metadata header (Source, Difficulty, Pattern, Date, Mode), Layman Intuition, Brute Force (code + complexity + why insufficient), Optimal Solution (insight + algorithm + annotated code + complexity), Alternatives (with trade-offs), Summary (comparison table + key takeaway + related problems), Interview Tips, Reflection Questions. For ML implementations, also include: Mathematical Foundation, Numerical Walkthrough, Implementation Gotchas.
 
-**Source:** [URL or description]
-**Difficulty:** [Easy/Medium/Hard]
-**Pattern:** [Pattern name]
-**Date:** [Today's date]
-**Mode:** Learning
+**Recall Mode** — required sections: metadata header (including Verdict: Strong Pass / Pass / Borderline / Needs Work), Reconstruction (approach + code quality + corrections), Edge Cases (table), Complexity Analysis (table), Pattern Classification, Variation Response, Gaps to Review, Recommended Review Schedule, Reflection Questions. Include Mode Transitions section only if downshift/upshift occurred. Include Reference Solution only for Borderline/Needs Work verdicts or on request.
 
-## 1. Layman Intuition
-[Real-world analogy — 2-3 sentences]
-
-## 2. Brute Force
-[Approach description]
-[Code with comments]
-- **Time:** O(...)
-- **Space:** O(...)
-- **Why not good enough:** [explanation]
-
-## 3. Optimal Solution
-[Key insight — 1-2 sentences]
-[Step-by-step algorithm]
-[Code with comments]
-- **Time:** O(...)
-- **Space:** O(...)
-
-## 4. Alternatives
-[1-2 alternative approaches with trade-offs]
-
-## 5. Summary
-| Approach | Time | Space | Notes |
-|----------|------|-------|-------|
-| ... | ... | ... | ... |
-
-**Key Takeaway:** [One sentence]
-**Related Problems:** [2-3 problems]
-
-## 6. Interview Tips
-- [How to present this in an interview]
-- [Common follow-ups]
-- [Edge cases to mention]
-
-## Reflection Questions
-1. What was the key insight?
-2. What pattern does this belong to?
-3. What similar problems use this pattern?
-```
-
-For ML implementations, add:
-
-```markdown
-## Mathematical Foundation
-[Key equations with term explanations]
-
-## Numerical Walkthrough
-[Step-by-step with small tensors]
-
-## Implementation Gotchas
-[Common mistakes and how to avoid them]
-```
-
----
-
-## 8B. Recall Mode Output Format
-
-When a Recall Mode session completes (R7 debrief), generate structured session notes:
-
-````markdown
-# [Problem Name] — Recall Session
-
-**Source:** [URL or description]
-**Difficulty:** [Easy/Medium/Hard]
-**Pattern:** [Pattern name]
-**Date:** [Today's date]
-**Mode:** Recall — [Full Mock Interview / Edge Cases + Complexity / Variation Challenge]
-**Verdict:** [Strong Pass / Pass / Borderline / Needs Work] — [one-sentence summary]
-
-## 1. Reconstruction
-- **Approach identified:** [correct/partial/incorrect] — [summary of what they described]
-- **Conceptual explanation quality:** [prose assessment of how clearly they articulated the approach]
-- **Code quality:** [correct/minor bugs/major bugs/not attempted]
-
-**User's submitted code:**
-```python
-[the raw code the user produced during reconstruction]
-```
-
-**Corrections & guidance:**
-- [Bug/issue #1] → [fix and brief explanation]
-- [Bug/issue #2] → [fix and brief explanation]
-- [... additional as needed]
-
-## 2. Edge Cases
-| Edge Case | Result | Notes |
-|-----------|--------|-------|
-| Empty input | [caught/missed] | [reasoning — e.g., "Caught — correctly traced to `len(stack) == 0`"] |
-| Single element | [caught/missed] | [reasoning] |
-| [problem-specific] | [caught/missed] | [reasoning] |
-
-## 3. Complexity Analysis
-| Metric | User's Answer | Correct Answer | Result |
-|--------|--------------|----------------|--------|
-| Time | [their answer] | [correct] | [correct/incorrect] |
-| Space | [their answer] | [correct] | [correct/incorrect] |
-| Justification | [their reasoning] | — | [solid/weak/missing] |
-
-## 4. Pattern Classification
-- **Pattern identified:** [correct/incorrect/partial]
-- **Related problems named:** [list] ([correct count]/[total asked])
-
-## 5. Variation Response
-- **Variation posed:** [description]
-- **Adaptation:** [fluent/struggled/failed]
-- **Summary:** [what they did]
-
-## 6. Gaps to Review
-| Gap | Details | Priority |
-|-----|---------|----------|
-| [specific gap] | [correct answer, explanation, or approach note] | [high/medium/low] |
-
-## 7. Recommended Review Schedule
-- **Next review:** [date based on spaced repetition]
-- **Focus areas:** [specific topics to revisit]
-
-## 8. Mode Transitions
-<!-- Include only if a downshift/upshift occurred during the session. Omit this section entirely otherwise. -->
-- **Transition:** [Downshift / Upshift] at [which step, e.g., R2]
-- **Concept gap:** [what triggered it]
-- **Resolution:** [what was taught or confirmed]
-- **Resumed:** [yes — at which step / no — switched to full learning]
-
-## Reflection Questions
-1. Which part of the solution was hardest to recall, and why?
-2. What would you do differently if this were a real interview?
-3. What's the one concept you should review before your next session?
-
-## Reference Solution
-<!-- Include only when Verdict is Borderline/Needs Work, or the user requests it. Omit otherwise. -->
-```python
-[clean, commented reference solution]
-```
-- **Time:** O(...)
-- **Space:** O(...)
-````
-
-### Filename Convention
-
-When saving study notes, use these naming patterns for easy retrieval and spaced repetition tracking:
-
-- **Learning Mode:** `[problem-name].md` (e.g., `valid-parentheses.md`)
-- **Recall Mode:** `[problem-name]-recall-[YYYY-MM-DD].md` (e.g., `valid-parentheses-recall-2026-02-19.md`)
+**Filenames:** Learning: `[problem-name].md` — Recall: `[problem-name]-recall-[YYYY-MM-DD].md`
 
 ---
 
 ## 9. Common Issues
 
-### "Just give me the answer"
-Acknowledge, then offer one bridging question. If the user insists after that, provide the solution with annotations — but still include reflection questions at the end.
+- **"Just give me the answer"** — Acknowledge, offer one bridging question. If they insist, provide annotated solution with reflection questions.
+- **Stuck and frustrated** — Escalate hint tier immediately, validate the difficulty, offer to walk through together instead of asking questions.
+- **Incomplete problem description** — Ask for the specific missing pieces (constraints, examples, expected output).
+- **ML needs external references** — Use `references/ml-implementations.md`. For novel architectures, ask the user for the paper.
+- **User already knows the solution** — Offer routing menu:
+  > **(a) Full mock interview** — quiz everything: reconstruction, edge cases, complexity, variations. *(→ Section 5B from R1)*
+  > **(b) Edge cases + complexity only** — skip reconstruction, straight to hard questions. *(→ Section 5B from R3)*
+  > **(c) Variation challenge** — twist on the problem, test adaptation. *(→ Section 5B from R6)*
+  >
+  > If they say "just review it" / "refresh my memory" → provide annotated optimal solution + reflection questions. No Socratic scaffolding.
 
-### User is stuck and frustrated
-- Escalate hint tier immediately
-- Validate the difficulty: "This is genuinely a hard pattern to see the first time."
-- Offer to walk through together step-by-step rather than asking questions
-
-### Incomplete problem description
-Ask for the specific missing pieces (constraints, examples, expected output) rather than guessing.
-
-### ML problem needs external references
-Reference `references/ml-implementations.md` for standard formulations. For novel architectures, ask the user to provide the paper or reference material.
-
-### User already knows the solution
-
-When a user indicates they already know the solution (e.g., "I know this one", "I've solved this before", "I know merge intervals"), offer a routing menu:
-
-> "Great — since you already know this, what would be most useful?"
->
-> **(a) Full mock interview** — I'll quiz you on everything: reconstruction, edge cases, complexity, variations. *(→ Section 5B from R1)*
->
-> **(b) Edge cases + complexity only** — Skip reconstruction, go straight to the hard questions. *(→ Section 5B from R3)*
->
-> **(c) Variation challenge** — I'll give you a twist on the problem and see if you can adapt. *(→ Section 5B from R6)*
-
-If the user doesn't want any of these and says something like "just review it" or "refresh my memory":
-→ Provide the Learning Mode annotated solution (optimal approach with code) plus reflection questions from Step 7. No Socratic scaffolding needed — just the reference material.
-
----
-
-## Reference Files
-
-| File | Purpose |
-|------|---------|
-| `references/problem-patterns.md` | Catalog of 10 core algorithmic patterns with recognition signals, code templates, and decision tree |
-| `references/algorithm-frameworks.md` | Meta-level thinking frameworks: enumeration principle, binary tree centrality, recursion-as-tree, sliding window / DP / backtracking / BFS / state machine templates with full derivations |
-| `references/data-structure-fundamentals.md` | How data structures work under the hood: storage duality, array/linked list internals, hash tables, binary tree centrality thesis, graph fundamentals, advanced DS overview |
-| `references/sorting-algorithms.md` | All 10 sorting algorithms with complexity analysis, tree-traversal insight (quick sort = pre-order, merge sort = post-order), and choosing the right sort |
-| `references/linked-list-techniques.md` | 6 core linked list patterns: fast-slow pointers (Floyd's), dummy node, reversal, merge sorted lists, intersection, two-pointer deletion with pattern selection decision tree |
-| `references/advanced-patterns.md` | 13 advanced patterns: N-Sum, LRU/LFU Cache, Random Set O(1), Median from Data Stream, Remove Duplicate Letters, Exam Room, state machine DP, subsequence DP, house robber, interval scheduling, bipartite graphs, Dijkstra |
-| `references/array-techniques.md` | Prefix sum (1D/2D), difference array, 2D traversal, Rabin-Karp with templates and problem lists |
-| `references/binary-search-framework.md` | Unified binary search framework (find/left/right bound), search on answer, practical applications |
-| `references/matrix-techniques.md` | Matrix as 2D array: spiral traversal, rotation (transpose + reverse), set zeroes (first row/col markers), game board modeling, corner cases |
-| `references/stack-queue-monotonic.md` | Monotonic stack/queue, stack-queue implementation, expression evaluation calculator |
-| `references/graph-algorithms.md` | Topological sort, Eulerian path, union-find framework, A*, Kruskal/Prim MST |
-| `references/brute-force-search.md` | Backtracking deep dives (9-variant framework, Ball-Box Model, DFS vs backtracking), 2D grid DFS (island problems), BFS applications (state-space search, puzzles, mazes) |
-| `references/ml-implementations.md` | Optimizers, layers, losses, and activations with equations, NumPy templates, and numerical walkthroughs |
-| `references/learning-principles.md` | Make It Stick principles with science, application mapping, and combined walkthrough example |
-| `references/dynamic-programming-core.md` | Comprehensive DP reference: framework (state/choices/dp-definition, memoization, top-down vs bottom-up, space optimization), knapsack family (0-1, complete, bounded, Target Sum), subsequence/string DP (LIS, LCS, edit distance, word break, regex), grid/path DP, game theory DP, interval DP, egg drop, house robber/stock deep dives, Floyd-Warshall |
-| `references/greedy-algorithms.md` | Greedy algorithm framework: principles (greedy choice property, optimization hierarchy), proof techniques (exchange argument, stays ahead), interval scheduling, jump game, gas station, scan line technique, video stitching |
-| `references/socratic-questions.md` | Question bank by learning stage, problem type, and framework; three-tier hint examples; calibration guide |
-| `references/bit-manipulation.md` | Bit manipulation tricks: n&(n-1), XOR properties, bit masking, shift operations, useful bit tricks |
-| `references/math-techniques.md` | Modular arithmetic, fast exponentiation, GCD/LCM (Euclidean), Sieve of Eratosthenes, factorial trailing zeros |
-| `references/brain-teasers-games.md` | Mathematical brain teasers: Nim game (modulo), Stone game (first-player advantage), Bulb switcher (square root), random map generation |
-| `references/probability-random.md` | Probability fundamentals, classic paradoxes (boy-girl, birthday, Monty Hall), Fisher-Yates shuffle, reservoir sampling |
-| `references/string-techniques.md` | String techniques: character counting, bitmask trick, anagram detection (3 methods), palindrome patterns (two-pointer, expand-from-center, DP), KMP, practice questions |
-| `references/geometry.md` | Computational geometry for interviews: distance comparison (skip sqrt), overlapping circles/rectangles, rectangle area, K Closest Points |
-| `references/classic-interview-problems.md` | Trapping rain water, ugly numbers, missing/duplicate elements, pancake sorting, perfect rectangle, consecutive subsequences, interval operations, string multiplication |
-| `references/recall-drills.md` | Question banks for Recall Mode: edge case drills by problem type, complexity challenge probes, pattern classification questions, variation banks, mock interview simulation scripts |
-| `references/practice-strategy.md` | Deliberate practice methodology: difficulty calibration, session design (90-min blocks), time budget per problem, post-problem reflection protocol, condensed thinking checklist, long-term study planning with weekly templates, implementation discipline, progression milestones |
-| `references/learner-profile-spec.md` | Persistent learner profile + ledger format specification: file formats, weakness lifecycle, session history format, verdict labels, dual-write rules |
