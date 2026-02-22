@@ -56,7 +56,7 @@ Move to the next difficulty tier when:
 
 ### Problem Selection
 
-- **Mix topics** — don't practice by topic. Interleaving forces you to identify the pattern yourself, which is exactly the skill interviews test. (This aligns with the interleaving principle in `references/learning-principles.md`.)
+- **Mix topics** — don't practice by topic. Interleaving forces you to identify the pattern yourself, which is exactly the skill interviews test. (This aligns with the interleaving principle in `references/frameworks/learning-principles.md`.)
 - **Prefer recent/popular problems** over obscure ones — they better represent current interview trends
 - **Use curated lists for structure:** NeetCode 150 or Blind 75 provide good coverage, but shuffle the order rather than going topic-by-topic
 - **After completing a curated list,** move to random LeetCode problems in your difficulty range
@@ -136,7 +136,7 @@ When you solve a problem, still read the editorial or top solutions:
 
 ## 5. Problem-Solving Thinking Checklist
 
-A condensed set of meta-strategies to run through when stuck. These complement the pattern-specific frameworks in `references/algorithm-frameworks.md` and `references/problem-patterns.md` — those tell you WHAT technique to use; this checklist helps you THINK your way to discovering which technique applies.
+A condensed set of meta-strategies to run through when stuck. These complement the pattern-specific frameworks in `references/frameworks/algorithm-frameworks.md` and `references/frameworks/problem-patterns.md` — those tell you WHAT technique to use; this checklist helps you THINK your way to discovering which technique applies.
 
 ### Representation & Reframing
 
@@ -165,7 +165,7 @@ A condensed set of meta-strategies to run through when stuck. These complement t
 14. **Don't overcomplicate** — If your approach has too many edge cases or steps, it's probably wrong. Almost every interview problem has a clean, elegant solution. Step back and look for it.
 15. **Write down every observation** — Even small, seemingly irrelevant observations. Progress comes from combining observations, and you can't combine what you haven't recorded. If you're not writing new things, you're not thinking new things.
 
-> **Cross-references:** For pattern-specific recognition signals, see `references/problem-patterns.md`. For framework-level thinking (enumeration principle, recursion-as-tree, traversal vs. decomposition), see `references/algorithm-frameworks.md`. For data-structure selection, see `references/data-structure-fundamentals.md`.
+> **Cross-references:** For pattern-specific recognition signals, see `references/frameworks/problem-patterns.md`. For framework-level thinking (enumeration principle, recursion-as-tree, traversal vs. decomposition), see `references/frameworks/algorithm-frameworks.md`. For data-structure selection, see `references/data-structures/data-structure-fundamentals.md`.
 
 ---
 
@@ -262,7 +262,7 @@ Every problem solved and every session completed is genuine progress. Every new 
 
 ### Discomfort = Learning
 
-If practice feels comfortable, you're not learning efficiently. The productive struggle of working through problems just beyond your current ability is where growth happens. This is the "desirable difficulty" principle from learning science (see `references/learning-principles.md`).
+If practice feels comfortable, you're not learning efficiently. The productive struggle of working through problems just beyond your current ability is where growth happens. This is the "desirable difficulty" principle from learning science (see `references/frameworks/learning-principles.md`).
 
 ### Track Your Progress
 

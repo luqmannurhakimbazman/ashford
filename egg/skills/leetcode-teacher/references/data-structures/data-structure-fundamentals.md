@@ -2,6 +2,21 @@
 
 How data structures work under the hood — from first principles. Based on labuladong's "build-it-to-understand-it" approach.
 
+## Table of Contents
+
+- [The Storage Duality](#the-storage-duality)
+- [Array Internals](#array-internals)
+- [Linked List Internals](#linked-list-internals)
+- [Stack & Queue](#stack--queue)
+- [Hash Table Internals](#hash-table-internals)
+- [Binary Tree Centrality](#binary-tree-centrality)
+- [Binary Tree Advanced Operations](#binary-tree-advanced-operations)
+- [BST Operations](#bst-operations)
+- [Segment Tree](#segment-tree)
+- [Other Specialized Structures](#other-specialized-structures)
+- [Graph Fundamentals](#graph-fundamentals)
+- [Advanced Data Structures (Conceptual)](#advanced-data-structures-conceptual)
+
 ---
 
 ## The Storage Duality
@@ -225,7 +240,7 @@ With a good hash function and low load factor, each bucket has ~1 entry → O(1)
 
 ### Hash Table Interview Questions
 
-- **Design an LRU Cache (LC 146):** Hash map (O(1) lookup) + doubly-linked list (O(1) eviction) — the canonical augmented data structure. See `references/advanced-patterns.md`.
+- **Design an LRU Cache (LC 146):** Hash map (O(1) lookup) + doubly-linked list (O(1) eviction) — the canonical augmented data structure. See `references/algorithms/advanced-patterns.md`.
 - **Hash map with linked list buckets:** Implement `put`, `get`, `remove` with chaining collision resolution. Tests understanding of the hash table internals above.
 - **Implement a hash set without using built-in hash libraries (LC 705):** Choose bucket count, hash function, and collision strategy.
 

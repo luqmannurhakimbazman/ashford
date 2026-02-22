@@ -114,7 +114,7 @@ Evidence-based learning strategies from *Make It Stick: The Science of Successfu
 
 **How We Apply It:**
 - The entire 6-section framework is itself a structure for approaching problems
-- Pattern catalog (references/problem-patterns.md) provides scaffolding for classification
+- Pattern catalog (references/frameworks/problem-patterns.md) provides scaffolding for classification
 - Every problem is explicitly linked to a pattern family
 - Decision trees for pattern selection
 

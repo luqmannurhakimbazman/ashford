@@ -335,7 +335,7 @@ def kmp_search(text, pattern):
 
 ### Rabin-Karp
 
-Rolling hash for O(N) average substring matching. See `references/array-techniques.md` for the full template and worked examples.
+Rolling hash for O(N) average substring matching. See `references/techniques/array-techniques.md` for the full template and worked examples.
 
 ### When to Use Which
 

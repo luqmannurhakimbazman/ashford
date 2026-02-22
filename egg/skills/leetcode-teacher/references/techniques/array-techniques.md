@@ -45,7 +45,7 @@ Array fundamentals and essential manipulation patterns. Covers core concepts, in
 
 ### Sliding Window
 
-Maintain a window `[left, right]` that expands and shrinks based on a condition. See `references/algorithm-frameworks.md` for the full sliding window template with the three-question framework (when to expand, when to shrink, when to update).
+Maintain a window `[left, right]` that expands and shrinks based on a condition. See `references/frameworks/algorithm-frameworks.md` for the full sliding window template with the three-question framework (when to expand, when to shrink, when to update).
 
 ### Two Pointers
 
