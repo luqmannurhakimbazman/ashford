@@ -1,6 +1,6 @@
 # Reference Routing Table
 
-When the optimal solution uses a specific technique, load the matching reference file. For the quick-match table used in Step 2B, see SKILL.md. This file serves as the comprehensive backup with non-obvious mappings.
+The single source of truth for technique → reference file mappings. Step 2B loads this file to resolve each identified technique to its reference. Steps 4-6 also reference this file for mid-session technique discovery.
 
 ## Technique → Reference Mapping
 

@@ -68,11 +68,11 @@ Tests that at least one technique reference is loaded immediately after problem 
   - Optionally loads: `references/techniques/array-techniques.md` (two pointers)
   - Reference content informs Socratic prompts and code templates in Steps 3-5
 
-### 13. Sliding window problem
+### 13. Sliding window problem 
 - **Query:** "walk me through longest substring without repeating characters"
 - **Expected:**
   - Classifies: sliding window, hash map, string
-  - Step 2B loads: `references/algorithms/sliding-window.md` (primary, atomic file)
+  - Step 2B loads: `references/algorithms/sliding-window.md` (primary, atomic file) # TEST PASS
   - Does NOT load the 250-line `references/frameworks/algorithm-frameworks.md` mega-file for a sliding window problem
 
 ### 14. Interval scheduling problem
@@ -114,8 +114,47 @@ Tests that at least one technique reference is loaded immediately after problem 
 - **Query:** "teach me counting bits"
 - **Expected:**
   - Classifies: bit manipulation, DP
-  - Step 2B loads: `references/numeric/bit-manipulation.md` (quick-match hit)
-  - If no quick-match, falls back to browsing `references/numeric/` subdirectory
+  - Step 2B loads: `references/numeric/bit-manipulation.md` (routing table match)
+  - If no routing table match, falls back to browsing `references/numeric/` subdirectory
+
+## Multi-Technique Classification (Step 2B) `MANUAL`
+
+Tests that Step 2B identifies ALL required techniques — not just the primary one — by scanning for both explicit signals in problem text and implicit techniques from problem structure.
+
+### 27. Explicit signal — DP + modular arithmetic
+- **Query:** Paste the CSES Dice Combinations problem text (count ways to construct sum n using dice rolls 1-6, answer modulo 10^9+7)
+- **Expected:**
+  - Identifies: DP (primary — overlapping subproblems in "count ways"), modular arithmetic (secondary — from "modulo 10^9+7" in problem text)
+  - Loads: `references/algorithms/dp-framework.md` + `references/math/math-techniques.md`
+  - Modular arithmetic informs implementation: teaches `% MOD` inside the DP loop, not as an afterthought on the final answer
+
+### 28. Implicit signal only — structural technique inference
+- **Query:** Paste a problem where a structural pattern implies a technique not named by any keyword (e.g., Daily Temperatures — "next greater element" structure implies monotonic stack, but the words "monotonic stack" never appear in the problem text)
+- **Expected:**
+  - Identifies technique(s) from problem structure reasoning, not from keyword matching
+  - Loads appropriate technique-specific reference (e.g., `references/techniques/stack-queue-monotonic.md`)
+  - Does NOT fall back to a generic reference (e.g., `references/techniques/array-techniques.md`) when a specific technique is identifiable
+
+### 29. Multi-technique with distinct references — grid DP + modular arithmetic
+- **Query:** "teach me count paths in a grid with obstacles, answer mod 10^9+7"
+- **Expected:**
+  - Identifies: Grid DP (primary), modular arithmetic (secondary)
+  - Loads: `references/algorithms/grid-dp.md` + `references/math/math-techniques.md`
+  - Both techniques are taught explicitly during the session
+
+### 30. Mid-session technique discovery
+- **Query:** Start with a problem where brute force is straightforward but optimal requires an unexpected technique (e.g., Largest Rectangle in Histogram — brute force is O(n^2) nested loops, optimal requires monotonic stack)
+- **Expected:**
+  - Step 2B identifies primary technique
+  - During Step 4-5, when the new technique emerges from optimization, its reference is loaded before teaching continues
+  - The learner is not taught the new technique without reference grounding
+
+### 31. Misclassification recovery via reference verification
+- **Query:** Present a problem that superficially resembles one technique but actually requires another (e.g., a problem that looks like sliding window due to subarray language but violates the monotonic shrink invariant and actually needs prefix sums or DP)
+- **Expected:**
+  - Step 2B Part A identifies the superficial technique
+  - Step 2B Part B loads the reference and checks invariant conditions — discovers the mismatch
+  - Reassesses classification and loads the correct reference before proceeding to Step 3
 
 ## Functional — Learning Mode `MANUAL`
 

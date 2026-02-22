@@ -202,7 +202,7 @@ The SessionStart hook automatically loads the learner profile into context. Look
 
 Accept problems in multiple formats:
 
-1. **URL provided** → Attempt to fetch with web tools. If login-walled (LeetCode premium, etc.), fall back to asking the user to paste the problem.
+1. **URL provided** → Fetch using `crawling_exa` MCP tool (preferred over `WebFetch` — bypasses login walls). If fetch fails, fall back to asking the user to paste the problem.
 2. **Pasted problem text** → Parse directly.
 3. **Problem name only** (e.g., "Two Sum") → Use knowledge of common problems. If ambiguous, ask for clarification.
 4. **ML implementation request** (e.g., "implement Adam optimizer") → Classify as ML Implementation. Reference `references/ml/ml-implementations.md`.
@@ -220,67 +220,45 @@ Classify into one of four categories:
 | **ML Implementation** | Adam optimizer, BatchNorm, Conv2d backward | Add numerical walkthrough, gradient verification (see Section 6 below) |
 | **Hybrid** | Implement a Trie, Design a cache with LRU eviction | Combine both approaches |
 
-### Step 2B: Reference Pre-Loading
+### Step 2B: Technique Identification & Reference Grounding
 
-**Before proceeding to Step 3, you MUST load at least one technique/algorithm reference.**
+**Before proceeding to Step 3, identify ALL required techniques and load their references.**
+
+#### Part A — Identify ALL Required Techniques
+
+Analyze the problem's constraints, input/output structure, and goal to enumerate every technique the solution requires. Scan for both:
+
+- **Explicit signals** in the problem text — keywords or constraints that directly name or imply a technique:
+
+| Signal in problem text | Technique to identify |
+|---|---|
+| "modulo 10^9+7" / large prime mod | Modular arithmetic |
+| "sorted array/list" given as input | Binary search candidate |
+| "shortest path/distance" | Graph shortest path |
+| "all permutations/combinations/subsets" | Backtracking |
+| "tree/binary tree" mentioned | Tree traversal |
+| "connected/reachable" | Graph traversal |
+| "k largest/smallest/closest" | Heap |
+| "parentheses/brackets/valid nesting" | Stack |
+| "palindrome" | Two pointers or DP |
+| "dependencies/ordering/prerequisites" | Topological sort |
+
+  These are examples, not an exhaustive list. Any domain-specific keyword you recognize as signaling a technique counts.
+
+- **Implicit techniques** from problem structure — patterns you infer from the problem's mechanics, not from keywords (e.g., overlapping subproblems → DP, optimal substructure + greedy choice → greedy, visibility/dominance relationships → monotonic stack, "count ways" → DP or combinatorics).
+
+Output a mental checklist: "This problem requires: [technique 1], [technique 2], ..."
+
+#### Part B — Load References to Verify
+
+Load `references/frameworks/reference-routing.md` and use its technique → reference mapping to find the correct file for each identified technique. If no exact match exists, browse the relevant `references/` subdirectory by filename. The purpose is to **verify your classification** against the reference's technique description and to load consistent Socratic prompts/templates. If the reference contradicts your classification (e.g., invariant conditions don't match), reassess before proceeding. Also load references for the learner's Known Weaknesses tagged `recurring` if the problem touches that area.
 
 Track internally:
 - [ ] Problem classified as: ___
-- [ ] Primary technique reference loaded: ___
-- [ ] Secondary technique reference loaded (if applicable): ___
+- [ ] Techniques identified: ___
+- [ ] References loaded: ___
 
-**Loading rules:**
-- Load up to 2 technique references matching the primary and secondary patterns
-- If Step 6 (Alternatives) explores a technique not yet loaded, load its reference then
-- For the learner's Known Weaknesses tagged `recurring`, also load the relevant reference if the problem touches that area
-
-**Quick-match table** — find the pattern(s) that match and read the reference:
-
-| Pattern | Reference |
-|---------|-----------|
-| Two pointers | `references/techniques/array-techniques.md` |
-| Sliding window | `references/algorithms/sliding-window.md` |
-| String manipulation | `references/techniques/string-techniques.md` |
-| Binary search | `references/algorithms/binary-search-framework.md` |
-| BFS/DFS (graph) | `references/graphs/graph-algorithms.md` |
-| BFS/DFS (non-graph) | `references/algorithms/bfs-framework.md` |
-| Sorting | `references/algorithms/sorting-algorithms.md` |
-| State machine | `references/algorithms/state-machine.md` |
-| DP (general) | `references/algorithms/dynamic-programming-core.md` |
-| DP (intro/framework) | `references/algorithms/dp-framework.md` |
-| Knapsack DP | `references/algorithms/knapsack.md` |
-| Grid/Path DP | `references/algorithms/grid-dp.md` |
-| Game theory DP | `references/algorithms/game-theory-dp.md` |
-| Stock/state machine | `references/algorithms/stock-problems.md` |
-| Interval DP | `references/algorithms/interval-dp.md` |
-| Subsequence DP | `references/algorithms/subsequence-dp.md` |
-| Stack/Queue | `references/techniques/stack-queue-monotonic.md` |
-| Linked list | `references/techniques/linked-list-techniques.md` |
-| Greedy | `references/algorithms/greedy-algorithms.md` |
-| Interval scheduling | `references/algorithms/interval-scheduling.md` |
-| Jump game | `references/algorithms/jump-game.md` |
-| Gas station / video stitching | `references/algorithms/gas-station.md` |
-| Backtracking | `references/algorithms/backtracking.md` |
-| Divide and conquer | `references/algorithms/divide-and-conquer.md` |
-| Tree | `references/data-structures/data-structure-fundamentals.md` |
-| Graph | `references/graphs/graph-algorithms.md` |
-| Dijkstra/shortest path | `references/graphs/dijkstra.md` |
-| Heap/Priority Queue | `references/data-structures/data-structure-fundamentals.md` |
-| N-Sum | `references/algorithms/n-sum.md` |
-| LRU/LFU Cache | `references/algorithms/lru-lfu-cache.md` |
-| Bit manipulation | `references/numeric/bit-manipulation.md` |
-| Math/Number theory | `references/math/math-techniques.md` |
-
-**Fallback:** If no quick-match fits, browse the relevant `references/` subdirectory and pick by filename:
-- `techniques/` — DS-specific patterns (strings, arrays, linked lists, stacks, matrices)
-- `algorithms/` — paradigms (DP, greedy, binary search, backtracking, sorting)
-- `graphs/` — all graph algorithms
-- `math/` — number theory, combinatorics, probability
-- `numeric/` — bit manipulation, numerical methods
-- `data-structures/` — structure internals (hash tables, heaps, trees, tries)
-- `problems/` — classic interview problem collections
-
-Use the loaded reference throughout Steps 3-7.
+Use loaded references throughout Steps 3-7.
 
 ### Step 3: Layman Intuition (Socratic)
 
@@ -305,6 +283,8 @@ Guide through:
 3. Identify the time/space complexity
 4. Ask: "Why isn't this good enough? What's the bottleneck?"
 
+**Mid-session loading:** If the brute force reveals a technique you didn't identify in Step 2B, load its reference now before continuing.
+
 Use the three-tier hint system if the user is stuck. For extended question banks by stage and problem type, see `references/frameworks/socratic-questions.md`.
 
 ### Step 5: Optimal Solution (Generation First)
@@ -320,13 +300,12 @@ Give the user a chance to generate the insight. Then:
 2. If close → Tier 1 hint, then let them try again
 3. If stuck → progressive hints through tiers
 
+**Mid-session loading:** If the optimization reveals a technique you didn't identify in Step 2B (e.g., the learner discovers a monotonic stack approach), load its reference from `references/frameworks/reference-routing.md` before proceeding. After loading, briefly reassess: does the new technique change the optimal approach you were building toward, or is it an alternative for Step 6?
+
 Walk through the optimal solution with:
 - Step-by-step algorithm explanation
 - Annotated code with comments explaining *why*, not *what*
 - Complexity analysis with proof sketch
-### Reference Routing
-
-If you haven't already loaded a technique reference in Step 2B, do so now using the quick-match table or subdirectory browse. For the complete routing table, see `references/frameworks/reference-routing.md`.
 
 When sorting is part of the optimal solution, also ask: *"Which sort would you use and why? What properties matter — stability, in-place, worst-case guarantee?"*
 
@@ -334,7 +313,7 @@ When sorting is part of the optimal solution, also ask: *"Which sort would you u
 
 > "We found an O(n) solution. Can you think of a different approach? Maybe one that uses a different data structure or trades time for space?"
 
-Present 1-2 alternatives with comparison. If the alternative approach uses a technique not covered by the references loaded in Step 2B, load its reference now from the quick-match table before presenting the alternative. Ask:
+Present 1-2 alternatives with comparison. If the alternative approach uses a technique not covered by the references loaded in Step 2B, load its reference now from `references/frameworks/reference-routing.md` before presenting the alternative. Ask:
 > "In what scenario would you prefer [alternative] over [optimal]?"
 
 ### Step 7: Pattern Recognition & Reflection
@@ -394,7 +373,7 @@ For ML implementation problems, load `references/ml/ml-special-handling.md` for 
 
 When a URL is provided:
 
-1. **Attempt to fetch** using available web tools
+1. **Attempt to fetch** using the `crawling_exa` MCP tool (preferred — bypasses login walls and CAPTCHAs that block `WebFetch`). Fall back to `WebFetch` only if Exa is unavailable.
 2. **If successful** → parse problem statement and continue
 3. **If blocked** (login wall, premium content, CAPTCHA) → respond:
 
