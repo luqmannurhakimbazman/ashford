@@ -98,3 +98,79 @@ Experiences you DON'T have that might come up, with honest deflection strategies
 1. **NEVER fabricate experiences.** Only use content from the resume and candidate-context.md.
 2. **Chain from resume-builder output.** Read the existing notes.md and resume.tex, don't re-parse the JD from scratch.
 3. **Honest gap handling.** When the candidate lacks an experience, provide a deflection strategy, not a made-up story.
+
+---
+
+## Improvement: WSO Behavioral Crash Course Integration (2026-02-24)
+
+Based on a WallStreetOasis post on behavioral/fit interview best practices (20+ interviews, MBA consulting internships). 5 targeted changes to the existing skill.
+
+### Change 1: New `references/resume-walkthrough.md`
+
+Dedicated reference for crafting the 90-second resume narrative / "tell me about yourself" answer.
+
+**Contents:**
+- 3-act framework: Where you started → Key transitions → Why you're here now
+- Timing: 90 seconds total, ~20s per transition, ~15s for the landing
+- Core rules: every transition must have a positive motivating reason ("I wanted to deepen my exposure to X" not "I was bored"). Every move should seem intentional and self-initiated.
+- Anti-pattern list: too long, too detailed, negative framing ("left because of bad management"), no narrative arc, "wanted to try something new"
+- Fill-in-the-blank template with 2-3 worked examples (tech→tech, tech→finance, career changer)
+- Integration: Step 5 references this when generating "Tell me about yourself" answer
+
+### Change 2: Add SOAR format to `references/answer-formats.md`
+
+6th format alongside existing 5:
+- **SOAR (Situation-Obstacle-Action-Result):** Emphasizes the obstacle explicitly before the action
+- Timing: Situation 10-15s (~25-40 words), Obstacle 10-15s (~25-40 words), Action 60-75s (~150-190 words), Result 15-30s (~40-75 words)
+- Total: 1.5-2 minutes spoken / ~250-350 words written
+- When to use over STAR: When the story's challenge is its strongest element — front-loads "why this was hard"
+- Before/after example following existing pattern
+- Update format selection guide to include SOAR
+
+### Change 3: New workflow step — "Questions for Interviewer"
+
+Insert as Step 7 (current Step 7 becomes Step 8):
+- Generate 5-8 tailored questions per company/role in behavioral-prep.md
+- Categories: Project/day-to-day, Team/culture, Role-specific, Growth
+- Audience guidance: flag which questions are for interviewers vs. recruiters
+- Anti-patterns: don't ask things you should know from networking, don't ask salary/benefits in early rounds
+- Output section:
+
+```markdown
+## Questions to Ask Your Interviewer
+
+### For Technical/Hiring Manager Interviews
+1. [Tailored question based on JD signal]
+
+### For Team Member / Culture Interviews
+1. ...
+
+### Avoid Asking (save for recruiter)
+- Timeline/logistics questions
+- Compensation/benefits questions
+```
+
+### Change 4: Bump story reuse cap in `references/story-mapping.md`
+
+- Reuse limit: 3 → 5 questions per story
+- Uses 4 and 5 require a distinct reframing angle (different trait cluster emphasis)
+- Add "Reframe Angle" column to story bank table for uses beyond 3
+- Philosophy note: "6-8 core stories should cover your full question set. Slight modifications in framing — not new stories — are how experienced candidates scale."
+
+### Change 5: SKILL.md workflow integration
+
+- Reference `references/resume-walkthrough.md` in Step 5 for "Tell me about yourself"
+- Insert new Step 7 (Questions for Interviewer) before output step
+- Update output structure template to include "Questions to Ask" section
+- Update Quick Reference table to include SOAR format
+- Update story reuse cap reference from 3 to 5
+
+### Files Touched
+
+| # | Change | Files |
+|---|--------|-------|
+| 1 | Resume walkthrough reference | New: `references/resume-walkthrough.md` |
+| 2 | SOAR format | Edit: `references/answer-formats.md` |
+| 3 | Questions-to-ask generation | Edit: `SKILL.md` |
+| 4 | Story reuse cap bump | Edit: `references/story-mapping.md` |
+| 5 | Workflow integration | Edit: `SKILL.md` |
