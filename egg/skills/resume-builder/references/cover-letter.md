@@ -18,8 +18,8 @@ If the application portal marks the cover letter as optional and you're experien
 | Length | 1 page max — aim for 70-90% of an A4/letter page |
 | Word count | ~600 words standard; ~300 words for short-form personal statements (e.g., Goldman Sachs) |
 | Font / style | Match your resume font and header for visual consistency |
-| File format | PDF — same as the resume |
-| File name | `cover-letter.pdf` or `<firstname>-<lastname>-cover-letter.pdf` |
+| File format | Markdown draft (`cover-letter.md`) — convert to PDF for submission |
+| File name | `cover-letter.md` (draft) or `<firstname>-<lastname>-cover-letter.pdf` (final submission) |
 
 ## Four-Paragraph Structure
 
