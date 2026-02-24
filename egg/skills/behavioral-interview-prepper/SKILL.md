@@ -1,6 +1,6 @@
 ---
 name: behavioral-interview-prepper
-description: This skill should be used when the user wants to prepare for behavioral interviews after tailoring a resume. Trigger phrases include "prep behavioral", "behavioral interview prep", "prep me for interview at", "practice behavioral questions", "generate behavioral answers", "behavioral prep for", "interview stories for", or when a user has completed a resume-builder run and asks for interview preparation. It chains off resume-builder output to generate a tailored answer bank with structured responses mapped to the candidate's real experiences.
+description: This skill should be used when the user wants to prepare for behavioral interviews, generate a behavioral answer bank, or practice STAR-format answers mapped to their real experiences. Trigger phrases include "prep behavioral", "behavioral interview prep", "prep me for interview at", "practice behavioral questions", "generate behavioral answers", "behavioral prep for", "interview stories for", "STAR method answers", "prep my stories", "answer bank for interview", or when a user has completed a resume-builder run and asks for interview preparation. It chains off resume-builder output (notes.md, resume.tex, candidate-context.md) to produce a tailored question-and-answer bank. If no resume-builder output exists, guide the user to run resume-builder first.
 ---
 
 # Behavioral Interview Prepper
@@ -31,6 +31,8 @@ Required:
 
 Derive the company name and role from the directory name or the JD summary in `notes.md`.
 
+**If required files do not exist:** Prompt the user to run the `resume-builder` skill first with the target JD. This skill requires resume-builder output — it does not accept raw JD/resume input directly.
+
 ### Step 2: Extract Behavioral Signals
 
 Scan the JD keywords and culture indicators from `notes.md`. Map each behavioral keyword to a trait cluster (e.g., "fast-paced" → Adaptability, "cross-functional" → Collaboration). Weight clusters by frequency. See `references/behavioral-signals.md` for the full taxonomy.
@@ -49,7 +51,7 @@ Write a structured answer for each question using the appropriate format based o
 
 ### Step 6: Finance Layer (Conditional)
 
-If the role is in finance, trading, quant, or adjacent fields, load the finance-specific behavioral layer. Add domain-specific questions (risk scenarios, P&L ownership, market judgment) and adjust answer framing for finance culture. See `references/finance-behavioral.md`.
+If the role is in finance, trading, or quant, load the finance-specific behavioral layer. Detect by scanning `notes.md` for keywords listed in the "When to Load" section of `references/finance-behavioral.md`. Add domain-specific questions and adjust answer framing for finance culture.
 
 ### Step 7: Output
 
