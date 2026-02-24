@@ -12,7 +12,7 @@ Generate a tailored behavioral interview answer bank from resume-builder output.
 1. **NEVER fabricate experiences.** Only use content from the resume and `candidate-context.md`. Rephrase and reframe — never invent.
 2. **Chain from resume-builder output.** Read existing `notes.md` and `resume.tex` from the output directory. Do not re-parse the JD from scratch.
 3. **Honest gap handling.** When the candidate lacks an experience for a question, provide a deflection strategy — not a made-up story.
-4. **Story reuse limit.** No single experience may be used for more than 3 questions. Spread stories across the answer bank.
+4. **Story reuse limit.** No single experience may be used for more than 5 questions. Uses 4-5 require a distinct reframing angle (different trait cluster emphasis). See `references/story-mapping.md`.
 
 ---
 
@@ -43,17 +43,30 @@ Select 10-15 questions from the master bank based on the top-weighted trait clus
 
 ### Step 4: Map Experiences to Questions
 
-For each predicted question, find the best-fit experience from the tailored resume bullets and `candidate-context.md`. Reframe the experience to match the question's trait cluster. Enforce the 3-question reuse limit. See `references/story-mapping.md` for mapping methodology.
+For each predicted question, find the best-fit experience from the tailored resume bullets and `candidate-context.md`. Reframe the experience to match the question's trait cluster. Enforce the 5-question reuse limit (uses 4-5 require distinct reframing angles). See `references/story-mapping.md` for mapping methodology.
 
 ### Step 5: Generate Answers
 
 Write a structured answer for each question using the appropriate format based on question type. Answers should be detailed enough to serve as speaking notes but not scripted word-for-word. See `references/answer-formats.md` for templates.
 
+For the "Tell me about yourself" / resume walkthrough answer, also reference `references/resume-walkthrough.md` for the 90-second narrative arc framework, positive transition framing, and anti-patterns.
+
 ### Step 6: Finance Layer (Conditional)
 
 If the role is in finance, trading, or quant, load the finance-specific behavioral layer. Detect by scanning `notes.md` for keywords listed in the "When to Load" section of `references/finance-behavioral.md`. Add domain-specific questions and adjust answer framing for finance culture.
 
-### Step 7: Output
+### Step 7: Generate Questions for Interviewer
+
+Generate 5-8 tailored questions the candidate should ask their interviewer, based on JD signals, company context, and role type. Organize by audience:
+
+- **For Technical/Hiring Manager interviews:** Questions about current projects, team challenges, technical stack decisions, and what success looks like in the role. Lead with "tell me what you're working on now" — if interesting, this can fill 5-10 minutes of natural conversation.
+- **For Team Member/Culture interviews:** Questions about team dynamics, collaboration patterns, and day-to-day experience.
+- **Role-specific questions:** Questions that demonstrate you've read the JD carefully and thought deeply about the role.
+- **Avoid asking (save for recruiter):** Timing/logistics for next rounds, compensation, benefits, travel. These should be directed to the recruiting coordinator, not the interviewer.
+
+**Anti-patterns:** Don't ask about things you should already know from 3 months of networking (staffing model, industry mix, training program). Show you've done your homework by asking questions that go deeper.
+
+### Step 8: Output
 
 Write `behavioral-prep.md` in the same output directory:
 
@@ -92,7 +105,7 @@ The generated `behavioral-prep.md` should follow this structure:
 ### [Trait Cluster Name]
 
 #### Q1: "[Question text]"
-**Format:** [STAR / Thesis / Framework-First / Claim+Proof / Present-Past-Future]
+**Format:** [STAR / SOAR / Thesis / Framework-First / Claim+Proof / Present-Past-Future]
 **Draw from:** [Story #N reference]
 
 > [Structured answer using the selected format]
@@ -125,6 +138,22 @@ The generated `behavioral-prep.md` should follow this structure:
 |-----|-------------------|
 | No direct experience with X | Pivot to adjacent experience Y, emphasize transferable skill Z |
 | ... | ... |
+
+## Questions to Ask Your Interviewer
+
+### For Technical / Hiring Manager Interviews
+1. [Tailored question based on JD signal or company context]
+2. [Question about current team challenges or projects]
+3. [Question demonstrating deep JD reading]
+
+### For Team Member / Culture Interviews
+1. [Question about team dynamics]
+2. [Question about day-to-day experience]
+
+### Avoid Asking (save for recruiter)
+- Timeline and logistics for next rounds
+- Compensation and benefits details
+- Basic company info available on the website
 ```
 
 ---
@@ -140,6 +169,8 @@ The generated `behavioral-prep.md` should follow this structure:
 | "What would you do if..." | Framework-first | `references/answer-formats.md` |
 | "Strengths/weaknesses" | Claim + proof + growth | `references/answer-formats.md` |
 | "Tell me about yourself" | Present → Past → Future | `references/answer-formats.md` |
+| "Tell me about a time..." (adversity) | SOAR with obstacle emphasis | `references/answer-formats.md` |
+| "Walk me through your resume" | 90-second narrative arc | `references/resume-walkthrough.md` |
 
 ### Output Directory Convention
 
@@ -155,3 +186,7 @@ Examples:
 ### Trait Cluster Summary
 
 See `references/behavioral-signals.md` for the full taxonomy mapping JD keywords to trait clusters (Leadership, Collaboration, Adaptability, Problem-Solving, Communication, Drive, Technical Depth).
+
+### Resume Walkthrough
+
+See `references/resume-walkthrough.md` for the 90-second narrative arc framework with positive transition framing, anti-patterns, and worked examples.
