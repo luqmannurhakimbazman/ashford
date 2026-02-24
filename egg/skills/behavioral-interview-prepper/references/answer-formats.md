@@ -183,6 +183,56 @@ Problems: chronological, no achievements, no connection to role, no hook.
 
 ---
 
+## 6. SOAR (Situation-Obstacle-Action-Result)
+
+**Use for:** Behavioral questions where the **challenge is the strongest element** of the story — "Tell me about a time you overcame...", "Describe a difficult situation...", "Tell me about a time you failed..."
+
+SOAR is an alternative to STAR that explicitly names the obstacle before the action, creating stronger narrative tension. Use SOAR when the "why this was hard" matters more than the task assignment.
+
+### Template
+
+```
+S (Situation): [1-2 sentences — company, team, context. Set the scene fast.] (10-15 seconds / 25-40 words)
+O (Obstacle): [What made this hard? The specific challenge, constraint, or conflict.] (10-15 seconds / 25-40 words)
+A (Action): [What YOU did to overcome the obstacle. Decisions, trade-offs, steps.] (60-75 seconds / 150-190 words)
+R (Result): [Quantifiable outcome + what you learned.] (15-30 seconds / 40-75 words)
+```
+
+**Total: 1.5-2 minutes spoken / 250-350 words written**
+
+### Rules
+
+1. **Obstacle ≠ Task** — In STAR, the Task is your assignment. In SOAR, the Obstacle is what made the assignment hard. "I was asked to migrate the pipeline" is a task. "The migration had no runbook, the legacy system had no documentation, and the team had never done real-time inference" is an obstacle.
+2. **Action = 50-60% of the answer** — same as STAR, but now the action explicitly addresses the obstacle
+3. **Result includes a learning** — SOAR stories often end with "and I learned X" because the obstacle-driven narrative naturally leads to reflection
+4. **Use when STAR feels flat** — if your STAR answer's "Task" section is the most interesting part, switch to SOAR
+5. **Target 1.5-2 minutes** — slightly longer than STAR because the obstacle setup adds context
+
+### When to Use SOAR vs STAR
+
+| Scenario | Use |
+|---|---|
+| Clear assignment with strong results | STAR |
+| Challenge/failure/adversity is the hook | SOAR |
+| "Tell me about a time you failed" | SOAR |
+| "Describe a difficult situation" | SOAR |
+| "Tell me about a time you led a team" | STAR (unless the leadership challenge was extreme) |
+| "How did you handle ambiguity?" | SOAR |
+
+### Before / After
+
+#### Weak (obstacle buried in the action)
+
+> At my company, I was asked to migrate our ML pipeline from batch to real-time. I had to figure out the architecture, coordinate with three teams, and deal with the fact that there was no documentation. I chose a streaming approach, wrote the docs myself, and got it working. Latency went from 6 hours to 200ms.
+
+Problems: the obstacle is mixed into the action, no narrative tension, feels like a flat list of things that happened.
+
+#### Strong (SOAR with explicit obstacle)
+
+> **S:** At [Company], our ML pipeline ran batch predictions every 6 hours, meaning user recommendations were always stale by the time they were served. **O:** The migration to real-time had three blockers: the legacy system had zero documentation, no one on the team had built streaming infrastructure before, and the platform team flagged reliability concerns that could block the project entirely. **A:** I tackled each blocker sequentially. First, I spent a week reverse-engineering the legacy system and producing the first-ever architecture doc, which unblocked the team to start designing in parallel. Second, I ran a 2-week spike benchmarking three streaming architectures — Kafka Streams, Flink, and a custom solution — and presented a risk/reward comparison to leadership that secured buy-in for Kafka Streams. Third, I built a comprehensive rollback plan with automated health checks that addressed every concern the platform team had raised, converting them from blockers to advocates. I ran weekly cross-team syncs to keep all three teams aligned. **R:** Launched on schedule with zero rollback needed. Latency dropped from 6 hours to 200ms, recommendation click-through improved 15%, and the rollback plan template I created became the standard for all future migrations. I learned that the biggest risk in a migration isn't the technology — it's the organizational alignment.
+
+---
+
 ## Format Selection Guide
 
 Use this mapping when the question type is identified in Step 4:
@@ -190,6 +240,7 @@ Use this mapping when the question type is identified in Step 4:
 | Question Type | Format | Key Signal Words |
 |---|---|---|
 | Behavioral | STAR with Metrics | "Tell me about a time", "Give an example", "Describe a situation" |
+| Behavioral (adversity/failure) | SOAR | "Overcome", "Difficult", "Failed", "Struggled", "Dealt with" |
 | Motivational | Thesis Format | "Why this company", "Why this role", "Why are you interested" |
 | Hypothetical | Framework-First | "What would you do if", "How would you handle", "Walk me through" |
 | Self-Assessment | Claim + Proof + Growth | "Strengths", "Weaknesses", "How would others describe you" |
