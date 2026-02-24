@@ -1,6 +1,6 @@
 ---
 name: behavioral-interview-prepper
-description: This skill should be used when the user wants to prepare for behavioral interviews, generate a behavioral answer bank, or practice STAR-format answers mapped to their real experiences. Trigger phrases include "prep behavioral", "behavioral interview prep", "prep me for interview at", "practice behavioral questions", "generate behavioral answers", "behavioral prep for", "interview stories for", "STAR method answers", "prep my stories", "answer bank for interview", or when a user has completed a resume-builder run and asks for interview preparation. It chains off resume-builder output (notes.md, resume.tex, candidate-context.md) to produce a tailored question-and-answer bank. If no resume-builder output exists, guide the user to run resume-builder first.
+description: This skill should be used when the user wants to prepare for behavioral interviews, generate a behavioral answer bank, practice STAR or SOAR format answers, prep a resume walkthrough narrative, or generate questions to ask their interviewer. Trigger phrases include "prep behavioral", "behavioral interview prep", "prep me for interview at", "practice behavioral questions", "generate behavioral answers", "behavioral prep for", "interview stories for", "STAR method answers", "SOAR answers", "prep my stories", "answer bank for interview", "resume walkthrough", "walk me through your resume prep", "questions to ask my interviewer", or when a user has completed a resume-builder run and asks for interview preparation. It chains off resume-builder output (notes.md, resume.tex, candidate-context.md) to produce a tailored question-and-answer bank.
 ---
 
 # Behavioral Interview Prepper
@@ -11,7 +11,7 @@ Generate a tailored behavioral interview answer bank from resume-builder output.
 
 1. **NEVER fabricate experiences.** Only use content from the resume and `candidate-context.md`. Rephrase and reframe — never invent.
 2. **Chain from resume-builder output.** Read existing `notes.md` and `resume.tex` from the output directory. Do not re-parse the JD from scratch.
-3. **Honest gap handling.** When the candidate lacks an experience for a question, provide a deflection strategy — not a made-up story.
+3. **Honest gap handling.** When the candidate lacks an experience for a question **and has confirmed this after probing (see Rule 5 and Step 4 inline probing)**, provide a deflection strategy — not a made-up story.
 4. **Story reuse limit.** No single experience may be used for more than 5 questions. Uses 4-5 require a distinct reframing angle (different trait cluster emphasis). See `references/story-mapping.md`.
 5. **Never generate generic or hypothetical answers — ask instead.** If you would produce a vague behavioral answer, stock STAR response, or hypothetical framework where a real experience should be, STOP and ask the candidate a probing question. See `references/candidate-discovery.md` for anti-generic detection and probing techniques. Every answer must be grounded in real experience. Hypothetical frameworks are only acceptable when the candidate explicitly confirms they have no related experience.
 
@@ -58,7 +58,7 @@ Select 10-15 questions from the master bank based on the top-weighted trait clus
 
 For each predicted question, find the best-fit experience from the tailored resume bullets and `candidate-context.md`. Reframe the experience to match the question's trait cluster. Enforce the 5-question reuse limit (uses 4-5 require distinct reframing angles). See `references/story-mapping.md` for mapping methodology.
 
-**Inline probing:** Before flagging a question as a gap (requiring deflection), ask the candidate first: "Before I flag this as a gap — do you have any experience with [specific situation from the question]? Even from outside work — personal projects, school, volunteer work, or life experiences?" Only use gap handling strategies from `references/story-mapping.md` after the candidate confirms they don't have a relevant experience. Persist any new stories to `candidate-context.md`.
+**Inline probing:** Before flagging a question as a gap (requiring deflection), ask the candidate first: "Before I flag this as a gap — do you have any experience with [specific situation from the question]? Even from outside work — personal projects, school, volunteer work, or life experiences?" Follow probing technique from `references/candidate-discovery.md`. Only use gap handling strategies from `references/story-mapping.md` after the candidate confirms they don't have a relevant experience. Persist any new stories to `candidate-context.md`.
 
 ### Step 5: Generate Answers
 

@@ -9,7 +9,7 @@ Tailor the master resume (`hojicha/resume.tex`) for a specific job description. 
 
 ## Critical Rules
 
-1. **NEVER fabricate experiences, skills, or achievements.** Only use content from the master resume and the `candidate-context.md` file. You may rephrase, reorder, and emphasize — never invent.
+1. **NEVER fabricate experiences, skills, or achievements.** Only use content from the master resume, the `candidate-context.md` file, and discoveries added during this session via the Discovery Interview (Step 1.5) or inline probing. You may rephrase, reorder, and emphasize — never invent.
 2. **Preserve the `fed-res.cls` document class.** Do not modify `\documentclass[letterpaper,12pt]{fed-res}` or add packages. Copy `hojicha/fed-res.cls` into the output directory. See `references/latex-commands.md` for available commands.
 3. **Maintain ATS compatibility.** No graphics, tables outside the cls structure, or custom fonts. The cls already sets `\pdfgentounicode=1`.
 4. **Keep to one page — less is more.** The resume must fit a single letter-sized page. Highlight only your strongest 2-3 bullets per role — cut average achievements. Fewer strong bullets beat many mediocre ones. If a bullet doesn't directly support the target JD, consider removing it.
@@ -73,7 +73,7 @@ See `references/ats-keywords.md` for extraction strategies and ATS mechanics.
 Generate a role-specific professional summary to place at the top of the resume. This section is **optional** — omit it if space is tight and the resume already speaks for itself.
 
 1. **Headline**: Write a role-specific headline (<10 words) to use as the `\section{}` title. Do NOT use generic titles like "Professional Summary" — use a descriptive noun phrase (e.g., "ML Engineer & Quantitative Researcher").
-2. **Summary paragraph**: Write a <50-word summary starting with a job role noun. Use action words and active voice. Highlight the candidate's top 3-5 selling points that match the JD.
+2. **Summary paragraph**: Write a <50-word summary starting with a job role noun. Use action words and active voice. Highlight the candidate's top 3-5 selling points that match the JD. If Step 1.5 revealed gaps that cannot be fully closed, use the summary to reframe the candidate's strongest adjacent experiences toward the JD requirements — do not claim expertise in gap areas.
 3. **LaTeX**: Add a `\section{<headline>}` with a single paragraph before the Education section.
 
 **Recommendations:**
@@ -149,7 +149,9 @@ Priority order for keyword placement (optimized for human readers — recruiters
 3. Projects/Leadership section
 4. Skills section (highest ATS hit rate — see `references/ats-keywords.md` for ATS-specific priority)
 
-**Inline probing:** When rewriting a bullet and the result triggers anti-generic heuristics from `references/candidate-discovery.md` (e.g., the action could apply to anyone, or specifics are missing), pause and ask the candidate: "This bullet mentions [vague action]. What specifically did you do? What was the measurable outcome? What would someone else in your position NOT have done?" Persist new specifics to `candidate-context.md` and rewrite the bullet with the real details.
+**Note:** This ordering prioritizes human readability (recruiters read top-down). ATS systems weight the Skills section highest (see `references/ats-keywords.md`). In practice, ensure high-priority keywords appear in BOTH the Skills section and contextual bullets.
+
+**Inline probing:** When rewriting a bullet and the result triggers anti-generic heuristics from `references/candidate-discovery.md` (e.g., the action could apply to anyone, or specifics are missing), pause and ask the candidate: "This bullet mentions [vague action]. What specifically did you do? What was the measurable outcome? What would someone else in your position NOT have done?" Persist new specifics to `candidate-context.md` and rewrite the bullet with the real details. If extensive probing was already done in Step 1.5, limit follow-up here to genuinely new gaps — don't re-interrogate topics already covered.
 
 ### Step 8: Strategic Uncommenting & Commenting
 
