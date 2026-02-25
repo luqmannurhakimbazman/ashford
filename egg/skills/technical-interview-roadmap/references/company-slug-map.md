@@ -74,6 +74,8 @@ Maps common company names to their GitHub slugs in the [leetcode-companywise-int
 
 ## Not Found in Repository
 
+> Companies not in this list may still not have data in the repository. If a fetch returns 404, this is expected — Step 6a handles it gracefully by skipping enrichment.
+
 These commonly targeted companies do not have entries as of Feb 2026:
 
 - Cohere

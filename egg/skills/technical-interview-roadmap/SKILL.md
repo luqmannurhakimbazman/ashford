@@ -149,7 +149,9 @@ Pattern names MUST match the leetcode-teacher taxonomy. See the Quick Reference 
 
 ### Step 6: Curate Problem List
 
-#### 6a: Company Frequency Enrichment
+#### 6a: Company Frequency Enrichment (Optional Bonus)
+
+> *This step provides supplementary signal when available. The roadmap's core value comes from JD analysis (Step 2), company research (Step 3), and learner calibration (Step 4). If enrichment fails, proceed without it — the roadmap quality is not meaningfully affected.*
 
 Before selecting from the curated bank, attempt to fetch company-specific problem frequency data:
 
@@ -158,12 +160,12 @@ Before selecting from the curated bank, attempt to fetch company-specific proble
    ```
    https://raw.githubusercontent.com/snehasishroy/leetcode-companywise-interview-questions/master/<slug>/thirty-days.csv
    ```
-   If the fetch fails or returns empty, try `six-months.csv` as fallback. If that also fails, skip enrichment entirely and proceed to 6b with the curated bank only.
+   If the fetch fails (404, empty, or network error), skip enrichment entirely and proceed to 6b with the curated bank only.
 3. **Parse the CSV.** The CSV has columns `ID,URL,Title,Difficulty,Acceptance %,Frequency %`. Extract `(ID, Title, Difficulty, Frequency %)` from each row, skip the header. Sort by `Frequency %` descending so the most-asked problems are considered first.
 4. **Cross-reference with curated bank.** For each fetched problem, check if it exists in `references/curated-problem-bank.md` by LeetCode number:
    - **Match found:** Tag the problem with its pattern from the curated bank + the company frequency%.
    - **No match:** Tag as `company-frequent (untagged)` with its difficulty and frequency%.
-5. **Note enrichment status in output.** If enrichment succeeded, add a line to the Company Engineering Profile section: `Company problem frequency data: sourced from public GitHub dataset (last 30 days / last 6 months)`. If enrichment failed, note: `Company problem frequency data: not available — using curated bank and archetype-based selection only`.
+5. **Note enrichment status in output.** If enrichment succeeded, add a line to the Company Engineering Profile section: `Company problem frequency data: sourced from public GitHub dataset (last 30 days / last 6 months)`. If enrichment failed, note: `Company-specific frequency data: not available for <company>. This is normal — the public dataset covers ~40 major companies. Problem selection uses JD signals, company archetype, and curated bank.`.
 
 #### 6b: Problem Selection
 
