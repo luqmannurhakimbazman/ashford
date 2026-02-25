@@ -12,5 +12,6 @@
 # TODO-3:
 * skill needs to BE ABSOLUTELY CLEAR that the companies set questions to test candidates on specific foundational concepts relevant to their workflow/core inhouse technology, the questions are not chosen at random. As such, suggest questions that are relevant to the company's business and techstack.
 
-# TODO-4:
-* repetition noticed in jd-signals, there's a separate file jd-signals.md and within the technical-roadmap.md there's an even deeper section on jd-signals
+# TODO-4: DONE
+* ~~repetition noticed in jd-signals, there's a separate file jd-signals.md and within the technical-roadmap.md there's an even deeper section on jd-signals~~
+* Implemented: Eliminated jd-signals.md as separate output. Raw JD text merged into technical-roadmap.md appendix. Step 2 now reads in-memory signals from Step 1b.2.
