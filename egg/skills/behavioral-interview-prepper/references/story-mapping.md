@@ -3,6 +3,12 @@
 ## Overview
 Guide for mapping resume experiences to predicted behavioral questions. After questions are predicted (Step 4), use this reference to find the best experience for each question, reframe stories for multiple clusters, and identify gaps.
 
+## Core Mantra
+
+**Don't take questions literally. Understand what trait they're screening for, then deliver the story that proves you have it.**
+
+Companies aren't asking behavioral questions randomly — they're mapping to specific traits they need for the role. A question about "a time you disagreed with someone" isn't really about the disagreement; it's screening for collaboration, conflict resolution, or intellectual honesty depending on the role's trait priorities. The candidate's job is to decode the trait, then select and frame the story that best proves they have it. Every step below serves this principle.
+
 ## Story Extraction Process
 
 Extract every potential story from the candidate's materials.
