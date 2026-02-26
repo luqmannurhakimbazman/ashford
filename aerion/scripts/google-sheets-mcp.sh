@@ -4,4 +4,4 @@
 # this script to expand env vars at runtime.
 export GOOGLE_APPLICATION_CREDENTIALS="${GOOGLE_SERVICE_ACCOUNT_PATH}"
 export DRIVE_FOLDER_ID="${HOJICHA_FOLDER_ID}"
-exec uvx mcp-google-sheets@latest
+exec uvx mcp-google-sheets
