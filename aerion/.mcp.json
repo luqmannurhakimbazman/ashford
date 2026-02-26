@@ -6,7 +6,7 @@
   "google-sheets": {
     "command": "bash",
     "args": [
-      "${CLAUDE_PLUGIN_ROOT}/aerion/scripts/google-sheets-mcp.sh"
+      "${CLAUDE_PLUGIN_ROOT}/scripts/google-sheets-mcp.sh"
     ]
   }
 }
