@@ -17,7 +17,7 @@ Generate a company-specific technical interview study plan from a JD URL or past
 6. **15-25 problems total.** The problem list must be actionable, not overwhelming. Quality over quantity.
 7. **Every problem needs a "Why."** Connect each problem to the company domain, role requirements, or a learner weakness. No generic filler entries.
 8. **No system design content.** This roadmap covers DSA/coding problems only. Explicitly disclaim system design in the output.
-9. **Difficulty matches role level.** Junior/entry = Easy-Medium focus. Mid = Medium focus. Senior = Medium-Hard focus.
+9. **Difficulty matches role level + company competitiveness.** Role level sets the base difficulty (Junior = Easy-Medium, Mid = Medium, Senior = Medium-Hard). Competitive firms (FAANG, Quant/HFT, AI Labs, Government/Defense) warrant additional stretch problems above the base — see Difficulty Calibration in Quick Reference.
 10. **URL fetch tool priority.** When fetching a JD URL, use Exa `crawling_exa` as primary. Fall back to `WebFetch` if Exa is unavailable. If neither works, ask the user to paste the JD text directly.
 
 ---
@@ -119,7 +119,7 @@ Synthesize Steps 2-4 into a prioritized topic list. Each topic gets:
   - **Tier 1 (Must-Know):** Directly mentioned in JD or core to company's engineering domain
   - **Tier 2 (Likely):** Common for this role type and company archetype
   - **Tier 3 (Stretch):** Could differentiate the candidate; covers edge cases
-- **Difficulty calibration** — Easy/Medium/Hard distribution based on role level
+- **Difficulty calibration** — Easy/Medium/Hard distribution based on role level and company competitiveness (see Difficulty Calibration in Quick Reference)
 - **Estimated problem count** — how many problems from this topic in the final list
 
 Use `references/domain-topic-mapping.md` for domain → topic mapping.
@@ -364,11 +364,13 @@ Pattern names must match exactly:
 
 ### Difficulty Calibration by Role Level
 
-| Role Level | JD Signals | Primary Difficulty |
-|------------|------------|-------------------|
-| Junior / Entry | "0-2 years", "new grad", "entry-level", "associate" | Easy-Medium |
-| Mid | "3-5 years", "engineer II", "software engineer" | Medium |
-| Senior | "5+ years", "senior", "lead", "staff", "principal" | Medium-Hard |
+| Role Level | JD Signals | Base Difficulty | Competitive Firm Uplift |
+|------------|------------|----------------|------------------------|
+| Junior / Entry | "0-2 years", "new grad", "entry-level", "associate" | Easy-Medium | +3-5 Medium problems; include 1-2 Medium-Hard for conceptual depth |
+| Mid | "3-5 years", "engineer II", "software engineer" | Medium | +2-4 Medium-Hard problems |
+| Senior | "5+ years", "senior", "lead", "staff", "principal" | Medium-Hard | +2-3 Hard problems |
+
+**Competitive firms** are archetypes with ≤20% Easy-Medium in their difficulty distribution: FAANG / Big Tech, Quant / HFT / Prop Trading, AI Labs / ML-First Companies, Government / Defense Tech. Check `references/company-archetypes.md` for the archetype's difficulty distribution. If the archetype is not competitive, use the Base Difficulty column only.
 
 ### Research Tool Priority
 

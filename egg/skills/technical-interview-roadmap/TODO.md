@@ -6,8 +6,9 @@
 * ~~404 on company frequency fetch (e.g., crypto.com) felt like a dead end~~
 * Implemented: De-emphasized Step 6a as "Optional Bonus", dropped six-months.csv fallback, tightened failure messaging to normalize missing data.
 
-# TODO-2:
-* skill presumes that entry level has an easy-medium focus but competitive firms can and will test mediums/hards for conceptual understanding.
+# TODO-2: DONE
+* ~~skill presumes that entry level has an easy-medium focus but competitive firms can and will test mediums/hards for conceptual understanding.~~
+* Implemented: Added competitive firm difficulty uplift. Role level sets base difficulty; competitive archetypes (FAANG, Quant, AI Labs, Gov/Defense) add stretch problems above the base.
 
 # TODO-3:
 * skill needs to BE ABSOLUTELY CLEAR that the companies set questions to test candidates on specific foundational concepts relevant to their workflow/core inhouse technology, the questions are not chosen at random. As such, suggest questions that are relevant to the company's business and techstack.
