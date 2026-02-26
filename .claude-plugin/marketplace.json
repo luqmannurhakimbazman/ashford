@@ -10,6 +10,11 @@
       "name": "egg",
       "source": "./egg",
       "description": "Commands, agents, skills, hooks, and MCP servers for enhanced development workflows"
+    },
+    {
+      "name": "aerion",
+      "source": "./aerion",
+      "description": "Gmail-to-Google-Sheets job application tracker"
     }
   ]
 }

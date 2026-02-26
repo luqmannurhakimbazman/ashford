@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-The plugin lives in `egg/` which contains the `.claude-plugin/plugin.json` manifest. Claude Code discovers all components by convention:
+The marketplace contains two plugins: `egg/` (development workflows) and `aerion/` (job application tracking). Claude Code discovers all components by convention:
 
 | Component | Location | Format |
 |-----------|----------|--------|
@@ -37,6 +37,11 @@ The top-level `.claude-plugin/marketplace.json` is the marketplace registry poin
 - **`resume-builder` skill** — Resume tailoring for specific job descriptions with ATS optimization and XYZ bullet formatting.
 - **`leetcode-teacher` skill** — Socratic LeetCode/ML implementation teacher with evidence-based learning science. 50 reference files covering algorithm frameworks, problem patterns, data structures, sorting, linked lists, arrays, binary search, stacks/queues, matrix techniques, graphs, brute-force search, dynamic programming, greedy algorithms, combinatorics, numerical methods, advanced graph algorithms, linear algebra, and ML implementations.
 - **`global-markets-teacher` skill** — Socratic global markets & trading interview teacher with 3 modes (Learning, Recall, Mock Interview). 28 reference files covering rates/fixed income, FX, equities, commodities, credit, crypto, macro economics, derivatives, risk management, market mechanics, trade pitch framework, scenario analysis, headline analysis, brain teasers, and 6 firm-type profiles (hedge funds, banks, asset managers, trading houses, energy majors, crypto trading firms).
+
+### aerion plugin (`aerion/`)
+
+- **`/check-apps`** — Scans Gmail for job application status updates and syncs to a Google Sheets "Job Tracker" in the hojicha Drive folder. Uses workspace MCP (Gmail) + mcp-google-sheets (Sheets read/write).
+- **`job-tracker` skill** — Email classification rules, entity extraction, stage progression logic, and sheet update constraints for job application tracking.
 
 ## Python Linting Hook
 
