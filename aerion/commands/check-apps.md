@@ -1,7 +1,7 @@
 ---
 description: Scan Gmail for job application updates and sync to Job Tracker sheet
 argument-hint: [days] (default: 7)
-allowed-tools: mcp__gmail__*, mcp__google-sheets__*
+allowed-tools: mcp__plugin_aerion_gmail__*, mcp__plugin_aerion_google-sheets__*
 ---
 
 # Check Applications
@@ -22,19 +22,21 @@ Use `$ARGUMENTS` as the number of days to look back. Default to 7 if not provide
 
 ### 2. Search Gmail
 
-Use the `mcp__gmail__*` search tool (e.g., `mcp__gmail__search_emails` or similar — check available tools) with this query:
+Use `mcp__plugin_aerion_gmail__gmail_search_messages` with this query:
 
 ```
-to:lluqmannurhakim@gmail.com (subject:application OR subject:interview OR subject:offer OR subject:assessment OR subject:"online assessment" OR subject:"phone screen" OR subject:"coding challenge" OR subject:"not moving forward" OR subject:congratulations OR from:greenhouse.io OR from:lever.co OR from:ashbyhq.com OR from:myworkdayjobs.com OR from:icims.com OR from:smartrecruiters.com) newer_than:${days}d
+to:lluqmannurhakim@gmail.com (subject:application OR subject:interview OR subject:offer OR subject:assessment OR subject:"online assessment" OR subject:"phone screen" OR subject:"coding challenge" OR subject:"not moving forward" OR subject:congratulations OR from:greenhouse.io OR from:lever.co OR from:ashbyhq.com OR from:myworkdayjobs.com OR from:myworkday.com OR from:icims.com OR from:smartrecruiters.com OR from:jobvite.com OR from:successfactors.com OR from:successfactors.eu OR from:taleo.net OR from:hire.jazz.co OR from:breezy.hr OR from:applytojob.com OR from:hackerrankforwork.com OR from:codesignal.com OR from:codility.com) newer_than:${days}d
 ```
 
 ### 3. Read Matched Emails
 
-For each search result, use the `mcp__gmail__*` read/get tool to retrieve the full email content.
+For each search result, use `mcp__plugin_aerion_gmail__gmail_read_message` to retrieve the full email content. Read emails in parallel where possible.
 
 ### 4. Read Current Sheet
 
-Use `mcp__google-sheets__list_spreadsheets` to find "Job Tracker" in the hojicha folder, then `mcp__google-sheets__get_sheet_data` to read all current rows.
+1. Use `mcp__plugin_aerion_google-sheets__list_spreadsheets` to find "Job Tracker" in the hojicha folder.
+2. Use `mcp__plugin_aerion_google-sheets__list_sheets` with the spreadsheet ID to discover the sheet tab name (it's `job-tracker`).
+3. Use `mcp__plugin_aerion_google-sheets__get_sheet_data` with the spreadsheet ID and sheet name `job-tracker` to read all current rows.
 
 ### 5. Classify and Match
 
@@ -54,6 +56,6 @@ Show the user:
 ### 7. Confirm and Write
 
 Ask the user to confirm. On confirmation:
-- Use `mcp__google-sheets__update_cells` for existing row updates
-- Use `mcp__google-sheets__add_rows` for new applications
+- Use `mcp__plugin_aerion_google-sheets__update_cells` for existing row updates (specify sheet name `job-tracker`)
+- Use `mcp__plugin_aerion_google-sheets__add_rows` for new applications (specify sheet name `job-tracker`)
 - Do NOT write anything the user rejected or skipped

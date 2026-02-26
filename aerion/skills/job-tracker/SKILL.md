@@ -1,6 +1,6 @@
 ---
 name: job-tracker
-description: This skill should be used when the user runs /check-apps or asks to check job applications, scan Gmail for application updates, update the job tracker, or sync application status. It provides email classification rules, entity extraction logic, and sheet update constraints for the aerion job application tracking workflow.
+description: This skill should be used when the user runs /check-apps or asks to check job applications, scan Gmail for application updates, update the job tracker, sync application status, check for interview invitations, look for rejection emails, or ask about the status of their applications. It provides email classification rules, entity extraction logic, stage progression constraints, and sheet update constraints for the aerion job application tracking workflow.
 ---
 
 # Job Application Tracker
@@ -23,6 +23,8 @@ The Job Tracker sheet has these columns (in order):
 | D: Last Contact Date | Date | YYYY-MM-DD format |
 | E: Notes | Text | Append-only summary notes |
 
+**Sheet tab name:** `job-tracker`. Always use `list_sheets` to confirm if unsure.
+
 ## Email Classification
 
 Classify each email into a Stage using signals from the subject line, body, and sender. Refer to `references/email-patterns.md` for the full pattern catalog.
@@ -35,6 +37,7 @@ Stages have a natural forward order:
 
 ```
 Applied → Online Assessment → Behavioral Interview → Onsite Interview → Offered
+(Rejected/Ghosted can override any stage — they are terminal states)
 ```
 
 **Rules:**
@@ -106,3 +109,17 @@ After scanning, present results to the user in this format:
 If no relevant emails found, say so.
 
 **After presenting:** Ask the user to confirm before writing any changes to the sheet.
+
+## Tool Reference
+
+MCP tools follow the `mcp__plugin_aerion_` prefix. Key tools:
+
+| Action | Tool |
+|--------|------|
+| Search emails | `mcp__plugin_aerion_gmail__gmail_search_messages` |
+| Read email | `mcp__plugin_aerion_gmail__gmail_read_message` |
+| List spreadsheets | `mcp__plugin_aerion_google-sheets__list_spreadsheets` |
+| List sheet tabs | `mcp__plugin_aerion_google-sheets__list_sheets` |
+| Read sheet data | `mcp__plugin_aerion_google-sheets__get_sheet_data` |
+| Update cells | `mcp__plugin_aerion_google-sheets__update_cells` |
+| Add rows | `mcp__plugin_aerion_google-sheets__add_rows` |

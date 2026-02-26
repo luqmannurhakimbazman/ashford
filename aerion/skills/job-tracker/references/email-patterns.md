@@ -1,5 +1,7 @@
 # Email Patterns for Job Application Tracking
 
+> **Maintenance note:** When adding new ATS/assessment domains here, also update the Gmail search query in `aerion/commands/check-apps.md` to include them as `from:` filters.
+
 ## Known ATS Sender Domains
 
 | Domain | Platform |
@@ -16,6 +18,9 @@
 | `hire.jazz.co` | JazzHR |
 | `breezy.hr` | Breezy HR |
 | `applytojob.com` | BambooHR |
+| `hackerrankforwork.com` | HackerRank (OA platform) |
+| `codesignal.com` | CodeSignal (OA platform) |
+| `codility.com` | Codility (OA platform) |
 
 ## Subject Line Patterns by Stage
 
