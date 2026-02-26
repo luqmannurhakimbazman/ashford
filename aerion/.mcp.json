@@ -1,0 +1,18 @@
+{
+  "workspace": {
+    "command": "npx",
+    "args": ["-y", "gemini-workspace-server"]
+  },
+  "google-sheets": {
+    "command": "uvx",
+    "args": [
+      "mcp-google-sheets@latest",
+      "--include-tools",
+      "get_sheet_data,update_cells,add_rows,list_spreadsheets,find_in_spreadsheet"
+    ],
+    "env": {
+      "SERVICE_ACCOUNT_PATH": "${GOOGLE_SERVICE_ACCOUNT_PATH}",
+      "DRIVE_FOLDER_ID": "${HOJICHA_FOLDER_ID}"
+    }
+  }
+}
