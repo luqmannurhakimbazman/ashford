@@ -112,14 +112,15 @@ If no relevant emails found, say so.
 
 ## Tool Reference
 
-MCP tools follow the `mcp__plugin_aerion_` prefix. Key tools:
+Tool name prefixes vary by environment. On local Claude Code they use `mcp__plugin_aerion_gmail__` and `mcp__plugin_aerion_google-sheets__`. On Cowork they may use different prefixes (e.g., connector names or UUIDs). Look up available tools by function name, not prefix.
 
-| Action | Tool |
-|--------|------|
-| Search emails | `mcp__plugin_aerion_gmail__gmail_search_messages` |
-| Read email | `mcp__plugin_aerion_gmail__gmail_read_message` |
-| List spreadsheets | `mcp__plugin_aerion_google-sheets__list_spreadsheets` |
-| List sheet tabs | `mcp__plugin_aerion_google-sheets__list_sheets` |
-| Read sheet data | `mcp__plugin_aerion_google-sheets__get_sheet_data` |
-| Update cells | `mcp__plugin_aerion_google-sheets__update_cells` |
-| Add rows | `mcp__plugin_aerion_google-sheets__add_rows` |
+| Action | Function name to look for |
+|--------|--------------------------|
+| Search emails | `gmail_search_messages` or `Search Gmail Emails` |
+| Read email | `gmail_read_message` or `Read Gmail Email` |
+| Read email thread | `gmail_read_thread` or `Read Gmail Thread` |
+| List spreadsheets | `list_spreadsheets` |
+| List sheet tabs | `list_sheets` |
+| Read sheet data | `get_sheet_data` |
+| Update cells | `update_cells` |
+| Add rows | `add_rows` |
