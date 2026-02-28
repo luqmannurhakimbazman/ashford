@@ -25,7 +25,7 @@ Use `$ARGUMENTS` as the number of days to look back. Default to 7 if not provide
 Use the Gmail search tool (`gmail_search_messages` or `Search Gmail Emails`) with this query:
 
 ```
-to:lluqmannurhakim@gmail.com (subject:application OR subject:interview OR subject:offer OR subject:assessment OR subject:"online assessment" OR subject:"phone screen" OR subject:"coding challenge" OR subject:"not moving forward" OR subject:congratulations OR from:greenhouse.io OR from:lever.co OR from:ashbyhq.com OR from:myworkdayjobs.com OR from:myworkday.com OR from:icims.com OR from:smartrecruiters.com OR from:jobvite.com OR from:successfactors.com OR from:successfactors.eu OR from:taleo.net OR from:hire.jazz.co OR from:breezy.hr OR from:applytojob.com OR from:hackerrankforwork.com OR from:codesignal.com OR from:codility.com) newer_than:${days}d
+to:lluqmannurhakim@gmail.com (subject:application OR subject:interview OR subject:offer OR subject:assessment OR subject:"online assessment" OR subject:"phone screen" OR subject:"coding challenge" OR subject:"not moving forward" OR subject:congratulations OR subject:"candidate reference" OR subject:"your submission" OR from:greenhouse.io OR from:lever.co OR from:ashbyhq.com OR from:myworkdayjobs.com OR from:myworkday.com OR from:icims.com OR from:smartrecruiters.com OR from:jobvite.com OR from:successfactors.com OR from:successfactors.eu OR from:taleo.net OR from:hire.jazz.co OR from:breezy.hr OR from:applytojob.com OR from:hackerrankforwork.com OR from:codesignal.com OR from:codility.com OR from:brassring.com OR from:avature.net OR from:phenom.com) newer_than:${days}d
 ```
 
 ### 3. Read Matched Emails
