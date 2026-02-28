@@ -18,7 +18,7 @@ Generate a company-specific technical interview study plan from a JD URL or past
 7. **Every problem needs a "Why."** Connect each problem to the company domain, role requirements, or a learner weakness. No generic filler entries.
 8. **Companies test what they build.** Interview questions are not chosen at random. Companies select problems that test the foundational concepts their engineers use daily. A payments company asks graph problems because fraud detection traverses transaction graphs. A trading firm asks DP because optimal execution is a dynamic programming problem. A search company asks trie/string problems because their core product is text retrieval. Always reason backward from "what does this company's engineering team actually build?" to "what concepts must their engineers be fluent in?" to "which problems test those concepts?" Every problem in the roadmap must trace back to the company's business, tech stack, or core engineering challenges — not just to generic pattern frequency.
 9. **No system design content.** This roadmap covers DSA/coding problems only. Explicitly disclaim system design in the output.
-10. **Difficulty matches role level + company competitiveness.** Role level sets the base difficulty (Junior = Easy-Medium, Mid = Medium, Senior = Medium-Hard). Competitive firms (FAANG, Quant/HFT, AI Labs, Government/Defense) warrant additional stretch problems above the base — see Difficulty Calibration in Quick Reference.
+10. **Difficulty is NEVER capped by role level.** Default to full Easy-Medium-Hard coverage for ALL roles. Companies pull from shared OA pools (HackerRank, Codility, CodeSignal) that are often not calibrated to role level — even "early career" roles at crypto/fintech/tech companies routinely test Hard-level concepts (confirmed: Crypto.com early career OA, 2026-02-28, included Hard-level 2D DP + Union-Find problems). If OA ground truth exists (user reports actual OA problems), that overrides all heuristics. Company competitiveness shifts the distribution (more Hard problems for competitive firms) but the floor for ALL companies must include at least 2-3 Hard problems. Role level is useful context for prioritization, not a difficulty ceiling — see Difficulty Calibration in Quick Reference.
 11. **URL fetch tool priority.** When fetching a JD URL, use Exa `crawling_exa` as primary. Fall back to `WebFetch` if Exa is unavailable. If neither works, ask the user to paste the JD text directly.
 
 ---
@@ -129,7 +129,7 @@ Each topic gets:
   - **Tier 1 (Must-Know):** Directly maps to a core engineering challenge identified in Step 3, or explicitly mentioned in the JD
   - **Tier 2 (Likely):** Maps to the company archetype's engineering domain or is common for this role type
   - **Tier 3 (Stretch):** Could differentiate the candidate; covers adjacent engineering concerns
-- **Difficulty calibration** — Easy/Medium/Hard distribution based on role level and company competitiveness (see Difficulty Calibration in Quick Reference)
+- **Difficulty calibration** — Easy/Medium/Hard distribution based on role level and company competitiveness (see Difficulty Calibration in Quick Reference). Never assume a role level caps difficulty. All roadmaps must include Hard-level problems regardless of role level. If the user provides OA ground truth (actual problems they encountered), treat that as the primary difficulty signal and override all heuristic calibration.
 - **Estimated problem count** — how many problems from this topic in the final list
 
 Use `references/domain-topic-mapping.md` for domain → topic mapping. Use the core engineering challenges from Step 3 as the primary driver for Tier 1 selection — domain-topic-mapping is supplementary context, not the sole source.
@@ -171,6 +171,7 @@ Select 15-25 specific LeetCode problems. Use both `references/curated-problem-ba
 - **Difficulty progression** — Easy → Medium → Hard within each topic area
 - **Company domain relevance** — prefer problems with domain tags matching the company's engineering focus
 - **Learner weakness targeting** — include problems that exercise tracked weaknesses from the learner profile
+- **OA ground truth alignment** — if the user reports actual OA problems, include direct preparation paths for those problem types (prerequisite problems building to the OA difficulty level, plus the OA-equivalent problem itself)
 - **No duplicates** — check Session History and exclude problems the learner has already practiced
 
 **Every problem gets:**
@@ -251,13 +252,15 @@ Pattern names must match exactly:
 
 ### Difficulty Calibration by Role Level
 
-| Role Level | JD Signals | Base Difficulty | Competitive Firm Uplift |
-|------------|------------|----------------|------------------------|
-| Junior / Entry | "0-2 years", "new grad", "entry-level", "associate" | Easy-Medium | +3-5 Medium problems; include 1-2 Medium-Hard for conceptual depth |
-| Mid | "3-5 years", "engineer II", "software engineer" | Medium | +2-4 Medium-Hard problems |
-| Senior | "5+ years", "senior", "lead", "staff", "principal" | Medium-Hard | +2-3 Hard problems |
+| Role Level | JD Signals | Minimum Distribution (15-25 problems) | Competitive Firm Uplift |
+|------------|------------|---------------------------------------|------------------------|
+| Junior / Entry | "0-2 years", "new grad", "entry-level", "associate" | 5 Easy + 12 Medium + 3 Hard | +2-3 additional Hard problems |
+| Mid | "3-5 years", "engineer II", "software engineer" | 3 Easy + 14 Medium + 3 Hard | +2-4 additional Hard problems |
+| Senior | "5+ years", "senior", "lead", "staff", "principal" | 0 Easy + 12 Medium + 8 Hard | +2-3 additional Hard problems |
 
-**Competitive firms** are archetypes with ≤20% Easy-Medium in their difficulty distribution: FAANG / Big Tech, Quant / HFT / Prop Trading, AI Labs / ML-First Companies, Government / Defense Tech. Check `references/company-archetypes.md` for the archetype's difficulty distribution. If the archetype is not competitive, use the Base Difficulty column only.
+> **These are minimums.** If OA ground truth is available (user reports actual problems from the company's assessment), override with observed difficulty. Real OAs routinely exceed expected difficulty regardless of role level — companies use shared assessment platforms (HackerRank, Codility, CodeSignal) with problem pools not calibrated to role level.
+
+**Competitive firms** are archetypes with ≤20% Easy-Medium in their difficulty distribution: FAANG / Big Tech, Quant / HFT / Prop Trading, AI Labs / ML-First Companies, Government / Defense Tech. Check `references/company-archetypes.md` for the archetype's difficulty distribution.
 
 ### Research Tool Priority
 

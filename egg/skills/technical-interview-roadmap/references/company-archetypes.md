@@ -143,6 +143,8 @@ Interview patterns by company type. Use as a proxy when company-specific researc
 - System design and practical engineering skills often weighted equally with DSA
 - Culture fit and "can you build things" matters more than optimal solutions
 
+> **Caution:** Startup OAs often use third-party platforms (HackerRank, Codility, CodeSignal) with difficulty pools not calibrated to role level. Actual OA difficulty may significantly exceed this distribution — confirmed cases of early-career roles at crypto/fintech startups testing Hard-level 2D DP and Union-Find problems. Always include Hard-level preparation regardless of what the archetype distribution suggests.
+
 ---
 
 ## Unicorn / Late-Stage Tech
@@ -176,6 +178,8 @@ Interview patterns by company type. Use as a proxy when company-specific researc
 - Stripe: Known for practical, domain-relevant problems (payment systems, API design)
 - Databricks: Heavier on data processing and optimization
 - Figma: May include canvas/rendering-related algorithmic problems
+
+> **Caution:** Unicorn/late-stage companies often use third-party OA platforms (HackerRank, Codility, CodeSignal) with difficulty pools not calibrated to role level. Actual OA difficulty may significantly exceed this distribution. Always include Hard-level preparation regardless of role level.
 
 ---
 

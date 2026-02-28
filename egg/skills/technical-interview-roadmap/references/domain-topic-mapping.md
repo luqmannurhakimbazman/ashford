@@ -178,9 +178,9 @@ Pattern names align with leetcode-teacher's `references/frameworks/problem-patte
 |-------|----------|-----------|--------------|
 | Hash Table | High | Merkle trees, address lookup, transaction indexing | Hash Table |
 | DFS/BFS | High | Chain traversal, block graph analysis | DFS/BFS |
-| Dynamic Programming | Medium | Gas optimization, MEV strategies | Dynamic Programming |
+| Dynamic Programming | High | Gas optimization, MEV strategies, advanced subsequence/combinatorial problems. OA ground truth (Crypto.com 2026-02-28) confirmed 2D DP + subsequence dedup + modular arithmetic at Hard level for an early career role | Dynamic Programming |
 | Greedy | Medium | Transaction ordering, fee optimization | Greedy |
-| Union-Find | Low | Account clustering, address grouping | Union-Find |
+| Union-Find | High | Account clustering, address grouping, entity resolution across chains. OA ground truth (Crypto.com 2026-02-28) confirmed Union-Find + prime factorization (LC 952 equivalent) at Hard level for an early career role | Union-Find |
 
 ---
 

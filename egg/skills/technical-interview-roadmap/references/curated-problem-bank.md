@@ -211,9 +211,11 @@ These problems combine multiple patterns and are good for advanced practice:
 
 | Level | Suggested Distribution | Focus |
 |-------|----------------------|-------|
-| Junior / Entry | 8 Easy + 12 Medium + 0 Hard | Build pattern fluency |
-| Mid | 3 Easy + 15 Medium + 2 Hard | Deepen medium, introduce hard |
+| Junior / Entry | 5 Easy + 15 Medium + 3-5 Hard | Build pattern fluency AND prepare for worst-case OA difficulty |
+| Mid | 3 Easy + 14 Medium + 3-5 Hard | Deepen medium, ensure hard readiness |
 | Senior | 0 Easy + 12 Medium + 8 Hard | Optimize and handle edge cases |
+
+> **These distributions are starting points.** Real OAs routinely exceed expected difficulty regardless of role level. Always include Hard problems — companies use shared assessment platforms (HackerRank, Codility, CodeSignal) with problem pools not calibrated to role level.
 
 ### By Time Available
 
