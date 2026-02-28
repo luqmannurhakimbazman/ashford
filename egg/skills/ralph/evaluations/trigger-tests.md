@@ -50,42 +50,42 @@
 PASS=0; FAIL=0
 
 # Test: SKILL.md exists
-[[ -f egg/skills/ralph/SKILL.md ]] && ((PASS++)) || { echo "FAIL: SKILL.md missing"; ((FAIL++)); }
+[[ -f egg/skills/ralph/SKILL.md ]] && PASS=$((PASS + 1)) || { echo "FAIL: SKILL.md missing"; FAIL=$((FAIL + 1)); }
 
 # Test: iteration-protocol.md exists
-[[ -f egg/skills/ralph/references/iteration-protocol.md ]] && ((PASS++)) || { echo "FAIL: iteration-protocol.md missing"; ((FAIL++)); }
+[[ -f egg/skills/ralph/references/iteration-protocol.md ]] && PASS=$((PASS + 1)) || { echo "FAIL: iteration-protocol.md missing"; FAIL=$((FAIL + 1)); }
 
 # Test: spec-template.md exists
-[[ -f egg/skills/ralph/references/spec-template.md ]] && ((PASS++)) || { echo "FAIL: spec-template.md missing"; ((FAIL++)); }
+[[ -f egg/skills/ralph/references/spec-template.md ]] && PASS=$((PASS + 1)) || { echo "FAIL: spec-template.md missing"; FAIL=$((FAIL + 1)); }
 
 # Test: plan-template.md exists
-[[ -f egg/skills/ralph/references/plan-template.md ]] && ((PASS++)) || { echo "FAIL: plan-template.md missing"; ((FAIL++)); }
+[[ -f egg/skills/ralph/references/plan-template.md ]] && PASS=$((PASS + 1)) || { echo "FAIL: plan-template.md missing"; FAIL=$((FAIL + 1)); }
 
 # Test: planning-questions.md exists
-[[ -f egg/skills/ralph/references/planning-questions.md ]] && ((PASS++)) || { echo "FAIL: planning-questions.md missing"; ((FAIL++)); }
+[[ -f egg/skills/ralph/references/planning-questions.md ]] && PASS=$((PASS + 1)) || { echo "FAIL: planning-questions.md missing"; FAIL=$((FAIL + 1)); }
 
 # Test: ralph command exists
-[[ -f egg/commands/ralph.md ]] && ((PASS++)) || { echo "FAIL: ralph.md command missing"; ((FAIL++)); }
+[[ -f egg/commands/ralph.md ]] && PASS=$((PASS + 1)) || { echo "FAIL: ralph.md command missing"; FAIL=$((FAIL + 1)); }
 
 # Test: loop template exists and is executable
-[[ -x egg/scripts/ralph-loop-template.sh ]] && ((PASS++)) || { echo "FAIL: ralph-loop-template.sh missing or not executable"; ((FAIL++)); }
+[[ -x egg/scripts/ralph-loop-template.sh ]] && PASS=$((PASS + 1)) || { echo "FAIL: ralph-loop-template.sh missing or not executable"; FAIL=$((FAIL + 1)); }
 
 # Test: SKILL.md has correct frontmatter
-grep -q "^name: ralph" egg/skills/ralph/SKILL.md && ((PASS++)) || { echo "FAIL: SKILL.md missing name frontmatter"; ((FAIL++)); }
+grep -q "^name: ralph" egg/skills/ralph/SKILL.md && PASS=$((PASS + 1)) || { echo "FAIL: SKILL.md missing name frontmatter"; FAIL=$((FAIL + 1)); }
 
 # Test: SKILL.md references all reference files
 for ref in iteration-protocol spec-template plan-template planning-questions; do
-    grep -q "$ref" egg/skills/ralph/SKILL.md && ((PASS++)) || { echo "FAIL: SKILL.md doesn't reference $ref"; ((FAIL++)); }
+    grep -q "$ref" egg/skills/ralph/SKILL.md && PASS=$((PASS + 1)) || { echo "FAIL: SKILL.md doesn't reference $ref"; FAIL=$((FAIL + 1)); }
 done
 
 # Test: Command has description frontmatter
-grep -q "^description:" egg/commands/ralph.md && ((PASS++)) || { echo "FAIL: ralph.md missing description"; ((FAIL++)); }
+grep -q "^description:" egg/commands/ralph.md && PASS=$((PASS + 1)) || { echo "FAIL: ralph.md missing description"; FAIL=$((FAIL + 1)); }
 
 # Test: Loop script has extract_section function
-grep -q "extract_section" egg/scripts/ralph-loop-template.sh && ((PASS++)) || { echo "FAIL: loop script missing extract_section"; ((FAIL++)); }
+grep -q "extract_section" egg/scripts/ralph-loop-template.sh && PASS=$((PASS + 1)) || { echo "FAIL: loop script missing extract_section"; FAIL=$((FAIL + 1)); }
 
 # Test: Loop script has parse_frontmatter_array function
-grep -q "parse_frontmatter_array" egg/scripts/ralph-loop-template.sh && ((PASS++)) || { echo "FAIL: loop script missing parse_frontmatter_array"; ((FAIL++)); }
+grep -q "parse_frontmatter_array" egg/scripts/ralph-loop-template.sh && PASS=$((PASS + 1)) || { echo "FAIL: loop script missing parse_frontmatter_array"; FAIL=$((FAIL + 1)); }
 
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
