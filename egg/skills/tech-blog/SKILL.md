@@ -350,9 +350,20 @@ Wrap the entire post body in `{% katexmm %}...{% endkatexmm %}` (see [CRITICAL: 
 - **Short paragraphs** — 3-5 sentences maximum for screen readability
 - **Concrete over abstract** — "A 3x3 matrix" not "a matrix of arbitrary dimensions"
 - **No filler** — Cut "basically", "essentially", "it's worth noting that", "it should be mentioned"
+- **No LLM anti-patterns** — See the banned patterns list below
 - **First person naturally** — Use "I" for purpose, experience, opinions, and guidance. Use "we" for walking through derivations together.
 - **Anti-condescension** — Never use "obviously", "trivially", "simple algebra shows", "the reader should know." Use instead: "We can see that...", "A quick calculation shows...", "Recall that..."
 - **Signposting** — Purpose statements at section starts, progress markers at transitions, summaries after complex sections
+
+#### LLM Anti-Patterns (Banned)
+
+These patterns are common in AI-generated prose and must never appear in blog output:
+
+| Pattern | Example | Fix |
+|---------|---------|-----|
+| Em dashes for tone or filler | "This changes everything — or does it?" | Use em dashes only when they add structural clarity (e.g., parenthetical asides). Default to commas, periods, or semicolons. |
+| Rhetorical questions for drama | "The twist?" "Do you know what I realized?" "What if I told you..." | State the point directly. |
+| Formulaic intensifiers | "It wasn't just X, it was Y" "The real issue? Something else entirely." | Write the actual claim without the theatrical setup. |
 
 ### Step 5: Code Examples, Figures, and Citations
 
@@ -452,6 +463,7 @@ Before delivering the final draft, verify:
 - [ ] **Figures numbered and referenced** — Every figure has a caption and is referenced in text
 - [ ] **Frontmatter is complete** — Title, subtitle, layout, date, keywords, published
 - [ ] **No filler language** — Every sentence adds value
+- [ ] **No LLM anti-patterns** — No gratuitous em dashes, no rhetorical questions for drama, no "It wasn't just X, it was Y" formulaic structures
 - [ ] **Conclusion connects to purpose** — Restates insight, further reading included
 - [ ] **Table of contents** — Present if post > 1500 words
 - [ ] **Length matches scope** — Not padded, not rushed

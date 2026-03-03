@@ -55,6 +55,16 @@ Restate your interest, mention availability, and thank the reader. Keep it to 2-
 
 **Good:** "I would welcome the opportunity to discuss how my experience in [domain] can contribute to [team/initiative]. I am available for interviews at your convenience. Thank you for your time and consideration."
 
+## LLM Anti-Patterns (Banned)
+
+These patterns are common in AI-generated writing and must never appear in cover letter output:
+
+| Pattern | Example | Fix |
+|---------|---------|-----|
+| Em dashes for tone or filler | "I thrive in fast-paced environments — and that's what drew me to [Firm]" | Use em dashes only when they add structural clarity (e.g., parenthetical asides). Default to commas, periods, or semicolons. |
+| Rhetorical questions for drama | "The twist?" "Do you know what I realized?" "What if I told you..." | State the point directly. |
+| Formulaic intensifiers | "It wasn't just X, it was Y" "The real issue? Something else entirely." | Write the actual claim without the theatrical setup. |
+
 ## Do's and Don'ts
 
 | Do | Don't |
