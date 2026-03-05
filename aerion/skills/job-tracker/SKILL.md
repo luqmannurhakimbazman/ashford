@@ -110,6 +110,36 @@ If no relevant emails found, say so.
 
 **After presenting:** Ask the user to confirm before writing any changes to the sheet.
 
+## Write Safety Rules
+
+### NEVER use `add_rows` to append data
+
+The `add_rows` tool inserts blank rows at the TOP of the sheet by default (when `start_row` is omitted), which shifts all existing data down and corrupts pre-calculated cell ranges. Instead:
+
+1. **To append new applications:** Use `update_cells` targeting the first empty row. If the last data row is row 32, write to range `A33:E33`.
+2. **To update existing rows:** Use `update_cells` with the exact cell range (e.g., `C5` to update a stage).
+3. **`add_rows` is banned** unless the sheet grid physically has no empty rows left. If you must use it, you MUST set `start_row` to the last row index so rows are added at the bottom, never the top.
+
+### Pre-write snapshot
+
+Immediately before ANY write operation, re-read the full sheet with `get_sheet_data`. This fresh snapshot is your baseline — do not rely on earlier reads (data may have changed).
+
+Calculate all target cell ranges from this snapshot. For appends, find the last occupied row and target the next row.
+
+### Post-write verification (new rows only)
+
+After appending new rows, re-read the sheet and verify:
+- All pre-existing rows from the snapshot are unchanged (same values, same positions)
+- New rows appear at the expected positions with correct values
+
+### On verification failure
+
+If any mismatch is detected:
+1. **Stop immediately** — do not attempt further writes
+2. **Present the mismatch** — show expected vs actual values, which rows shifted or were overwritten
+3. **Propose a recovery plan** — list specific `update_cells` calls that would restore the original data from the cached snapshot
+4. **Wait for user confirmation** — do NOT execute recovery automatically
+
 ## Tool Reference
 
 Tool name prefixes vary by environment. On local Claude Code they use `mcp__plugin_aerion_gmail__` and `mcp__plugin_aerion_google-sheets__`. On Cowork they may use different prefixes (e.g., connector names or UUIDs). Look up available tools by function name, not prefix.

@@ -56,6 +56,19 @@ Show the user:
 ### 7. Confirm and Write
 
 Ask the user to confirm. On confirmation:
+
+#### 7a. Pre-write snapshot
+Re-read the full sheet with `get_sheet_data` immediately before writing. This is your fresh baseline — do not rely on the Step 4 read. Calculate all target cell ranges from this snapshot.
+
+#### 7b. Write changes
 - Use `update_cells` for existing row updates (specify sheet name `job-tracker`)
-- Use `add_rows` for new applications (specify sheet name `job-tracker`)
+- Use `update_cells` for new applications — target the first empty row after the last occupied row in the snapshot (e.g., if last data is row 32, write to `A33:E33`)
+- NEVER use `add_rows` to append data (it inserts at the top by default, shifting all existing rows down)
 - Do NOT write anything the user rejected or skipped
+
+#### 7c. Verify (new rows only)
+After appending new rows, re-read the sheet and confirm:
+- All pre-existing rows from the snapshot are unchanged (same values, same positions)
+- New rows appear at expected positions with correct values
+
+If any mismatch: stop, show expected vs actual, propose specific `update_cells` recovery calls from the snapshot, and wait for user confirmation before executing.
