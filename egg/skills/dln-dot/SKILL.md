@@ -20,8 +20,72 @@ description: >
 ### 1. Orientation
 
 - State the domain clearly: "Today we're working on [domain]."
-- Acknowledge what the learner already knows by reading their Concepts and Chains fields from the DLN Profiles database. If empty, say so honestly: "This is a fresh start — no prior concepts recorded."
+- Read the Knowledge State from the page body. Acknowledge what the learner already knows from the Concepts and Chains sections. If empty, say so honestly: "This is a fresh start — no prior concepts recorded."
 - Preview today's learning goals: 3-5 concepts you plan to cover and the chain(s) you'll build from them.
+
+### 1a. Session Plan Write
+
+Before any teaching begins, **dispatch the `dln-sync` agent** with action `plan-write` and the following plan content:
+
+```
+---
+
+## Session [N] — [date] (Dot Phase)
+
+### Plan
+- Concepts: [list the 3-5 concepts you plan to cover]
+- Target chains: [the causal chains you'll build from these concepts]
+- Comprehension checks: [specific questions you'll ask after each batch]
+- Priorities: [anything to reinforce from previous sessions, based on Knowledge State review]
+
+### Progress
+(populated by sync loop)
+```
+
+The session number is derived from the current Session Count column property + 1 (Session Count is incremented at session end, so the plan header uses `Session Count + 1`). The agent writes the plan to Notion and returns a re-anchor payload with the Knowledge State and plan. Teach from the returned payload.
+
+### Sync Loop (runs at every teaching boundary)
+
+After each of the following boundaries, **dispatch a fresh `dln-sync` agent** with action `sync`:
+- After each concept batch (2-3 concepts) + comprehension check
+- After each chain explain-back
+- After each worked example
+- Before and after the phase gate
+
+**Dispatch payload** — include in the agent prompt:
+- Progress notes to append (append-only, never edit existing blocks):
+```
+- Concept [X] — delivered, comprehension check: [pass/partial/fail]. [Brief note on learner's response.]
+- Concept [Y] — delivered, comprehension check: [pass/partial/fail]. [Brief note.]
+- Chain [X→Y] — built. Learner traced [correctly on first attempt / needed N hints].
+```
+- Knowledge State updates: newly confirmed concepts for `## Concepts`, newly built chains for `## Chains`
+- Any queued writes from previous failed syncs
+
+**On agent return** — use the re-anchor payload to deliver a **visible checkpoint** to the learner:
+
+> "Quick checkpoint: we've covered [X] and [Y], and you showed solid understanding of [Z]. Next up is [W], which connects to what we just built."
+
+This doubles as retrieval practice for the learner.
+
+#### Plan Adjustment
+
+If the re-anchor payload reveals drift from the original plan, include a **plan adjustment** in the next `dln-sync` dispatch to append:
+
+```
+### Plan Adjustment — [reason]
+- Reordering: [what changed and why]
+- Deferred: [what's pushed to next session]
+```
+
+Tell the learner what changed and why: "I'm adjusting our plan — we'll spend more time on [X] before moving to [Y]."
+
+#### Notion Failure Handling
+
+If `dln-sync` returns with `Status.Write: failed`:
+1. Log the intended update in-conversation as a visible checkpoint.
+2. Queue the failed writes — include them in the next `dln-sync` dispatch payload. (This queue exists only in conversation context.)
+3. If 3+ consecutive dispatches return failure, announce to the learner that persistence is temporarily offline. Continue with in-conversation checkpoints only. Attempt a single bulk write-back via `dln-sync` at session end.
 
 ### 2. Concept Delivery
 
@@ -83,18 +147,14 @@ Capture their response as a comprehension signal. This self-summary reinforces r
 
 ## Notion Write-Back
 
-At session end, update the learner's row in the **DLN Profiles** database:
+Most write-back happens continuously via `dln-sync` dispatches during the sync loop. At session end, dispatch `dln-sync` one final time with action `session-end` including:
 
-| Field | Action |
-|-------|--------|
-| Concepts | Append new concepts learned this session |
-| Chains | Append new chains built this session |
-| Open Questions | Update with any parked above-phase questions |
-| Last Session | Set to today's date |
-| Session Count | Increment by 1 |
-| Phase | Set to **Linear** if phase gate passed; keep **Dot** otherwise |
+| Target | Field | Action |
+|--------|-------|--------|
+| Column property | Last Session | Set to today's date |
+| Column property | Session Count | Increment by 1 |
+| Column property | Phase | Set to **Linear** if phase gate passed; keep **Dot** otherwise |
+| Page body | Knowledge State | Verify and patch any gaps |
+| Page body | Current session Progress | Append final status and exit ritual response |
 
-### Database Reference
-
-- **Database ID:** `1f889a62f3414c17afb1c71a883a78d3`
-- **Data Source:** `collection://7d60b0fb-2a0a-473d-bd58-305e84fd0851`
+Database IDs are handled by the `dln-sync` agent — phase skills do not need them.
