@@ -1,12 +1,12 @@
 ---
 name: dln-dot
 description: >
-  Dot-phase teaching skill for the DLN (Dot-Linear-Network) learning system.
-  Activated when the DLN orchestrator routes a learner in the Dot phase to this skill.
-  The Dot phase is for learners who know almost nothing about a domain — they need
-  foundational concepts introduced, connected into causal chains, and validated
-  through worked examples before advancing to Linear phase.
-  Trigger: DLN orchestrator determines Phase = Dot for a domain and routes here.
+  This skill should be used when the DLN orchestrator routes a learner whose Phase
+  is Dot, or when a user wants to learn a domain from scratch with no prior knowledge.
+  Covers foundational concept delivery (70% teaching / 30% elicitation), causal chain
+  building, worked examples, and phase gate assessment. Triggers: DLN orchestrator
+  determines Phase = Dot, or user says "I know nothing about [domain]", "start from
+  zero", "teach me the basics of [domain]".
 ---
 
 # DLN Dot Phase — Foundational Concept Teaching
@@ -123,7 +123,7 @@ Use the worked example scaffolding structure from `@references/dot-protocol.md`.
 Test whether the learner is ready to advance to Linear phase. The learner must demonstrate:
 
 - **(a)** Name the core concepts without prompting (target: 5+ concepts).
-- **(b)** Explain at least one causal chain clearly and correctly.
+- **(b)** Explain at least 2 causal chains clearly and correctly.
 - **(c)** Trace through a **new** scenario (not the worked example) with minimal help (≤2 hints).
 
 If they pass all three criteria, update their Phase to **Linear** in Notion.
