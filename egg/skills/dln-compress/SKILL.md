@@ -1,9 +1,11 @@
 ---
 name: dln-compress
 description: >
-  Internal skill — preloaded into the dln-sync agent via the skills frontmatter
-  field. Not user-invocable. Defines the re-anchor payload format and compression
-  rules for converting raw Notion page content into compact structured payloads.
+  Internal format specification for the DLN system. Only relevant when preloaded
+  by the dln-sync agent via the skills frontmatter field. Never activated by user
+  prompts. Defines the re-anchor payload compression template that dln-sync uses
+  to convert raw Notion page-body read-backs into compact structured summaries
+  for DLN teaching skills.
 ---
 
 # DLN Compress — Re-anchor Payload Format
