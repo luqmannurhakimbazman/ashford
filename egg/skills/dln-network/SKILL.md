@@ -1,11 +1,12 @@
 ---
 name: dln-network
-description: |
-  Activate when the DLN orchestrator routes a Network-phase learner here.
-  The learner has already built factors and transferable understanding (Dot and Linear phases complete).
-  This skill runs the Network phase: compress the learner's model, stress-test it against edge cases
-  and cross-domain analogies, and push for maximal compression with maximal coverage.
-  Trigger: DLN orchestrator identifies current_phase as "Network" and routes here.
+description: >
+  This skill should be used when the DLN orchestrator routes a learner whose Phase
+  is Network, or when a user explicitly requests a Network session. Stress-tests and
+  compresses the learner's mental model (20% delivery / 80% elicitation) against edge
+  cases, counterexamples, and cross-domain analogies. Triggers: DLN orchestrator
+  determines Phase = Network, or explicit requests like "run a Network session on
+  [topic]", "stress-test my model of [domain]", "compress my understanding of [domain]".
 ---
 
 # DLN Network Phase
@@ -72,7 +73,10 @@ If stress-tests reveal unexpected weaknesses, include a **plan adjustment** in t
 
 #### Notion Failure Handling
 
-Same as other phases: log in-conversation, queue writes in next dispatch, fall back after 3+ consecutive failures.
+If `dln-sync` returns with `Status.Write: failed`:
+1. Log the intended update in-conversation as a visible checkpoint.
+2. Queue the failed writes — include them in the next `dln-sync` dispatch payload. (This queue exists only in conversation context.)
+3. If 3+ consecutive dispatches return failure, announce to the learner that persistence is temporarily offline. Continue with in-conversation checkpoints only. Attempt a single bulk write-back via `dln-sync` at session end.
 
 ### 1. State Model
 
