@@ -1,6 +1,13 @@
 ---
 name: dln-linear
-description: This skill should be used when the DLN orchestrator routes a Linear-phase learner here. The learner has passed the Dot phase — they have solid concept nodes and procedural chains. This skill guides them to discover shared structures (factors) across those chains, transforming domain-specific procedures into transferable principles. Triggers include the DLN orchestrator determining Phase is Linear for a given subject, or explicit requests like "run a Linear session on [topic]", "help me find factors across my chains", or "cross-pollinate my [domain] knowledge".
+description: >
+  This skill should be used when the DLN orchestrator routes a learner whose Phase
+  is Linear, or when a user explicitly requests a Linear session. Guides factor
+  discovery (50% delivery / 50% elicitation) — finding shared structures across
+  procedural chains and transforming them into transferable principles. Triggers:
+  DLN orchestrator determines Phase = Linear, or explicit requests like "run a
+  Linear session on [topic]", "help me find factors across my chains", "cross-pollinate
+  my [domain] knowledge".
 ---
 
 ## 1. Core Philosophy
@@ -75,9 +82,12 @@ If the re-anchor payload reveals drift, include a **plan adjustment** in the nex
 
 #### Notion Failure Handling
 
-Same as Dot phase: log in-conversation, queue writes in next dispatch, fall back after 3+ consecutive failures.
+If `dln-sync` returns with `Status.Write: failed`:
+1. Log the intended update in-conversation as a visible checkpoint.
+2. Queue the failed writes — include them in the next `dln-sync` dispatch payload. (This queue exists only in conversation context.)
+3. If 3+ consecutive dispatches return failure, announce to the learner that persistence is temporarily offline. Continue with in-conversation checkpoints only. Attempt a single bulk write-back via `dln-sync` at session end.
 
-### Step 2: Warm-Up
+### Step 1: Warm-Up
 
 Present a new problem in the learner's domain. Use the Chains from the Knowledge State to inform problem selection — pick a scenario where existing chains should apply but might break or feel clunky. Let them attempt it using their existing chains. Observe:
 - Where does their procedural knowledge break?
@@ -86,7 +96,7 @@ Present a new problem in the learner's domain. Use the Chains from the Knowledge
 
 Do not correct mistakes yet. The goal is to surface the *limits* of chain-level thinking.
 
-### Step 3: Cross-Pollination
+### Step 2: Cross-Pollination
 
 Take two chains the learner knows and ask:
 
@@ -94,7 +104,7 @@ Take two chains the learner knows and ask:
 
 Use the cross-pollination question templates from `@references/linear-protocol.md`. Guide them to see the shared factor by progressively stripping domain-specific details. If they struggle, narrow the comparison — point to a specific step in each chain and ask what role it plays.
 
-### Step 4: Factor Hypothesis
+### Step 3: Factor Hypothesis
 
 Ask the learner to state the shared factor as a principle. Push for precision:
 
@@ -105,7 +115,7 @@ Use the factor hypothesis prompts from `@references/linear-protocol.md`. A good 
 - **Transferable** — it applies beyond the two chains that generated it.
 - **Predictive** — it can forecast outcomes in unseen problems.
 
-### Step 5: Upgrade Operator Practice
+### Step 4: Upgrade Operator Practice
 
 Show how recognizing the factor transforms the *type* of questions the learner can ask:
 
@@ -115,7 +125,7 @@ Show how recognizing the factor transforms the *type* of questions the learner c
 
 Use the upgrade operator examples from `@references/linear-protocol.md`. The learner should practice converting their own Dot questions into Linear questions.
 
-### Step 6: Phase Gate
+### Step 5: Phase Gate
 
 Test whether the learner can:
 
