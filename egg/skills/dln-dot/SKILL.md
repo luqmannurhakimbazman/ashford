@@ -24,6 +24,16 @@ description: >
 - State the domain clearly: "Today we're working on [domain]."
 - Read the Knowledge State from the page body. Acknowledge what the learner already knows from the Concepts and Chains sections. If empty, say so honestly: "This is a fresh start — no prior concepts recorded."
 
+#### Syllabus-Driven Planning
+
+Read the `## Syllabus` section from the page body. If a syllabus exists:
+
+- Identify **uncovered topics** — syllabus topics with no matching `Syllabus Topic` value in the Concepts table.
+- Prioritize uncovered topics when planning the session's concept batches. New concepts should be drawn from uncovered syllabus topics before deepening already-covered ones.
+- Snapshot the syllabus at session start for phase gate evaluation (see Section 5).
+
+If no syllabus exists, plan concepts as before (LLM-driven topic selection).
+
 #### Weakness-Driven Priority Setting
 
 Before previewing today's goals, check the **Weakness Queue** from the page body:
@@ -130,6 +140,18 @@ After each of the following boundaries, **dispatch a fresh `dln-sync` agent** wi
 ```
 - Knowledge State updates: newly confirmed concepts for `## Concepts`, newly built chains for `## Chains`
 - Weakness Queue rebuild: [full updated queue reflecting mastery changes this boundary]
+- Syllabus updates: if any concepts changed to `mastered` this boundary, check whether all concepts sharing that `Syllabus Topic` are now mastered. If so, include in the dispatch:
+```
+syllabus_updates:
+  - topic: "[topic name]"
+    status: "checked"
+```
+If a concept was downgraded from `mastered` and its syllabus topic was previously checked, include:
+```
+syllabus_updates:
+  - topic: "[topic name]"
+    status: "unchecked"
+```
 - Any queued writes from previous failed syncs
 
 **On agent return** — follow the learner-generated checkpoint, plan adjustment, calibration-driven adjustment, and Notion failure handling protocols in `@${CLAUDE_PLUGIN_ROOT}/egg/skills/dln/references/sync-protocol.md`.
@@ -150,9 +172,11 @@ Include mastery updates in the `dln-sync` dispatch payload:
 
 ```
 - Knowledge State updates:
-  - Concept [X]: status → mastered. Evidence: "Recall pass — paraphrased correctly (S[N])."
-  - Concept [Y]: status → partial. Evidence: "Recall partial — correct direction, confused mechanism (S[N])."
+  - Concept [X]: status → mastered. Syllabus Topic: [matching topic]. Evidence: "Recall pass — paraphrased correctly (S[N])."
+  - Concept [Y]: status → partial. Syllabus Topic: [matching topic]. Evidence: "Recall partial — correct direction, confused mechanism (S[N])."
 ```
+
+**Syllabus Topic mapping:** When creating a new concept, set its `Syllabus Topic` column to the syllabus topic it was derived from. One syllabus topic may spawn multiple concepts (e.g., "CMD vs ENTRYPOINT" → shell form, exec form, combo pattern). If the concept doesn't map to any syllabus topic (e.g., emerged from chain-building or elaboration), leave the column empty.
 
 If a concept was previously `partial` and the learner demonstrates understanding in a later check (chain explain-back, worked example, or retrieval practice), upgrade to `mastered` and append evidence.
 
@@ -271,6 +295,12 @@ Before running the phase gate assessment, review the mastery table from the late
 
 - **All core concepts** must be `mastered` or `partial` (no `not-mastered` items).
 - **At least 2 chains** must be `mastered`.
+- **All syllabus topics** (as read at session start) must be *covered* — at least one concept exists for each topic. If uncovered topics remain, do NOT run the phase gate. Instead:
+  1. Tell the learner: "We still have [N] topics to cover before testing your readiness: [list]. Let's keep building."
+  2. Continue teaching from uncovered topics in this or subsequent sessions.
+  3. The phase gate becomes available once all topics are covered.
+
+If no syllabus exists, skip this prerequisite.
 
 If prerequisites are not met, do NOT run the phase gate. Instead:
 1. Identify the `not-mastered` and `partial` items.
@@ -353,7 +383,7 @@ Capture their response as a comprehension signal.
 
 **2. Progress celebration:**
 Provide concrete progress metrics:
-> "Today you mastered [N] new concepts and built [M] new chains. You now have [total] concepts in your foundation — that's [percentage] of what we'll need for the Linear phase."
+> "Today you mastered [N] new concepts and built [M] new chains. You now have [total] concepts in your foundation — that's [percentage] of what we'll need for the Linear phase. Syllabus coverage: [X]/[Y] topics covered."
 
 **3. Milestone celebrations** (when applicable):
 
