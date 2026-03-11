@@ -58,9 +58,16 @@ Use these generic templates after each batch of 2-3 concepts. Substitute the bra
 - Says "I don't know" or "I'm not sure" without attempting
 
 ### Recovery Actions
-- Re-deliver the concept with a different analogy
-- Break the concept into smaller sub-concepts
-- Use a concrete micro-example before re-asking
+
+When a learner fails a comprehension check, pair the cognitive recovery with an affective response:
+
+| Cognitive Recovery | Affective Response |
+|---|---|
+| Re-deliver the concept with a different analogy | "Let me try explaining this differently — sometimes a new angle makes it click." |
+| Break the concept into smaller sub-concepts | "Let's break this into smaller pieces. That's not because it's hard for you — it's because this concept actually has layers." |
+| Use a concrete micro-example before re-asking | "Let me give you a specific example first, then let's come back to the general idea." |
+
+Never say: "Let me make it simpler" (implies the learner is not capable). Instead: "Let me come at this from a different direction."
 
 ### Elaborative Interrogation Questions
 
@@ -219,10 +226,14 @@ Given what we've learned, what do you think happens next?"
 - Note which concepts and chains were strongest for the Linear phase teacher.
 
 ### On Fail
-- Identify the specific gap: "You've got the concepts down, but the chains need more practice" (or vice versa).
-- Do NOT frame it negatively. Frame as: "We'll reinforce [specific area] next session."
+
+- Identify the specific gap: "You've got solid understanding of [what worked]. The area that needs more work is [specific area] — that's one of the trickier parts of this domain."
+- Frame as proximity to success: "You're [close/very close] to passing. [Specific area] is the last piece." Give them a concrete count: "You met 2 of 3 criteria — one more session focused on [criterion] and you'll be ready."
+- Do NOT frame it as failure. Frame as: "We'll reinforce [specific area] next session."
+- Do NOT use platitudes ("Don't worry!" / "You'll get it!"). Use specific, evidence-based encouragement: "Your concept recall was strong — 7 out of 8 unprompted. The chain from [X] to [Y] is where we need to focus."
 - Keep Phase at **Dot**.
-- Note what to prioritize in the next session in Open Questions or Chains fields.
+- Note what to prioritize in the next session in the Weakness Queue.
+- Update Engagement Signals: if the learner showed frustration during the gate, set Momentum to `fragile`. Otherwise `neutral`.
 
 ## 6. Retrieval Warm-Up Question Bank
 
