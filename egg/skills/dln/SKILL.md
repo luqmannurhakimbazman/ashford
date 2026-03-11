@@ -4,7 +4,8 @@ description: >
   This skill should be used when the user wants to learn a new domain from scratch
   using structured cognitive phases, or when they say "dln", "dln list",
   "dln reset [domain]", "learn [domain]", "teach me [domain] from zero",
-  "cold-start [domain]", "start learning [domain]", or reference the
+  "cold-start [domain]", "start learning [domain]", "continue learning [domain]",
+  "resume [domain]", "pick up [domain]", "review [domain]", or reference the
   Dot-Linear-Network framework. It orchestrates three phase skills (dln-dot,
   dln-linear, dln-network) based on the learner's current phase stored in a Notion
   database, routing them to the appropriate learning protocol for their level of
@@ -33,10 +34,7 @@ The framework is domain-agnostic — it works for options pricing, compiler desi
 
 ## 2. Notion Database
 
-All learner state is persisted in the **DLN Profiles** database in Notion (under Maekar).
-
-- **Database ID:** `1f889a62f3414c17afb1c71a883a78d3`
-- **Data Source:** `collection://7d60b0fb-2a0a-473d-bd58-305e84fd0851`
+All learner state is persisted in the **DLN Profiles** database in Notion (under Maekar). Database IDs are owned by the `dln-sync` agent — the orchestrator and phase skills reference the database by name only.
 
 ### Schema
 
@@ -185,12 +183,6 @@ Use the Notion MCP to query the DLN Profiles database for a row matching the dom
 
 **If found:** Read the current Phase, Session Count, and page body content.
 
-**Migration check (temporary — remove once all profiles are confirmed migrated):** If the page body is empty but the column properties Concepts, Chains, Factors, Compressed Model, or Open Questions contain data, perform a one-time migration:
-1. Write the page body initialization template
-2. Copy each populated column property into the corresponding Knowledge State section
-3. Clear the migrated column properties
-4. Inform the user: *"Migrated your [domain] profile to the new page-based format."*
-
 **If not found:** Create a new row with:
 - Domain = parsed domain name
 - Phase = Dot
@@ -325,3 +317,5 @@ All DLN phase skills embed motivational design into their teaching. This is not 
 5. **Celebration at milestones:** Phase transitions, mastery achievements, and session count thresholds are celebrated explicitly. Not with empty praise — with specific acknowledgment of what the learner accomplished and what it means.
 
 The `## Engagement Signals` section in the Knowledge State persists motivational context between sessions so the next session can calibrate its tone appropriately.
+
+**Momentum time-decay rule:** If 7+ days have elapsed since the last session, reset Momentum to `neutral` regardless of its stored value. A `fragile` state from a bad session should not persist indefinitely — after a week, the learner has had enough distance that opening with fragile calibration feels mismatched. The phase skill reads Last Session from the profile and applies this rule before using the stored Momentum value.

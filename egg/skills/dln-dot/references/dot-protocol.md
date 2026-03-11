@@ -438,28 +438,7 @@ Signal for expertise reversal: the learner answers comprehension checks BEFORE y
 
 ### Visual Format Constraints
 
-Claude Code operates in a text terminal. Available visual formats:
-
-| Format | Best For | Limitations |
-|--------|----------|-------------|
-| **Mermaid diagrams** | Flowcharts, sequence diagrams, concept maps | Renders in Mermaid-compatible viewers; displays as readable code in terminal |
-| **ASCII box diagrams** | Simple relationships, 2-4 nodes | Universal rendering; breaks down with 5+ nodes |
-| **Indented tree structures** | Hierarchies, taxonomies | Easy to read; can't show cross-links |
-| **ASCII tables** | Comparisons, side-by-side analysis | Universal; limited to tabular relationships |
-| **Inline notation** | Quick inline relationships | `A → B → C` is clear for simple chains |
-
-**Default choice:** Use **Mermaid** for anything with 3+ nodes and cross-links. Use **inline notation** (`A → B → C`) for simple chains mentioned in passing. Use **ASCII tables** for side-by-side comparisons.
-
-**When to generate visuals:**
-- After building a chain (show the chain as a diagram)
-- During cross-pollination (side-by-side comparison)
-- When the learner's verbal model gets complex enough to benefit from spatial layout (roughly 4+ interconnected concepts)
-- When the learner requests it
-
-**When NOT to generate visuals:**
-- For single-concept delivery (a diagram of one node is pointless)
-- When the relationship is genuinely linear with no branches (inline notation suffices)
-- When the learner is overloaded (adding a visual format on top of verbal overload makes it worse)
+See `@/Users/luqman/Desktop/projects/my-cc-plugin/ashford/egg/skills/dln/references/visual-format.md` for the full visual format reference (Mermaid, ASCII, inline notation — when to use each).
 
 ### Simple Chain (3-4 concepts)
 
@@ -519,3 +498,62 @@ Evaluate their verbal diagram for:
 - **Correct edges:** Do their arrows point in the right direction?
 - **Edge labels:** Did they articulate the mechanism, not just the direction?
 - **Missing connections:** Are there relationships they omitted?
+
+## 12. Frustration Detection and Response
+
+This protocol is shared across all DLN phases. Linear and Network phases extend it with phase-specific signals.
+
+### Signals to Monitor
+
+Watch for these frustration indicators during the session:
+
+| Signal | Severity |
+|--------|----------|
+| "I don't get it" or "I'm lost" or "This doesn't make sense" | High |
+| Repeated incorrect answers on the same concept (3+ in a row) | High |
+| Very short or disengaged responses ("sure", "ok", "I guess") | Medium |
+| Asking to skip or move on before demonstrating understanding | Medium |
+| Long gaps without response (when previously responsive) | Low-Medium |
+| Self-deprecating language ("I'm bad at this", "I'll never get it") | High |
+
+### Response Protocol
+
+When a high-severity signal is detected OR 2+ medium signals appear within a single teaching boundary:
+
+1. **Pause teaching immediately.** Do not push through.
+2. **Acknowledge explicitly:** "I can tell this one is frustrating. That's completely normal — this concept trips up most people when they first encounter it."
+3. **Simplify:** Drop to the simplest possible version of the concept. Strip away all complexity. Use the most concrete, physical analogy you can.
+4. **Quick win:** Ask a question you're confident the learner can answer correctly — something from previously mastered material. This rebuilds confidence through experienced success.
+5. **Re-approach:** Return to the difficult concept from the simplified foundation. Build up gradually.
+6. **Update Engagement Signals:** Increment `Consecutive struggles`. If it reaches 3+, set Momentum to `fragile`. Include in next `dln-sync` dispatch.
+
+If the learner uses self-deprecating language, respond directly: "This isn't about being good or bad at [domain]. It's about finding the right explanation that clicks for you. We haven't found it yet — but we will."
+
+### Consecutive Struggle Counter
+
+Track consecutive failures within the session (in conversation context):
+- Increment on each failed comprehension check, failed chain trace, or "I don't know" response.
+- **Reset to 0** on any success (passed comprehension check, correct chain trace, correct application).
+- At count = 2: Adjust pacing — slow down, add more scaffolding.
+- At count = 3: Trigger the frustration response protocol above.
+- At count = 5: Suggest a break: "Let's pause here for today. You've covered a lot of ground. Sometimes concepts need time to settle — when we come back, this will feel clearer."
+
+Persist the final count to Engagement Signals at session end via `dln-sync`.
+
+### Remediation Protocol
+
+For each queued weakness item, in priority order:
+
+1. **Re-activate:** Ask the learner to recall what they know about the item. Do not re-teach yet. This surfaces the current state of their understanding.
+2. **Diagnose:** Compare their recall to the mastery rubric. Identify the specific gap:
+   - Cannot recall at all → full re-teach with new analogy
+   - Recalls partially but wrong mechanism → targeted correction
+   - Recalls but cannot apply → application-focused practice
+3. **Intervene:** Use the recovery action matched to the diagnosis. Always use a DIFFERENT approach than what was used when the item was first taught (different analogy, different example, different angle of explanation).
+4. **Re-check:** Run a comprehension check immediately after intervention. Score using the mastery rubric.
+5. **Update:** Include the mastery update in the next `dln-sync` dispatch. If the item reaches `mastered`, it exits the Weakness Queue. If it improves to `partial`, reduce its severity. If it stays `not-mastered`, escalate its severity and keep it at the top of the queue.
+
+### Remediation Limits
+
+- Spend at most **2 remediation attempts** per item per session. If the item is still `not-mastered` after 2 attempts, note this in progress and move on. The item stays in the queue for next session with severity `high`.
+- If the queue has 3+ items, remediate only the top 2 per session. The rest carry forward.

@@ -132,58 +132,7 @@ After each of the following boundaries, **dispatch a fresh `dln-sync` agent** wi
 - Weakness Queue rebuild: [full updated queue reflecting mastery changes this boundary]
 - Any queued writes from previous failed syncs
 
-**On agent return** — use the re-anchor payload to prompt a **learner-generated checkpoint**. Do NOT state the summary yourself — ask the learner to produce it:
-
-> "Quick checkpoint — before we move on, summarize where we are. What have we covered so far today, and what's the key takeaway?"
-
-Wait for their response. Compare it against the re-anchor payload. If they miss something significant, prompt:
-
-> "You covered the main points. One thing you didn't mention — [missed item]. Can you connect that to what you just said?"
-
-If they nail it, confirm briefly and move on:
-
-> "Exactly right. Let's continue."
-
-The learner generating the summary is a retrieval event that strengthens retention. The teacher stating the summary is re-study — dramatically less effective.
-
-#### Plan Adjustment
-
-If the re-anchor payload reveals drift from the original plan, include a **plan adjustment** in the next `dln-sync` dispatch to append:
-
-```
-### Plan Adjustment — [reason]
-- Reordering: [what changed and why]
-- Deferred: [what's pushed to next session]
-```
-
-Tell the learner what changed and why: "I'm adjusting our plan — we'll spend more time on [X] before moving to [Y]."
-
-#### Calibration-Driven Adjustment
-
-When the Calibration Log shows a pattern across 2+ sessions, adjust teaching strategy:
-
-**Overconfident learner** (mean calibration gap > +1.0):
-- Increase stress-testing intensity — present harder edge cases earlier.
-- Before accepting a comprehension check as "pass," ask one additional probe: "Are you sure? Walk me through your reasoning one more time."
-- In the phase gate, use the harder end of the scenario spectrum.
-- Never tell the learner they are overconfident. Instead, increase the difficulty until their confidence matches their ability.
-
-**Underconfident learner** (mean calibration gap < -1.0):
-- Add more reinforcement — revisit successful chains and name the learner's wins explicitly.
-- After comprehension checks, say: "You got that right. That's a solid understanding."
-- In worked examples, let the learner lead more — they often know more than they believe.
-- Surface the pattern explicitly: "I notice you rate yourself lower than your actual performance. Your understanding is stronger than you think."
-
-**Well-calibrated learner** (mean gap between -1.0 and +1.0):
-- Proceed normally. Note in the sync payload that calibration is good.
-- Periodically validate: "Your self-assessments have been accurate — that metacognitive skill will serve you well."
-
-#### Notion Failure Handling
-
-If `dln-sync` returns with `Status.Write: failed`:
-1. Log the intended update in-conversation as a visible checkpoint.
-2. Queue the failed writes — include them in the next `dln-sync` dispatch payload. (This queue exists only in conversation context.)
-3. If 3+ consecutive dispatches return failure, announce to the learner that persistence is temporarily offline. Continue with in-conversation checkpoints only. Attempt a single bulk write-back via `dln-sync` at session end.
+**On agent return** — follow the learner-generated checkpoint, plan adjustment, calibration-driven adjustment, and Notion failure handling protocols in `@/Users/luqman/Desktop/projects/my-cc-plugin/ashford/egg/skills/dln/references/sync-protocol.md`.
 
 ### 2. Concept Delivery
 
@@ -223,45 +172,13 @@ Before each batch, classify each concept's **element interactivity** — how man
 
 When a batch contains concepts of mixed complexity, size the batch to the MOST complex concept in it. A batch with one High concept is a single-concept batch, even if the other planned concepts are Low.
 
-#### Load Monitoring Signals
+#### Load Monitoring and Overload Response
 
-Watch for these **overload indicators** during and after each batch:
+Watch for overload signals: failed checks after re-teach, learner confusion between concepts, circular answers, "I don't know" shutdowns (all High severity); failed first-attempt checks, requests to repeat (Moderate). Positive signals: quick correct answers, above-phase questions.
 
-| Signal | Severity | What It Means |
-|--------|----------|---------------|
-| Failed comprehension check (first attempt) | Moderate | May be a gap, not necessarily overload. Re-teach with different analogy. |
-| Failed comprehension check (second attempt after re-teach) | High | Likely overloaded. The concept or batch is too complex. |
-| Learner asks to repeat the explanation | Moderate | Working memory full. Slow down. |
-| Learner confuses current concept with a previous one | High | Too many similar items in working memory. Separate them. |
-| Learner gives circular or verbatim-repeat answers | High | Not processing — just echoing. Overloaded. |
-| Learner stops attempting and says "I don't know" | High | Shut down. Immediate intervention needed. |
-| Learner answers quickly and correctly | Low (positive) | Capacity available. Can increase batch size. |
-| Learner asks "above-phase" questions | Low (positive) | Engaged and ahead. Can increase batch size. |
-
-#### Overload Response Protocol
-
-When 2+ High-severity signals appear in a single batch:
-
-1. **Stop the current batch immediately.** Do not push through.
-2. **Acknowledge without blame:** "Let's slow down — I threw too much at you at once."
-3. **Reduce batch size by 1** for the remainder of the session (minimum: 1 concept per batch).
-4. **Add a worked micro-example** for the concept that caused overload — a 2-3 sentence scenario that exercises just that one concept in isolation.
-5. **Re-attempt the comprehension check** after the micro-example.
-6. **Log the adjustment** in the next `dln-sync` dispatch as a plan adjustment.
+When 2+ High-severity signals appear in a single batch, follow the overload response and faded example protocols in `@references/dot-protocol.md` (section 10). Key actions: stop the batch, acknowledge without blame, reduce batch size by 1, add a worked micro-example, re-attempt the check, and log the adjustment.
 
 When the learner shows positive signals across 2+ consecutive batches, increase batch size by 1 (maximum: 4).
-
-#### Interaction with Worked Examples
-
-When batch size is reduced to 1 due to overload:
-- Add a worked example after EVERY concept, not just after chains are built.
-- Use the "faded example" progression: first example is fully worked, second has one step for the learner to fill in, third has two steps for the learner.
-- This increases germane load (productive processing) while reducing extraneous load (unnecessary complexity).
-
-When the learner is performing well (batch size 3-4):
-- Worked examples can be more complex and combine multiple concepts.
-- The learner should lead the walkthrough with minimal guidance.
-- Skip the faded progression — go straight to learner-led examples.
 
 For each concept, deliver:
 
@@ -279,71 +196,25 @@ After each batch, run a **comprehension check** before moving on. Use questions 
 
 #### Elaborative Interrogation
 
-After a learner passes a comprehension check on a concept, follow up with a "why" question — but ONLY if the concept is their second or later exposure to related material. Do NOT use elaborative interrogation on the very first concept in a domain or on concepts with no connection to anything the learner already knows.
+After a learner passes a comprehension check, follow up with a "why" question — but ONLY on concept 2+ of a batch (never the first concept in a domain or batch). The learner needs at least one anchor concept before "why" questions become productive.
 
-**The rule:** A learner needs at least one anchor concept before "why" questions become productive. Without background knowledge, "why" questions produce frustrated guessing, not meaningful integration.
-
-**Timing within a batch:**
-- Concept 1 of a batch: Recall and relationship questions only. No "why" yet.
-- Concept 2+ of a batch: After the comprehension check passes, add one "why" question that connects the new concept to a previously learned one.
-
-**Example sequence:**
-1. Deliver "inflation" (first concept). Comprehension check: "In your own words, what is inflation?" (Recall only.)
-2. Deliver "interest rates" (second concept). Comprehension check: "How do interest rates relate to inflation?" Then elaborative: **"Why do central banks raise interest rates when inflation rises? What's the mechanism?"**
-
-The "why" question forces the learner to generate a causal explanation that integrates the new concept with prior knowledge. This is different from asking "what happens" (which is a chain question) — it asks "why does this mechanism exist in the first place?"
-
-**Evaluating "why" answers:**
-
-| Quality | Description | Response |
-|---------|-------------|----------|
-| **Generative** | Learner produces a causal mechanism that connects concepts, even if imperfect | Accept and refine: "That's the right direction. Let me sharpen one detail..." |
-| **Circular** | "It happens because it does" or restates the definition | Push deeper: "You've told me WHAT happens. I want to know WHY the mechanism works that way." |
-| **Speculative but wrong** | Learner invents a plausible but incorrect mechanism | Valuable attempt. Correct gently: "Interesting hypothesis — the actual mechanism is [X]. But your instinct to look for a cause was exactly right." |
-| **Blank** | "I don't know why" | The concept may be too new for elaboration. Back off: "That's okay — we'll come back to the 'why' after you've seen more of the picture." |
+Use the elaborative interrogation question templates and evaluation rubric from `@references/dot-protocol.md` (section 2).
 
 #### Interleaving Rule: Block-Then-Interleave
 
-**First exposure to a concept = blocked delivery.** Teach the new batch of 2-3 concepts as a coherent unit with its comprehension check, exactly as described above. Do not interleave during initial teaching — blocking is superior for initial acquisition.
+**First exposure = blocked delivery.** Teach the new batch as a coherent unit. Do not interleave during initial teaching.
 
-**Comprehension checks on review concepts = interleaved.** After the comprehension check on the new batch, insert 1-2 questions about concepts from PREVIOUS sessions, drawn from the Interleave Pool in Knowledge State. These questions should be mixed unpredictably with the new material — do NOT group them as a separate "review" block.
+**Review = interleaved.** After each new batch comprehension check, insert 1-2 questions about PREVIOUS concepts from the Interleave Pool. Choose DISSIMILAR concepts. Ask identification questions ("which concept applies?"), not just recall. Use the interleaved comprehension check templates from `@references/dot-protocol.md` (section 9).
 
-Implementation:
-1. After each new batch comprehension check, select 1-2 concepts from the Interleave Pool.
-2. Choose concepts that are DISSIMILAR to the current batch — the point of interleaving is discrimination, not similarity reinforcement.
-3. Ask a question that requires the learner to identify WHICH concept applies, not just recall a definition. Use the Application Questions or Relationship Questions from the comprehension check question bank.
-4. If the learner confuses an old concept with a new one, that's a productive error. Clarify the distinction — this discrimination learning is exactly what interleaving produces.
+If the learner confuses old and new concepts, that's a productive error — clarify the distinction.
 
-Example (economics domain, new batch = GDP + Trade Balance):
-
-> "Quick question from earlier — if the central bank raises interest rates, what happens to bond prices? And is that the same mechanism as what affects GDP, or different?"
-
-The shift between topics forces the learner to identify which conceptual framework applies, building discrimination ability that blocked practice cannot produce.
-
-**Update the Interleave Pool** via `dln-sync` at each sync boundary: add newly taught concepts that passed their comprehension check. Concepts that failed comprehension checks are NOT added to the pool — they need more blocked practice first.
+**Update the Interleave Pool** via `dln-sync` at each sync boundary: add concepts that passed comprehension checks. Failed concepts stay out until they pass blocked practice.
 
 ### 2a. Interleaved Practice Round (sessions 3+)
 
-**Skip this step if Session Count < 3** — there aren't enough prior concepts to meaningfully interleave.
+**Skip if Session Count < 3.** After all new concept batches are delivered, run one round mixing old and new concepts. Prepare 4-6 questions from 3+ concept batches in jumbled order. The learner must identify WHICH concept applies before answering. Use the sequence design rules and templates from `@references/dot-protocol.md` (section 9).
 
-After all new concept batches for this session have been delivered and checked, run one round of interleaved practice before chain building. This round mixes old and new concepts together.
-
-#### Protocol
-
-1. Prepare 4-6 questions that draw from at least 3 different concept batches (including today's new batch and 2+ previous batches from the Interleave Pool).
-
-2. Present the questions in a deliberately jumbled order — alternate between old and new concepts, different chains, and different sub-topics. The sequence should feel slightly disorienting. **This is intentional.** Interleaved practice feels harder and less fluent than blocked practice, but produces 43% better delayed retention (Rohrer & Taylor, 2007).
-
-3. For each question, the learner must first identify WHICH concept or chain applies before answering. This two-step process (identify → apply) is the key mechanism.
-
-4. After the round, briefly acknowledge that this felt harder:
-
-> "If that felt harder than the batched practice, that's expected. The research says that harder practice now means better retention later. You're building discrimination — the ability to tell concepts apart, not just recall them one at a time."
-
-5. Log the results in the sync dispatch:
-```
-- Interleaved practice round: [N/M] correct. Confusions: [concept A ↔ concept B]. Discrimination improving/needs work on [specific distinction].
-```
+After the round, acknowledge it felt harder: "The research says harder practice now means better retention later." Log results in the sync dispatch.
 
 ### 3. Chain Building
 
@@ -357,21 +228,7 @@ Example: "We covered inflation, interest rates, and bond prices. Now: if inflati
 
 #### Chain Visualization
 
-After presenting a chain verbally, render it as a Mermaid flowchart:
-
-```mermaid
-graph LR
-    A[Inflation rises] -->|"central bank responds"| B[Interest rates rise]
-    B -->|"fixed coupons less attractive"| C[Bond prices fall]
-```
-
-Label the edges with the **mechanism** (the "why" of each link), not just the direction. This forces both teacher and learner to articulate the causal mechanism, not just the sequence.
-
-After the learner explains the chain back, ask them to describe what their version of the diagram would look like:
-
-> "If you were drawing this chain, what boxes would you have, and what labels would go on the arrows?"
-
-Compare their verbal diagram to yours. Discrepancies reveal misunderstandings that verbal-only explanations might miss — a learner who puts the arrows in the wrong direction has a different causal model than they expressed in words.
+After presenting a chain verbally, render it as a Mermaid flowchart. Label edges with the **mechanism** (the "why"), not just the direction. After the learner explains back, ask them to describe their version of the diagram verbally. Compare for discrepancies — wrong arrow direction reveals a different causal model. Use the visual templates from `@references/dot-protocol.md` (section 11).
 
 #### Chain Mastery Updates
 
@@ -387,66 +244,9 @@ Include chain mastery in the `dln-sync` dispatch. A chain cannot be `mastered` u
 
 ### 3a. Remediation Block
 
-If the Weakness Queue was non-empty at session start, the remediation block runs BEFORE new concept delivery (or interleaved with the first concept batch if the weak item connects to new material).
-
-#### Remediation Protocol
-
-For each queued item, in priority order:
-
-1. **Re-activate:** Ask the learner to recall what they know about the item. Do not re-teach yet. This surfaces the current state of their understanding.
-2. **Diagnose:** Compare their recall to the mastery rubric. Identify the specific gap:
-   - Cannot recall at all → full re-teach with new analogy
-   - Recalls partially but wrong mechanism → targeted correction
-   - Recalls but cannot apply → application-focused practice
-3. **Intervene:** Use the recovery action matched to the diagnosis. Always use a DIFFERENT approach than what was used when the item was first taught (different analogy, different example, different angle of explanation).
-4. **Re-check:** Run a comprehension check immediately after intervention. Score using the mastery rubric.
-5. **Update:** Include the mastery update in the next `dln-sync` dispatch. If the item reaches `mastered`, it exits the Weakness Queue. If it improves to `partial`, reduce its severity. If it stays `not-mastered`, escalate its severity and keep it at the top of the queue.
-
-#### Remediation Limits
-
-- Spend at most **2 remediation attempts** per item per session. If the item is still `not-mastered` after 2 attempts, note this in progress and move on. The item stays in the queue for next session with severity `high`.
-- If the queue has 3+ items, remediate only the top 2 per session. The rest carry forward.
+If the Weakness Queue was non-empty at session start, the remediation block runs BEFORE new concept delivery (or interleaved with the first concept batch if the weak item connects to new material). Follow the remediation protocol and frustration detection/response protocol in `@references/dot-protocol.md` (sections 7 and 12).
 
 Tell the learner: "We'll spend a few minutes reinforcing [item] before we dive into new material."
-
-### Frustration Detection and Response
-
-#### Signals to Monitor
-
-Watch for these frustration indicators during the session:
-
-| Signal | Severity |
-|--------|----------|
-| "I don't get it" or "I'm lost" or "This doesn't make sense" | High |
-| Repeated incorrect answers on the same concept (3+ in a row) | High |
-| Very short or disengaged responses ("sure", "ok", "I guess") | Medium |
-| Asking to skip or move on before demonstrating understanding | Medium |
-| Long gaps without response (when previously responsive) | Low-Medium |
-| Self-deprecating language ("I'm bad at this", "I'll never get it") | High |
-
-#### Response Protocol
-
-When a high-severity signal is detected OR 2+ medium signals appear within a single teaching boundary:
-
-1. **Pause teaching immediately.** Do not push through.
-2. **Acknowledge explicitly:** "I can tell this one is frustrating. That's completely normal — this concept trips up most people when they first encounter it."
-3. **Simplify:** Drop to the simplest possible version of the concept. Strip away all complexity. Use the most concrete, physical analogy you can.
-4. **Quick win:** Ask a question you're confident the learner can answer correctly — something from previously mastered material. This rebuilds confidence through experienced success.
-5. **Re-approach:** Return to the difficult concept from the simplified foundation. Build up gradually.
-6. **Update Engagement Signals:** Increment `Consecutive struggles`. If it reaches 3+, set Momentum to `fragile`. Include in next `dln-sync` dispatch.
-
-If the learner uses self-deprecating language, respond directly: "This isn't about being good or bad at [domain]. It's about finding the right explanation that clicks for you. We haven't found it yet — but we will."
-
-#### Consecutive Struggle Counter
-
-Track consecutive failures within the session (in conversation context):
-- Increment on each failed comprehension check, failed chain trace, or "I don't know" response.
-- **Reset to 0** on any success (passed comprehension check, correct chain trace, correct application).
-- At count = 2: Adjust pacing — slow down, add more scaffolding.
-- At count = 3: Trigger the frustration response protocol above.
-- At count = 5: Suggest a break: "Let's pause here for today. You've covered a lot of ground. Sometimes concepts need time to settle — when we come back, this will feel clearer."
-
-Persist the final count to Engagement Signals at session end via `dln-sync`.
 
 ### 4. Worked Example
 
@@ -461,19 +261,7 @@ Use the worked example scaffolding structure from `@references/dot-protocol.md`.
 
 #### Scenario Trace Diagram
 
-After completing the worked example walkthrough, render a diagram that traces the scenario through the chain:
-
-```mermaid
-graph TD
-    S["Scenario: Fed announces 0.5% rate hike"] --> A[Interest rates ↑]
-    A --> B[Bond prices ↓]
-    A --> C[Mortgage rates ↑]
-    C --> D[Housing demand ↓]
-
-    style S fill:#f9f,stroke:#333
-```
-
-Use a distinct style for the scenario trigger node to visually separate "what happened" from "what the chain predicts." This gives the learner a spatial map of how the abstract chain applies to the concrete case.
+After completing the worked example, render a diagram tracing the scenario through the chain. Use a distinct style for the trigger node to separate "what happened" from "what the chain predicts." See the worked example trace template in `@references/dot-protocol.md` (section 11).
 
 ### 5. Phase Gate
 
@@ -580,17 +368,9 @@ Provide concrete progress metrics:
 **4. Forward look:**
 > "Next session, we'll [preview]. You've got the pieces — we're going to put them together."
 
-**5. Confidence Self-Assessment:**
-> "Rate your confidence 1-5 on each concept we covered today:"
-> [List each concept from the session]
-> "Which concept are you MOST confident about? Which are you LEAST confident about?"
+**5. Confidence Self-Assessment:** Ask the learner to rate 1-5 on each concept covered. Which is most/least confident? Use the calibration templates from `@references/dot-protocol.md` (section 8).
 
-**6. Confusion Surfacing:**
-> "What are you still confused about? What felt shaky or incomplete?"
-
-Record all responses. Include the per-concept confidence ratings in the `dln-sync` session-end dispatch for the `## Calibration Log`. The confusion responses go into `## Open Questions` if they identify genuine gaps.
-
-Do NOT reassure the learner that "everything is fine" if they express confusion. Validate the confusion: "That's a real gap — we'll address it next session." Then note it in the sync payload.
+**6. Confusion Surfacing:** "What are you still confused about?" Validate confusion honestly — do NOT reassure. Record responses for `## Calibration Log` and `## Open Questions` in the session-end sync dispatch.
 
 **7. Update Engagement Signals:**
 Set Momentum based on session outcome:
