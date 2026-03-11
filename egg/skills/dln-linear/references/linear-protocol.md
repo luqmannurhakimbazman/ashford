@@ -177,3 +177,20 @@ Same formula as Dot phase, but factor weaknesses are weighted +1 higher than con
 | 3+ items | 40% remediation, 60% new work. Consider whether the learner was promoted to Linear too early. |
 
 If the queue consistently has 3+ items across multiple Linear sessions, flag to the learner: "Your foundations might need more reinforcement. Would you like to do a Dot-phase refresher session?" This is a suggestion, not a forced regression.
+
+## 7. Calibration Check Templates
+
+### Pre-Gate Confidence Elicitation
+- "Before the gate — rate 1-5: can you name 3+ shared factors right now?"
+- "If I gave you a problem you've never seen, how confident are you that you could predict the outcome using a factor? Rate 1-5."
+- "Could you articulate a minimal principle set that covers 80%+ of your chains? Rate 1-5."
+
+### Post-Gate Calibration Feedback
+- "You predicted [X] on factor articulation. You actually [named N factors / struggled to name 3]. Gap: [direction]."
+- "Your prediction accuracy has [improved / stayed the same / gotten worse] compared to last session."
+
+### Factor-Level Confidence Ratings
+- "For each factor you've discovered, rate 1-5 how confident you are that it's truly structural and transferable:"
+  - [Factor 1]: ___
+  - [Factor 2]: ___
+  - [Factor 3]: ___

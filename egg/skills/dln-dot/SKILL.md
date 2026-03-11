@@ -143,6 +143,26 @@ If the re-anchor payload reveals drift from the original plan, include a **plan 
 
 Tell the learner what changed and why: "I'm adjusting our plan — we'll spend more time on [X] before moving to [Y]."
 
+#### Calibration-Driven Adjustment
+
+When the Calibration Log shows a pattern across 2+ sessions, adjust teaching strategy:
+
+**Overconfident learner** (mean calibration gap > +1.0):
+- Increase stress-testing intensity — present harder edge cases earlier.
+- Before accepting a comprehension check as "pass," ask one additional probe: "Are you sure? Walk me through your reasoning one more time."
+- In the phase gate, use the harder end of the scenario spectrum.
+- Never tell the learner they are overconfident. Instead, increase the difficulty until their confidence matches their ability.
+
+**Underconfident learner** (mean calibration gap < -1.0):
+- Add more reinforcement — revisit successful chains and name the learner's wins explicitly.
+- After comprehension checks, say: "You got that right. That's a solid understanding."
+- In worked examples, let the learner lead more — they often know more than they believe.
+- Surface the pattern explicitly: "I notice you rate yourself lower than your actual performance. Your understanding is stronger than you think."
+
+**Well-calibrated learner** (mean gap between -1.0 and +1.0):
+- Proceed normally. Note in the sync payload that calibration is good.
+- Periodically validate: "Your self-assessments have been accurate — that metacognitive skill will serve you well."
+
 #### Notion Failure Handling
 
 If `dln-sync` returns with `Status.Write: failed`:
@@ -256,6 +276,19 @@ If prerequisites are not met, do NOT run the phase gate. Instead:
 
 Tell the learner: "Before we test your readiness to advance, let's make sure your foundations are solid. I noticed [concept/chain] needs some reinforcement — let's work on that."
 
+### 5a. Pre-Gate Confidence Check
+
+Before running the phase gate, ask the learner to predict their own performance:
+
+> "Before I test you, I want you to predict how you'll do. Rate your confidence 1-5 on each:
+> - Naming core concepts without help: ___
+> - Explaining causal chains clearly: ___
+> - Tracing through a brand new scenario: ___
+>
+> And overall: do you think you'll pass the gate? (1 = definitely not, 5 = definitely yes)"
+
+Record these predictions verbatim. Do NOT react to them or adjust the gate based on them. The predictions must be captured BEFORE the gate begins — no revising mid-test.
+
 #### Gate Assessment
 
 Test whether the learner is ready to advance to Linear phase. The learner must demonstrate:
@@ -288,13 +321,41 @@ If they fail, identify which criterion was missed, reinforce that area, and keep
 
 See the full rubric in `@references/dot-protocol.md`.
 
+### 5b. Post-Gate Calibration Feedback
+
+After the phase gate (pass or fail), surface the calibration data:
+
+> "You predicted [X/5] on concept recall — you actually [passed easily / struggled with 2].
+> You predicted [Y/5] on chain explanation — you [nailed both / got one chain wrong].
+> You predicted [Z/5] on scenario tracing — you [needed 0 hints / needed 3 hints].
+> Overall you predicted [W/5] and the result was [pass/fail]."
+
+Name the direction of miscalibration explicitly:
+
+- **Overconfident** (predicted higher than actual): "You overestimated your readiness on [area]. This is normal and common — the fix is more practice on exactly the things you feel most confident about."
+- **Underconfident** (predicted lower than actual): "You underestimated yourself on [area]. You know more than you think — trust your chains."
+- **Well-calibrated** (within 1 point): "Your self-assessment was accurate — that's a valuable skill in itself."
+
+Include the calibration data in the next `dln-sync` dispatch for the `## Calibration Log` section.
+
 ## Exit Ritual
 
-At the end of every session, ask:
+At the end of every session, run this three-part close:
 
+**Part 1 — Self-Summary (existing):**
 > "What did you learn today? What connects to what?"
 
-Capture their response as a comprehension signal. This self-summary reinforces retention and gives you data on what stuck.
+**Part 2 — Confidence Self-Assessment (new):**
+> "Rate your confidence 1-5 on each concept we covered today:"
+> [List each concept from the session]
+> "Which concept are you MOST confident about? Which are you LEAST confident about?"
+
+**Part 3 — Confusion Surfacing (new):**
+> "What are you still confused about? What felt shaky or incomplete?"
+
+Record all responses. Include the per-concept confidence ratings in the `dln-sync` session-end dispatch for the `## Calibration Log`. The confusion responses go into `## Open Questions` if they identify genuine gaps.
+
+Do NOT reassure the learner that "everything is fine" if they express confusion. Validate the confusion: "That's a real gap — we'll address it next session." Then note it in the sync payload.
 
 ## Meta-Question Layer
 

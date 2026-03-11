@@ -128,6 +128,26 @@ If the re-anchor payload reveals drift, include a **plan adjustment** in the nex
 - Deferred: [what's pushed to next session]
 ```
 
+#### Calibration-Driven Adjustment
+
+When the Calibration Log shows a pattern across 2+ sessions, adjust teaching strategy:
+
+**Overconfident learner** (mean calibration gap > +1.0):
+- Increase stress-testing intensity — present harder edge cases earlier.
+- Before accepting a comprehension check as "pass," ask one additional probe: "Are you sure? Walk me through your reasoning one more time."
+- In the phase gate, use the harder end of the scenario spectrum.
+- Never tell the learner they are overconfident. Instead, increase the difficulty until their confidence matches their ability.
+
+**Underconfident learner** (mean calibration gap < -1.0):
+- Add more reinforcement — revisit successful chains and name the learner's wins explicitly.
+- After comprehension checks, say: "You got that right. That's a solid understanding."
+- In worked examples, let the learner lead more — they often know more than they believe.
+- Surface the pattern explicitly: "I notice you rate yourself lower than your actual performance. Your understanding is stronger than you think."
+
+**Well-calibrated learner** (mean gap between -1.0 and +1.0):
+- Proceed normally. Note in the sync payload that calibration is good.
+- Periodically validate: "Your self-assessments have been accurate — that metacognitive skill will serve you well."
+
 #### Notion Failure Handling
 
 If `dln-sync` returns with `Status.Write: failed`:
@@ -215,6 +235,19 @@ If prerequisites are not met, run targeted factor refinement — take the weakes
 
 Tell the learner: "Before we test your readiness for the next level, let's sharpen a couple of your factors."
 
+#### Step 5a: Pre-Gate Confidence Check
+
+Before the phase gate, ask the learner to predict:
+
+> "Rate your confidence 1-5 on each:
+> - Naming 3+ shared factors across your chains: ___
+> - Predicting an unseen problem's outcome using a factor: ___
+> - Articulating a minimal principle set covering 80%+ of your chains: ___
+>
+> Overall: do you think you'll pass into Network phase? (1-5)"
+
+Record predictions verbatim before beginning the gate.
+
 #### Gate Assessment
 
 Test whether the learner can:
@@ -240,15 +273,42 @@ The learner passes only if:
 
 Use the full rubric from `@references/linear-protocol.md`. If they pass, update Phase to **Network**.
 
+#### Step 5b: Post-Gate Calibration Feedback
+
+After the phase gate (pass or fail), surface the calibration data:
+
+> "You predicted [X/5] on factor naming — you actually [named N+ factors / struggled to name 3].
+> You predicted [Y/5] on prediction — you [predicted correctly / missed the key factor].
+> You predicted [Z/5] on minimal principles — you [articulated a clean set / had redundant principles].
+> Overall you predicted [W/5] and the result was [pass/fail]."
+
+Name the direction:
+- **Overconfident** (predicted higher than actual): "You overestimated your readiness on [area]. This is normal — the fix is more cross-pollination practice."
+- **Underconfident** (predicted lower than actual): "You underestimated yourself on [area]. Your factor discovery is stronger than you think."
+- **Well-calibrated** (within 1 point): "Your self-assessment was accurate — that's a valuable skill in itself."
+
+Include calibration data in the `dln-sync` dispatch for `## Calibration Log`.
+
 ---
 
 ## 3. Exit Ritual
 
-At session end, ask:
+At the end of every session, run this three-part close:
 
-> "Where did your procedural understanding break today? What surprised you?"
+**Part 1 — Self-Summary:**
+> "What did you learn today? What factors did you discover or refine?"
 
-Capture their response. This self-reflection surfaces blind spots and seeds the next session.
+**Part 2 — Confidence Self-Assessment:**
+> "Rate your confidence 1-5 on each factor we worked with today:"
+> [List each factor from the session]
+> "Which factor feels most solid? Which feels most uncertain?"
+
+**Part 3 — Confusion Surfacing:**
+> "What are you still confused about? What connections felt forced or incomplete?"
+
+Record all responses. Include factor confidence ratings in the `dln-sync` session-end dispatch for `## Calibration Log`. Confusion responses go into `## Open Questions`.
+
+Do NOT reassure if they express confusion. Validate it: "That's a real gap — we'll address it next session."
 
 ---
 

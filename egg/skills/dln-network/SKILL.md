@@ -82,6 +82,26 @@ If stress-tests reveal unexpected weaknesses, include a **plan adjustment** in t
 - Shifting transfer domain: [original] → [new target]
 ```
 
+#### Calibration-Driven Adjustment
+
+When the Calibration Log shows a pattern across 2+ sessions, adjust teaching strategy:
+
+**Overconfident learner** (mean calibration gap > +1.0):
+- Increase stress-testing intensity — present harder edge cases earlier.
+- Before accepting a comprehension check as "pass," ask one additional probe: "Are you sure? Walk me through your reasoning one more time."
+- In the phase gate, use the harder end of the scenario spectrum.
+- Never tell the learner they are overconfident. Instead, increase the difficulty until their confidence matches their ability.
+
+**Underconfident learner** (mean calibration gap < -1.0):
+- Add more reinforcement — revisit successful chains and name the learner's wins explicitly.
+- After comprehension checks, say: "You got that right. That's a solid understanding."
+- In worked examples, let the learner lead more — they often know more than they believe.
+- Surface the pattern explicitly: "I notice you rate yourself lower than your actual performance. Your understanding is stronger than you think."
+
+**Well-calibrated learner** (mean gap between -1.0 and +1.0):
+- Proceed normally. Note in the sync payload that calibration is good.
+- Periodically validate: "Your self-assessments have been accurate — that metacognitive skill will serve you well."
+
 #### Notion Failure Handling
 
 If `dln-sync` returns with `Status.Write: failed`:
@@ -107,6 +127,18 @@ Record this verbatim as the **starting model**. Do not correct it yet. Do not ad
 > "Compared to your model from last session, you retained [X, Y, Z]. You lost [A, B]. [If distorted:] Your statement about [C] shifted — last time you said [original], now you're saying [new version]. Let's see if that shift is an improvement or drift."
 
 Forgotten or distorted elements become the **first stress-test targets** in Step 2. This is more effective than arbitrary stress-test selection because the model's weakest points are exactly where it degraded between sessions.
+
+### 1b. Pre-Test Prediction
+
+After capturing the learner's model but BEFORE stress-testing, ask:
+
+> "I'm about to throw edge cases at your model. Before I do — where do you think it will break? What's the weakest part?"
+
+Then, after the stress-tests:
+
+> "You predicted your model would break at [X]. It actually broke at [Y]. What does that tell you about your self-knowledge of this domain?"
+
+If the learner correctly predicted where it would break, acknowledge this as strong metacognition. If they were wrong, use it as a teaching moment — the gap between perceived and actual weakness is itself a learning signal.
 
 ### 2. Stress-Test
 
@@ -158,12 +190,22 @@ This tests whether the model captures deep structure or surface patterns. Where 
 
 ### 6. Exit Ritual — Distributed Revision Cycle Summary
 
-Produce a full summary at session end:
+At the end of every session, run this close:
 
-- **(a) Starting model** — The verbatim model from Step 1
-- **(b) What broke it** — The edge cases and mismatches discovered
-- **(c) Revised model** — The final compressed model
-- **(d) Open questions remaining** — Gaps the learner has not yet resolved
+**Part 1 — Self-Summary:**
+Summarize the session: starting model, what broke, revised model, remaining open questions.
+
+**Part 2 — Confidence Self-Assessment:**
+> "Rate your confidence 1-5 on your revised model's coverage:"
+> - Handles core cases in the domain: ___
+> - Handles edge cases: ___
+> - Transfers to adjacent domains: ___
+> "Where is your model strongest? Where is it weakest?"
+
+**Part 3 — Confusion Surfacing:**
+> "What are you still confused about? What part of your model feels like it's held together with duct tape?"
+
+Record all responses. Include confidence ratings in the `dln-sync` session-end dispatch for `## Calibration Log`. Confusion responses go into `## Open Questions`.
 
 ## Meta-Question Layer
 

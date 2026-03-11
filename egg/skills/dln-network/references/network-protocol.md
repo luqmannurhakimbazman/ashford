@@ -170,3 +170,25 @@ A rising compression ratio means the learner is building a more powerful, more c
 - "A practitioner in [other field] would say [X] — does your model agree or disagree?"
 - "In [other field], the standard explanation is [Y]. Is that compatible with your model, or does one of them have to be wrong?"
 - "If you and a [other field] expert both looked at [shared phenomenon], would you explain it the same way?"
+
+---
+
+## 7. Calibration Check Templates
+
+### Pre-Stress-Test Prediction
+- "Before I challenge your model — where do you think it will break?"
+- "Rate 1-5: how confident are you that your model can handle edge cases?"
+- "If I picked a random case from [adjacent domain], would your model work? Rate 1-5."
+
+### Post-Stress-Test Calibration
+- "You predicted your model would break at [X]. It actually broke at [Y]."
+- "Your model held where you expected it to fail — and failed where you expected it to hold. What does that tell you?"
+- "Your prediction about your model's weakness was [accurate / inaccurate]. Self-knowledge of your model's limits is itself a form of understanding."
+
+### Model Confidence vs. Model Quality
+| Self-Rating | Compression Quality (from Rubric) | Interpretation |
+|-------------|-----------------------------------|----------------|
+| High confidence + High quality | Well-calibrated expert | Reduce guidance, increase challenge |
+| High confidence + Low quality | Dunning-Kruger risk | Intensify stress-tests, surface failures gently |
+| Low confidence + High quality | Impostor pattern | Reinforce wins, surface the evidence |
+| Low confidence + Low quality | Appropriate humility | Standard teaching, build up systematically |

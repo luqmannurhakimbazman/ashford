@@ -269,3 +269,30 @@ Match the intervention to the failure mode:
 | Correct concept, wrong relationship | Isolate the relationship, use a micro-example showing cause→effect |
 | Cannot apply to scenario | Walk through an ultra-simple scenario (simpler than the original), then scale up |
 | Decay (was mastered, now partial) | Retrieval practice only — ask, wait, then confirm. No re-teaching unless retrieval fails completely. |
+
+## 8. Calibration Check Templates
+
+### Pre-Gate Confidence Elicitation
+- "Before we test — how confident are you? Rate 1-5 where 1 is 'I'll definitely fail' and 5 is 'I'll definitely pass.'"
+- "On concept recall specifically — do you think you can name 5+ concepts without me prompting you? Rate 1-5."
+- "On chains — can you walk through 2 complete chains without getting stuck? Rate 1-5."
+- "On a brand new scenario — could you trace through one with at most 2 hints? Rate 1-5."
+
+### Post-Gate Calibration Feedback
+- "You predicted [X], actual was [Y]. Let's talk about that gap."
+- "Interesting — you were more confident about [A] than [B], but you actually performed better on [B]. Why do you think that is?"
+- "Your calibration was spot-on for [A]. What signals told you that you knew it well?"
+
+### Exit Ritual Confidence Prompts
+- "On a scale of 1-5, how well do you understand [concept]?"
+- "Which concept feels most solid right now? Which feels most shaky?"
+- "Is there anything we covered today that you'd want to revisit next time?"
+
+### Interpreting Confidence Ratings
+| Rating | Meaning | Teaching Signal |
+|--------|---------|-----------------|
+| 1 | "I have no idea" | Concept may need re-teaching with different analogy |
+| 2 | "I've heard of it but can't explain it" | Needs more retrieval practice and worked examples |
+| 3 | "I can explain it but might get details wrong" | On track — normal for recently-learned concepts |
+| 4 | "I can explain it and apply it" | Solid — can move on, check again next session |
+| 5 | "I could teach this to someone else" | Flag for verification — overconfidence risk if early in learning |
