@@ -43,6 +43,10 @@ Before asking for the learner's model, **dispatch the `dln-sync` agent** with ac
 
 The agent writes the plan and returns a re-anchor payload. Use the Knowledge State from the payload to inform stress-test selection.
 
+#### Syllabus Context
+
+Read the `## Syllabus` section from the page body for scope context. If the user has added new uncovered topics since entering Network phase, these can serve as stress-test material — the learner's compressed model should be able to accommodate new related concepts. Frame it as: "Your syllabus has a new topic: [X]. Let's see if your model can absorb it without breaking."
+
 ### Sync Loop (runs at every teaching boundary)
 
 After each of the following boundaries, **dispatch a fresh `dln-sync` agent** with action `sync`:
