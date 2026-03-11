@@ -184,23 +184,9 @@ If a concept was `mastered` in a prior session but the learner fails to recall i
 
 Teach in batches of **1-4 concepts**, dynamically sized based on concept complexity and learner performance. The default starting batch size is **2**. Adjust using the rules below.
 
-#### Estimating Concept Complexity
+#### Concept Complexity and Load Management
 
-Before each batch, classify each concept's **element interactivity** — how many elements the learner must hold in working memory simultaneously to understand the concept:
-
-| Complexity | Element Interactivity | Examples | Default Batch Size |
-|------------|----------------------|----------|-------------------|
-| **Low** | 1-2 elements, can be understood in isolation | stock, bond, dividend, variable, function | 3-4 concepts per batch |
-| **Medium** | 3-4 elements, requires relating to other concepts | interest rate (relates to inflation, bond price, lending), recursion (relates to base case, call stack, return) | 2 concepts per batch |
-| **High** | 5+ elements, requires simultaneous manipulation of multiple interacting pieces | options delta (requires: underlying price, strike, time, volatility, and their interactions), backpropagation (requires: loss, chain rule, gradients, weights, layers) | 1 concept per batch |
-
-When a batch contains concepts of mixed complexity, size the batch to the MOST complex concept in it. A batch with one High concept is a single-concept batch, even if the other planned concepts are Low.
-
-#### Load Monitoring and Overload Response
-
-Watch for overload signals: failed checks after re-teach, learner confusion between concepts, circular answers, "I don't know" shutdowns (all High severity); failed first-attempt checks, requests to repeat (Moderate). Positive signals: quick correct answers, above-phase questions.
-
-When 2+ High-severity signals appear in a single batch, follow the overload response and faded example protocols in `@references/dot-protocol.md` (section 10). Key actions: stop the batch, acknowledge without blame, reduce batch size by 1, add a worked micro-example, re-attempt the check, and log the adjustment.
+Before each batch, estimate concept complexity (Low/Medium/High based on element interactivity) and size the batch accordingly. When overload signals appear, reduce batch size and add scaffolding. See `@references/dot-protocol.md` (section 10) for the full complexity estimation heuristic, batch sizing table, overload signals, and faded worked example progression.
 
 When the learner shows positive signals across 2+ consecutive batches, increase batch size by 1 (maximum: 4).
 
@@ -220,9 +206,7 @@ After each batch, run a **comprehension check** before moving on. Use questions 
 
 #### Elaborative Interrogation
 
-After a learner passes a comprehension check, follow up with a "why" question — but ONLY on concept 2+ of a batch (never the first concept in a domain or batch). The learner needs at least one anchor concept before "why" questions become productive.
-
-Use the elaborative interrogation question templates and evaluation rubric from `@references/dot-protocol.md` (section 2).
+After a learner passes a comprehension check, follow up with a "why" question — but ONLY on concept 2+ of a batch. Use the templates and rubric from `@references/dot-protocol.md` (section 2).
 
 #### Interleaving Rule: Block-Then-Interleave
 

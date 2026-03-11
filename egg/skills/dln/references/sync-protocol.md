@@ -58,6 +58,27 @@ When the Calibration Log shows a pattern across 2+ sessions, adjust teaching str
 
 ---
 
+## Syllabus Updates
+
+Phase skills (primarily dln-dot) may include `syllabus_updates` in their dispatch payload when concept mastery changes affect syllabus topic coverage. The `dln-sync` agent should process these updates by checking/unchecking the corresponding syllabus topic checkboxes in the `## Syllabus` section of the page body.
+
+**Payload format:**
+
+```
+syllabus_updates:
+  - topic: "[topic name]"
+    status: "checked"    # all concepts under this topic are mastered
+  - topic: "[topic name]"
+    status: "unchecked"  # a concept was downgraded, topic no longer fully mastered
+```
+
+**Processing rules:**
+- `"checked"` → find the matching `- [ ] Topic` line in the Syllabus section and change it to `- [x] Topic`
+- `"unchecked"` → find the matching `- [x] Topic` line and change it to `- [ ] Topic`
+- If the topic name does not match any syllabus entry, log a warning in the progress notes but do not fail
+
+---
+
 ## Notion Failure Handling
 
 If `dln-sync` returns with `Status.Write: failed`:

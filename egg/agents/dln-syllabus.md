@@ -18,9 +18,6 @@ tools:
   - mcp__plugin_Notion_notion__notion-fetch
   - mcp__plugin_Notion_notion__notion-update-page
   - mcp__plugin_Notion_notion__notion-search
-  - Read
-  - Glob
-  - Grep
 ---
 
 # DLN Syllabus Generator

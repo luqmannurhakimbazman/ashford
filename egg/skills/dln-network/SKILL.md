@@ -47,6 +47,12 @@ The agent writes the plan and returns a re-anchor payload. Use the Knowledge Sta
 
 Read the `## Syllabus` section from the page body for scope context. If the user has added new uncovered topics since entering Network phase, these can serve as stress-test material — the learner's compressed model should be able to accommodate new related concepts. Frame it as: "Your syllabus has a new topic: [X]. Let's see if your model can absorb it without breaking."
 
+**Example:** If the syllabus has a new topic "multi-stage builds" that was not in the original syllabus when the learner entered Network phase, present it as a stress-test:
+
+> "Your model should be able to accommodate this concept. Where does 'multi-stage builds' fit in your compressed model? Does it slot in cleanly, or does your model need revision to absorb it?"
+
+If the model absorbs it cleanly, that's evidence of good compression. If it breaks, treat it as a standard stress-test mismatch — expand (Step 3), then contract (Step 4).
+
 ### Sync Loop (runs at every teaching boundary)
 
 After each of the following boundaries, **dispatch a fresh `dln-sync` agent** with action `sync`:

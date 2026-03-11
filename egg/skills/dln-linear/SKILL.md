@@ -63,7 +63,7 @@ The agent writes the plan and returns a re-anchor payload. Teach from the return
 
 Read the `## Syllabus` section from the page body. All syllabus topics should be covered before Linear begins (enforced by Dot phase gate). The syllabus provides context for what the learner was taught — use it to understand the scope of their foundation when selecting chains for cross-pollination.
 
-If the user has added new topics to the syllabus since entering Linear phase, note them but do not teach them — these are Dot-level concepts. Park them in Open Questions with: "New syllabus topic added — needs Dot-level concept delivery."
+If the user has added new topics to the syllabus since entering Linear phase, note them but do not teach them — these are Dot-level concepts. Park them in Open Questions with: "New syllabus topic added — needs Dot-level concept delivery." (Any uncovered syllabus topic in Linear phase was necessarily added after the Dot gate, which requires full syllabus coverage before passing. Treat these as post-gate additions.)
 
 ### Step 0a: Retrieval Warm-Up
 
@@ -186,52 +186,9 @@ Cross-pollination comparisons have inherently high element interactivity — the
 - **If the learner struggles to see shared structure after 2 directed prompts**, the chains may be too dissimilar for current ability. Park the comparison and try a different pair that shares more obvious structure. Return to the harder comparison after more factors have been discovered.
 - **After each successful factor discovery**, pause for 30 seconds of consolidation: "Take a moment — restate that factor in your own words one more time."
 
-#### Side-by-Side Chain Diagrams
+#### Visual Chain Comparison and Factor Maps
 
-When comparing two chains for shared structure, render them side by side with visual alignment of structurally similar steps:
-
-```mermaid
-graph TD
-    subgraph "Chain A: Rate Hike Impact"
-        A1[Trigger: Rate ↑] --> A2[Cost of borrowing ↑]
-        A2 --> A3[Demand ↓]
-        A3 --> A4[Prices adjust ↓]
-    end
-
-    subgraph "Chain B: Supply Shock Impact"
-        B1[Trigger: Supply ↓] --> B2[Scarcity ↑]
-        B2 --> B3[Competition ↑]
-        B3 --> B4[Prices adjust ↑]
-    end
-```
-
-Then ask:
-
-> "Look at the structure of these two chains. Steps A2 and B2 play the same ROLE — they're both 'intermediate pressure' steps. What do they have in common structurally?"
-
-After the learner identifies the shared factor, render a **factor map** showing the abstract structure that both chains instantiate:
-
-```mermaid
-graph TD
-    F1[Trigger event] -->|"creates pressure"| F2[Intermediate constraint]
-    F2 -->|"propagates to"| F3[Behavioral response]
-    F3 -->|"results in"| F4[Price adjustment]
-
-    style F1 fill:#ffd,stroke:#333
-    style F2 fill:#ffd,stroke:#333
-    style F3 fill:#ffd,stroke:#333
-    style F4 fill:#ffd,stroke:#333
-```
-
-> "This is your factor — the abstract pattern that both chains follow. Every chain you've built that matches this pattern is an instance of this factor."
-
-#### Learner-Generated Diagrams
-
-After discovering a factor, ask the learner to describe a diagram for a THIRD chain that they predict follows the same pattern:
-
-> "Can you describe a new chain — one we haven't discussed — that would fit this same diagram shape? What would go in each box?"
-
-This is a transfer test embedded in the visual modality. If the learner can populate the abstract template with a new domain, they've internalized the factor.
+When comparing two chains, render them side by side with visual alignment of structurally similar steps. After the learner identifies the shared factor, render a factor map showing the abstract structure both chains instantiate. Then test transfer by asking the learner to describe a third chain that fits the same pattern. See `@references/linear-protocol.md` (section 9) for the side-by-side chain, factor map, and factor coverage map templates.
 
 ### Step 3: Factor Hypothesis
 
