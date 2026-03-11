@@ -50,6 +50,15 @@ Use these to push the learner from vague similarity toward precise, structural f
 - "Can you predict what would happen in [unseen scenario] using this factor alone?"
 - "If this factor is true, what else must be true that you haven't checked yet?"
 
+### Elaborative "Why" on Factors
+
+After the learner states a factor with sufficient precision:
+
+- "You've identified [factor]. Why does this pattern exist? What generates it?"
+- "Why does [factor] appear in [chain A] AND [chain B]? Is there a deeper principle?"
+- "If [factor] is true, what would HAVE to be true about the underlying system? Why?"
+- "Could [factor] ever be false? Under what conditions, and why?"
+
 ---
 
 ## 3. Upgrade Operator Examples

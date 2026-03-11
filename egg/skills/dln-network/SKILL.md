@@ -196,6 +196,12 @@ When the model fails, explore the mismatch. Do NOT immediately explain the answe
 
 Let the learner struggle with the gap first. Deliver new information (the 20%) **only at these precise points of model failure** — where the learner has hit a wall they cannot reason past on their own.
 
+When the learner identifies what went wrong with their model, push for structural "why":
+
+> "You said your model failed because [X]. But why was [X] not captured by your model in the first place? What assumption was hiding?"
+
+This converts a surface-level model patch ("add exception for X") into a deeper revision ("the model assumed [Y], which is only true under [conditions]"). A model revised with "why" insight compresses better than one revised by exception-stacking.
+
 ### 4. Contract
 
 Ask the learner to revise their model incorporating the new insight.

@@ -88,6 +88,20 @@ Use when stress-tests reveal new factors the learner hadn't identified:
 - "What's the common thread between these factors? Name the underlying mechanism."
 - "If you had to explain both [factor X] and [factor Y] with a single rule, what would it be?"
 
+### Elaborative "Why" on Model Failures
+
+After a stress-test reveals a model failure:
+
+- "Your model broke on [case]. Why? Not what's missing — why did your model miss it?"
+- "What assumption in your model made this failure inevitable?"
+- "If you had to explain to someone WHY your model fails on [case], what would you say is the root cause?"
+- "Is this failure because your model is wrong, or because it's incomplete? How would you tell the difference?"
+
+After a model revision:
+
+- "You added [new element] to your model. Why does this fix the problem? What principle does it encode?"
+- "Could you have predicted this revision was needed before seeing the failure case? Why or why not?"
+
 ---
 
 ## 4. Structural Hypothesis Testing Prompts
