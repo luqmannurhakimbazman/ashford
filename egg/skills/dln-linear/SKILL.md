@@ -114,7 +114,7 @@ After each of the following boundaries, **dispatch a fresh `dln-sync` agent** wi
 - Knowledge State updates: confirmed factors for `## Factors`, parked Network-level questions for `## Open Questions`
 - Any queued writes from previous failed syncs
 
-**On agent return** — follow the learner-generated checkpoint, plan adjustment, calibration-driven adjustment, and Notion failure handling protocols in `@/Users/luqman/Desktop/projects/my-cc-plugin/ashford/egg/skills/dln/references/sync-protocol.md`.
+**On agent return** — follow the learner-generated checkpoint, plan adjustment, calibration-driven adjustment, and Notion failure handling protocols in `@${CLAUDE_PLUGIN_ROOT}/egg/skills/dln/references/sync-protocol.md`.
 
 ### Step 1: Warm-Up
 
@@ -137,7 +137,7 @@ Spend at most the first quarter of the session on warm-up + remediation. Then pr
 
 #### Frustration Monitoring
 
-Monitor for the same frustration signals as Dot phase (see dln-dot Frustration Detection and Response). Linear phase has additional signals:
+Monitor for the same frustration signals as Dot phase (see `@${CLAUDE_PLUGIN_ROOT}/egg/skills/dln-dot/references/dot-protocol.md` section 12). Linear phase has additional signals:
 
 | Signal | Severity |
 |--------|----------|

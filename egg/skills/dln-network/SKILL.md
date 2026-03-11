@@ -62,7 +62,7 @@ After each of the following boundaries, **dispatch a fresh `dln-sync` agent** wi
 - Knowledge State updates: replace `## Compressed Model` with latest revision, append new factors to `## Factors`, update `## Open Questions` with remaining gaps
 - Any queued writes from previous failed syncs
 
-**On agent return** — follow the learner-generated checkpoint, plan adjustment, calibration-driven adjustment, and Notion failure handling protocols in `@/Users/luqman/Desktop/projects/my-cc-plugin/ashford/egg/skills/dln/references/sync-protocol.md`. For Network phase, plan adjustments use this format:
+**On agent return** — follow the learner-generated checkpoint, plan adjustment, calibration-driven adjustment, and Notion failure handling protocols in `@${CLAUDE_PLUGIN_ROOT}/egg/skills/dln/references/sync-protocol.md`. For Network phase, plan adjustments use this format:
 
 ```
 ### Plan Adjustment — [reason]

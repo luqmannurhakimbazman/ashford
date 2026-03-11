@@ -236,7 +236,7 @@ When designing a stress-test sequence, use the following scheduling template:
 
 ### Visual Format Constraints
 
-See `@/Users/luqman/Desktop/projects/my-cc-plugin/ashford/egg/skills/dln/references/visual-format.md` for the full visual format reference (Mermaid, ASCII, inline notation — when to use each).
+See `@${CLAUDE_PLUGIN_ROOT}/egg/skills/dln/references/visual-format.md` for the full visual format reference (Mermaid, ASCII, inline notation — when to use each).
 
 ### Model Concept Map
 
