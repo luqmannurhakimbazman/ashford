@@ -19,10 +19,14 @@ After reading back Notion page content, produce EXACTLY this structure. Be conci
 ~~~
 ## Re-anchor
 ### Knowledge State
-- Concepts: [comma-separated list of concept names]
-- Chains: [comma-separated list of chain descriptions, abbreviated]
-- Factors: [comma-separated list of factor names]
+- Concepts: [comma-separated, each with (mastered)/(partial)/(not-mastered) status]
+- Chains: [comma-separated abbreviated descriptions, each with mastery status]
+- Factors: [comma-separated, each with mastery status]
 - Compressed Model: [current model text, verbatim if short, summarized if >3 sentences]
+- Weakness Queue: [top 2 items with severity, or "empty"]
+- Calibration: [mean confidence gap, or "insufficient data"]
+- Load: [current batch size, last overload session or "none"]
+- Engagement: [momentum=positive/neutral/negative, struggles=N]
 - Open Questions: [comma-separated list]
 ### Current Session
 - Plan: [one-line summary of session plan]
