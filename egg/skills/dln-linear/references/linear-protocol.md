@@ -135,6 +135,14 @@ Any of these indicate the learner is not ready for Network phase:
 - **2/3 pass criteria met** — Near pass. Note which criterion failed, assign targeted practice, revisit next session.
 - **1/3 or 0/3 pass criteria met** — Not ready. Continue Linear phase. Identify whether the issue is factor discovery (more cross-pollination needed) or factor precision (more hypothesis refinement needed).
 
+#### On Fail
+
+Frame in terms of proximity:
+
+1. **Concrete counts:** "You met [X] of 3 criteria. Here's what the gate flagged: [specific criterion]."
+2. **Normalize:** "Factor discovery is the hardest cognitive leap in the DLN framework. Most learners need multiple attempts at this gate."
+3. **Action plan:** "Next session focuses specifically on [gap]. Your chain knowledge is solid — we just need the abstraction to click."
+
 ## 5. Retrieval Warm-Up Question Bank
 
 Use at the start of every Linear session to prompt factor recall.

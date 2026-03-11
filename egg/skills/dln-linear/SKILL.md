@@ -23,6 +23,16 @@ A factor is a principle that explains why multiple chains work, stated without d
 3. **Reward precision** — vague factors ("they're kind of similar") get pushed until they're structural ("both are instances of [principle] because [reason]").
 4. **Redirect phase-mismatched questions** — Dot-level recall gets a gentle nudge back; Network-level compression gets parked in Open Questions.
 
+### Normalizing the Struggle
+
+Linear phase is inherently harder than Dot — the learner is being asked to think abstractly for possibly the first time in this domain. Expect frustration. Normalize it proactively:
+
+- At session start: "Factor discovery is a different kind of thinking — it can feel slippery at first. That's expected."
+- When the learner's factor hypothesis is vague: "That's a good start. Factors usually take 2-3 iterations to sharpen — let's refine it."
+- When cross-pollination is hard: "Finding what two chains share is genuinely difficult — even experts in this domain sometimes miss the shared structure."
+
+Never frame abstraction difficulty as a learner deficit. Frame it as a feature of the phase.
+
 ---
 
 ## 2. Session Flow
@@ -173,6 +183,18 @@ If the Weakness Queue contains items, select the warm-up problem to specifically
 After the warm-up, run remediation on any items that the learner struggled with, using the Remediation Protocol from the Dot phase (re-activate → diagnose → intervene → re-check). Update mastery and the Weakness Queue via `dln-sync`.
 
 Spend at most the first quarter of the session on warm-up + remediation. Then proceed to new cross-pollination work.
+
+#### Frustration Monitoring
+
+Monitor for the same frustration signals as Dot phase (see dln-dot Frustration Detection and Response). Linear phase has additional signals:
+
+| Signal | Severity |
+|--------|----------|
+| "I don't see the connection" repeated 3+ times | High |
+| Reverting to Dot-level answers ("because that's what happens") instead of factor-level | Medium |
+| Expressing doubt about the process itself ("Why are we comparing these?") | Medium |
+
+Response protocol is the same: pause, acknowledge, simplify (strip to two chains with the most obvious shared structure), quick win, re-approach.
 
 ### Step 2: Cross-Pollination
 
@@ -367,6 +389,14 @@ The learner passes only if:
 
 Use the full rubric from `@references/linear-protocol.md`. If they pass, update Phase to **Network**.
 
+#### Phase Transition Celebration
+
+When the learner passes the Linear gate:
+> "You've done something significant. You started this domain with isolated facts, built them into chains, and now you've discovered the principles underneath. That compression — going from [N chains] to [M factors] — is exactly how experts think. Ready to pressure-test your model?"
+
+Provide a journey summary:
+> "The journey so far: [total session count] sessions, [concept count] concepts mastered, [chain count] chains built, [factor count] factors discovered. Your mental model is getting more powerful and more compressed."
+
 #### Step 5b: Post-Gate Calibration Feedback
 
 After the phase gate (pass or fail), surface the calibration data:
@@ -387,22 +417,47 @@ Include calibration data in the `dln-sync` dispatch for `## Calibration Log`.
 
 ## 3. Exit Ritual
 
-At the end of every session, run this three-part close:
+At the end of every session:
 
-**Part 1 — Self-Summary:**
+**1. Self-Summary:**
 > "What did you learn today? What factors did you discover or refine?"
 
-**Part 2 — Confidence Self-Assessment:**
+**2. Progress Celebration:**
+- Factors discovered this session: [N]
+- Total factors: [M]
+- Chain coverage: "[M] factors now explain [K] of your [total] chains."
+
+**3. Milestone Celebrations** (when applicable):
+
+| Milestone | Celebration |
+|-----------|-------------|
+| First factor discovered | "That's your first abstraction — you just found a pattern that connects multiple chains." |
+| Factor explains 3+ chains | "This factor is powerful — it covers [N] different processes. That's real compression." |
+| All chains covered by factors | "Every chain you know is now explained by a smaller set of principles. Your knowledge is organized." |
+| Phase gate passed | "You've moved from knowing procedures to understanding principles. That's a qualitative shift." |
+
+**4. Forward Look:**
+> "Next phase tests whether your principles hold up under pressure. We'll try to break them."
+
+**5. Confidence Self-Assessment:**
 > "Rate your confidence 1-5 on each factor we worked with today:"
 > [List each factor from the session]
 > "Which factor feels most solid? Which feels most uncertain?"
 
-**Part 3 — Confusion Surfacing:**
+**6. Confusion Surfacing:**
 > "What are you still confused about? What connections felt forced or incomplete?"
 
 Record all responses. Include factor confidence ratings in the `dln-sync` session-end dispatch for `## Calibration Log`. Confusion responses go into `## Open Questions`.
 
 Do NOT reassure if they express confusion. Validate it: "That's a real gap — we'll address it next session."
+
+**7. Engagement Signals Update:**
+Set Momentum based on session outcome:
+- Session ended with factor discoveries and no frustration → `positive`
+- Normal session with mixed results → `neutral`
+- Session ended early due to frustration, or 3+ consecutive struggles occurred → `fragile`
+
+Include in the `session-end` dispatch to `dln-sync`.
 
 ---
 
