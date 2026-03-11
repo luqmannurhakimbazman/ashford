@@ -48,6 +48,8 @@ All learner state is persisted in the **DLN Profiles** database in Notion (under
 | Phase | select | Current phase: Dot, Linear, or Network |
 | Last Session | date | Timestamp of most recent session |
 | Session Count | number | Total sessions in this domain (authoritative source) |
+| Next Review | date | Computed review date — when this domain should next be reviewed |
+| Review Interval | number | Current spacing interval in days (starts at 1, expands on successful review) |
 
 #### Page Body (learning content)
 
@@ -112,7 +114,22 @@ If no domain is specified, ask: *"What domain would you like to learn? Give me a
 
 ### Step 2: Handle Special Commands
 
-**`list`** — Query the DLN Profiles database and display all domains with their current phase, session count, and last session date in a table.
+**`list`** — Query the DLN Profiles database and display all domains with their current phase, session count, last session date, and review status in a table. For each domain, compute review status:
+
+- **Overdue** — Today is past Next Review date. Show how many days overdue in red: "⚠ 5 days overdue"
+- **Due today** — Next Review is today. Show: "Due today"
+- **Upcoming** — Next Review is in the future. Show: "In [N] days"
+- **No data** — Next Review is empty (legacy profile). Show: "Not scheduled"
+
+Sort the table with overdue domains first (most overdue at top), then due today, then upcoming.
+
+Example output:
+
+| Domain | Phase | Sessions | Last Session | Review Status |
+|--------|-------|----------|-------------|---------------|
+| Options Pricing | Linear | 7 | 2026-03-05 | ⚠ 4 days overdue |
+| Compiler Design | Dot | 3 | 2026-03-10 | Due today |
+| Immunology | Network | 12 | 2026-03-09 | In 5 days |
 
 **`reset [domain]`** — Find the matching row. Confirm with the user before executing. Then:
 1. Replace the page body with the initialization template (clearing all Knowledge State and session logs)
@@ -139,7 +156,72 @@ Use the Notion MCP to query the DLN Profiles database for a row matching the dom
 
 Then write the page body initialization template (see Schema section above) to the new page.
 
+Set Next Review = tomorrow's date and Review Interval = 1 for new domains.
+
 Tell the user: *"New domain detected. Starting you in the Dot phase — we'll build your foundational concepts first."*
+
+### Step 3a: Review Check
+
+After loading the profile, compute the review status by comparing today's date against the Next Review column value.
+
+**If the domain is overdue or due today:**
+
+1. Inform the learner:
+
+> "It's been [N] days since your last session on [domain]. Your Next Review was [date] — you're [N days] overdue. Before we continue with new material, let's do a quick retrieval warm-up to see what's stuck."
+
+2. Route to the phase-appropriate **Review Protocol** (below) BEFORE routing to the phase skill for new teaching.
+
+3. After the review protocol completes, route to the phase skill as normal (Step 4).
+
+**If the domain is not due for review:** Proceed directly to Step 4 (no review needed).
+
+**If the domain has never been reviewed (Next Review is empty):** This is a legacy profile. Set Next Review = today and Review Interval = 1, then proceed to Step 4. The review system activates from the next session onward.
+
+#### Review Protocol
+
+The review protocol runs inside the orchestrator, before the phase skill is invoked. It takes 3-8 minutes depending on phase.
+
+**Dot Phase Review:**
+- Ask the learner to list all concepts they remember from this domain (unprompted, no hints).
+- Ask them to trace one causal chain from memory.
+- Compare their recall against the Concepts and Chains in Knowledge State.
+- Score: count recalled vs. total. Note which concepts were forgotten.
+- If recall < 50%: warn the learner that significant decay has occurred. Recommend spending this session on reinforcement rather than new material. Pass `review_results` to the phase skill so it can prioritize re-teaching forgotten concepts.
+- If recall >= 50%: acknowledge what they remembered, note gaps, and proceed to new material. Pass `review_results` to the phase skill for priority adjustment.
+
+**Linear Phase Review:**
+- Ask the learner to name the factors they've discovered so far (unprompted).
+- Ask them to pick one factor and explain which chains it connects and why.
+- Compare against the Factors section in Knowledge State.
+- Score: count recalled factors vs. total, check if explanations are structural (not just names).
+- Same threshold logic as Dot: < 50% triggers reinforcement recommendation.
+
+**Network Phase Review:**
+- Ask the learner to state their compressed model from memory (no looking at notes).
+- Compare against the Compressed Model in Knowledge State.
+- Score qualitatively: did they capture the core principles? What was lost?
+- For Network phase, there is no "reinforcement" redirect — instead, the forgotten elements become the first stress-test targets in the session.
+
+#### Interval Computation
+
+After each session completes (regardless of whether a review protocol ran), compute the next review interval using these rules:
+
+**Base intervals by phase:**
+- Dot phase: intervals expand as 1 → 2 → 4 → 7 → 14 → 30 days
+- Linear phase: intervals expand as 1 → 3 → 7 → 14 → 30 days
+- Network phase: intervals expand as 2 → 7 → 14 → 30 → 60 days
+
+**Adjustment rules:**
+- If the review protocol ran and recall was >= 70%: advance to the next interval in the sequence. Set Review Interval to the new value.
+- If the review protocol ran and recall was 50-69%: repeat the current interval (no advancement). Keep Review Interval the same.
+- If the review protocol ran and recall was < 50%: reset the interval to the first value in the sequence for the current phase.
+- If no review protocol ran (domain was not overdue): advance to the next interval in the sequence.
+- If the learner's phase changed this session (phase gate passed): reset to the first interval of the NEW phase.
+
+**Set Next Review = today + Review Interval (in days).**
+
+Pass the computed Next Review and Review Interval values to the `dln-sync` agent in the `session-end` dispatch as column_updates.
 
 ### Step 4: Load Context and Route
 

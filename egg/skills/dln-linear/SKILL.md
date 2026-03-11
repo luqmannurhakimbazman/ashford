@@ -215,6 +215,8 @@ Most write-back happens continuously via `dln-sync` dispatches. At session end, 
 | Column property | Last Session | Set to today's date |
 | Column property | Session Count | Increment by 1 |
 | Column property | Phase | Set to **Network** if phase gate passed |
+| Column property | Next Review | Set to computed date (see orchestrator interval rules) |
+| Column property | Review Interval | Set to computed interval (see orchestrator interval rules) |
 | Page body | Knowledge State | Verify Factors and Open Questions are complete |
 | Page body | Current session Progress | Append final status and exit ritual response |
 

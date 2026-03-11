@@ -31,6 +31,9 @@ After reading back Notion page content, produce EXACTLY this structure. Be conci
 ### Status
 - Write: [success/failed]
 - Failed writes: [list of what failed, or "none"]
+- Review: [not due / due today / N days overdue / just completed — recall N%]
+- Next Review: [date]
+- Review Interval: [N days]
 - Next on plan: [what the teaching skill should do next]
 ~~~
 

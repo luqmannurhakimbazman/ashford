@@ -39,6 +39,7 @@ You will receive a payload from the teaching skill with these fields:
 - **write_payload**: Content to write (progress notes, Knowledge State updates, plan content)
 - **column_updates**: Column property updates (Phase, Session Count, Last Session) — only for `session-end` action
 - **queued_writes**: Any previously failed writes to retry
+- **review_results**: (optional) Results from orchestrator review protocol — recalled items, forgotten items, recall percentage. Only present if review ran before this session.
 
 ## Execution Steps
 
