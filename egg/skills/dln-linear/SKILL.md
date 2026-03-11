@@ -198,6 +198,15 @@ When the Interleave Pool contains factors from previous sessions, mix factor app
 
 This interleaves factor APPLICATION with factor DISCOVERY, preventing the illusion that new factors always emerge from every comparison (sometimes the right answer is "an existing factor already covers this").
 
+#### Load-Aware Pacing
+
+Cross-pollination comparisons have inherently high element interactivity — the learner must hold two chains in working memory simultaneously while abstracting shared structure. Manage load as follows:
+
+- **Present only 2 chains at a time** for comparison (never 3+).
+- **Before comparing**, have the learner briefly restate each chain from memory. This primes working memory without overloading it.
+- **If the learner struggles to see shared structure after 2 directed prompts**, the chains may be too dissimilar for current ability. Park the comparison and try a different pair that shares more obvious structure. Return to the harder comparison after more factors have been discovered.
+- **After each successful factor discovery**, pause for 30 seconds of consolidation: "Take a moment — restate that factor in your own words one more time."
+
 ### Step 3: Factor Hypothesis
 
 Ask the learner to state the shared factor as a principle. Push for precision:

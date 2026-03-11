@@ -172,6 +172,14 @@ Additionally, insert **cross-factor interaction stress-tests** that require the 
 
 These interaction tests are naturally interleaved and test the deepest level of model integration.
 
+#### Load-Aware Stress-Test Pacing
+
+Stress-tests can pile up cognitive load rapidly if the learner's model breaks on multiple fronts simultaneously. Manage this:
+
+- **One stress-test at a time.** Present an edge case, let the learner fully process the mismatch and revise their model, THEN move to the next stress-test. Never stack "here's another one" before the previous mismatch is resolved.
+- **If the learner's model breaks 3+ times in a row**, pause stress-testing. Ask: "Let's step back. Your model has broken on several cases. Before we continue — do you want to try revising your model now, or should we look at what these failures have in common?" This gives the learner control over pacing.
+- **Alternate between stress-tests and contractions.** Don't run 5 stress-tests then 5 contractions. Run stress → contract → stress → contract. Each contraction is a consolidation point that frees working memory.
+
 #### Factor Mastery Updates from Stress-Tests
 
 Stress-tests implicitly test factors. When a stress-test breaks the model:
