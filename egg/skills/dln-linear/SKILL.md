@@ -182,6 +182,22 @@ Take two chains the learner knows and ask:
 
 Use the cross-pollination question templates from `@references/linear-protocol.md`. Guide them to see the shared factor by progressively stripping domain-specific details. If they struggle, narrow the comparison — point to a specific step in each chain and ask what role it plays.
 
+#### Interleaving Rule: Alternate Chain Pairs
+
+When running multiple cross-pollination comparisons in a session, do NOT compare related chain pairs consecutively. Instead, interleave:
+
+**Blocked (avoid):** Compare Chain A vs Chain B. Then compare Chain A vs Chain C. Then compare Chain B vs Chain C.
+
+**Interleaved (prefer):** Compare Chain A vs Chain B. Then compare Chain D vs Chain E (from a different sub-domain). Then return to Chain A vs Chain C.
+
+The learner must switch contexts between comparisons, forcing them to actively identify which factor applies to each pair rather than riding the momentum of a single line of thinking.
+
+When the Interleave Pool contains factors from previous sessions, mix factor application questions between cross-pollination rounds:
+
+> "Before we compare the next pair — you discovered [factor] last session. Does it apply to [chain D] and [chain E]? Why or why not?"
+
+This interleaves factor APPLICATION with factor DISCOVERY, preventing the illusion that new factors always emerge from every comparison (sometimes the right answer is "an existing factor already covers this").
+
 ### Step 3: Factor Hypothesis
 
 Ask the learner to state the shared factor as a principle. Push for precision:
@@ -221,6 +237,15 @@ Show how recognizing the factor transforms the *type* of questions the learner c
 - **Network question:** "What's the minimal model that predicts rate-rise effects across all asset classes?"
 
 Use the upgrade operator examples from `@references/linear-protocol.md`. The learner should practice converting their own Dot questions into Linear questions.
+
+#### Interleaved Upgrade Practice
+
+When the learner practices converting Dot questions to Linear questions, alternate between:
+- Questions from today's factor discoveries
+- Questions from factors discovered in previous sessions (drawn from Interleave Pool)
+- Questions where NO factor applies (the correct answer is "this is a Dot question — it doesn't have a Linear upgrade yet because we haven't found the connecting factor")
+
+The third category is critical. In blocked practice, the learner knows every question has a Linear upgrade because that's the exercise. Interleaving "no upgrade available" questions forces genuine discrimination — they must decide IF an upgrade exists before attempting one.
 
 ### Step 5: Phase Gate
 

@@ -202,6 +202,49 @@ Teach in batches of **2-3 concepts**. For each concept, deliver:
 
 After each batch, run a **comprehension check** before moving on. Use questions from `@references/dot-protocol.md` comprehension check templates. Do not proceed to the next batch until the learner demonstrates understanding of the current one.
 
+#### Interleaving Rule: Block-Then-Interleave
+
+**First exposure to a concept = blocked delivery.** Teach the new batch of 2-3 concepts as a coherent unit with its comprehension check, exactly as described above. Do not interleave during initial teaching — blocking is superior for initial acquisition.
+
+**Comprehension checks on review concepts = interleaved.** After the comprehension check on the new batch, insert 1-2 questions about concepts from PREVIOUS sessions, drawn from the Interleave Pool in Knowledge State. These questions should be mixed unpredictably with the new material — do NOT group them as a separate "review" block.
+
+Implementation:
+1. After each new batch comprehension check, select 1-2 concepts from the Interleave Pool.
+2. Choose concepts that are DISSIMILAR to the current batch — the point of interleaving is discrimination, not similarity reinforcement.
+3. Ask a question that requires the learner to identify WHICH concept applies, not just recall a definition. Use the Application Questions or Relationship Questions from the comprehension check question bank.
+4. If the learner confuses an old concept with a new one, that's a productive error. Clarify the distinction — this discrimination learning is exactly what interleaving produces.
+
+Example (economics domain, new batch = GDP + Trade Balance):
+
+> "Quick question from earlier — if the central bank raises interest rates, what happens to bond prices? And is that the same mechanism as what affects GDP, or different?"
+
+The shift between topics forces the learner to identify which conceptual framework applies, building discrimination ability that blocked practice cannot produce.
+
+**Update the Interleave Pool** via `dln-sync` at each sync boundary: add newly taught concepts that passed their comprehension check. Concepts that failed comprehension checks are NOT added to the pool — they need more blocked practice first.
+
+### 2a. Interleaved Practice Round (sessions 3+)
+
+**Skip this step if Session Count < 3** — there aren't enough prior concepts to meaningfully interleave.
+
+After all new concept batches for this session have been delivered and checked, run one round of interleaved practice before chain building. This round mixes old and new concepts together.
+
+#### Protocol
+
+1. Prepare 4-6 questions that draw from at least 3 different concept batches (including today's new batch and 2+ previous batches from the Interleave Pool).
+
+2. Present the questions in a deliberately jumbled order — alternate between old and new concepts, different chains, and different sub-topics. The sequence should feel slightly disorienting. **This is intentional.** Interleaved practice feels harder and less fluent than blocked practice, but produces 43% better delayed retention (Rohrer & Taylor, 2007).
+
+3. For each question, the learner must first identify WHICH concept or chain applies before answering. This two-step process (identify → apply) is the key mechanism.
+
+4. After the round, briefly acknowledge that this felt harder:
+
+> "If that felt harder than the batched practice, that's expected. The research says that harder practice now means better retention later. You're building discrimination — the ability to tell concepts apart, not just recall them one at a time."
+
+5. Log the results in the sync dispatch:
+```
+- Interleaved practice round: [N/M] correct. Confusions: [concept A ↔ concept B]. Discrimination improving/needs work on [specific distinction].
+```
+
 ### 3. Chain Building
 
 Connect the delivered concepts into **causal or procedural sequences**. A chain answers: "If X happens, what follows? Why?"

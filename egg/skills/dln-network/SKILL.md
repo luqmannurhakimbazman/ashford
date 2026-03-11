@@ -156,6 +156,22 @@ If the Weakness Queue contains `partial` factors, design the first stress-test t
 
 After weakness-targeted stress-tests, proceed to exploratory stress-tests as normal. This ensures each session makes progress on known weaknesses before seeking new ones.
 
+#### Interleaving Rule: Cross-Factor Stress-Tests
+
+Do NOT stress-test one factor exhaustively before moving to the next. Instead, alternate stress-tests across different factors and different parts of the model:
+
+**Blocked (avoid):** Three boundary-probing questions about Factor A. Then three about Factor B. Then three about Factor C.
+
+**Interleaved (prefer):** One boundary probe on Factor A. One assumption falsification on Factor C. One cross-domain challenge on Factor B. Return to Factor A with an assumption falsification. Move to Factor C with a minimal breaking case.
+
+This forces the learner to constantly re-orient which part of their model is being tested, preventing the false confidence that comes from "I handled the last three Factor A questions, so Factor A is solid."
+
+Additionally, insert **cross-factor interaction stress-tests** that require the learner to use multiple factors simultaneously:
+
+> "Here's a case where [Factor A] and [Factor C] both apply but point in different directions. Which dominates? What does your model predict?"
+
+These interaction tests are naturally interleaved and test the deepest level of model integration.
+
 #### Factor Mastery Updates from Stress-Tests
 
 Stress-tests implicitly test factors. When a stress-test breaks the model:

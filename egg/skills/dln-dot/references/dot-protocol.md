@@ -296,3 +296,41 @@ Match the intervention to the failure mode:
 | 3 | "I can explain it but might get details wrong" | On track — normal for recently-learned concepts |
 | 4 | "I can explain it and apply it" | Solid — can move on, check again next session |
 | 5 | "I could teach this to someone else" | Flag for verification — overconfidence risk if early in learning |
+
+## 9. Interleaving Protocol
+
+### Interleaved Comprehension Check Templates
+
+Use these after delivering a new batch. Mix 1-2 old-concept questions with the new-batch check.
+
+#### Identification Questions (require learner to name which concept applies)
+- "Here's a situation: [scenario]. Which of the concepts we've covered — today or in previous sessions — is most relevant here?"
+- "[Scenario]. Is this an example of [concept A] or [concept B]? How do you know?"
+- "I'm going to describe something. Tell me which concept it relates to and why: [description]."
+
+#### Contrast Questions (require discrimination between similar concepts)
+- "What's the difference between [concept A from today] and [concept B from last session]? When would you use one vs. the other?"
+- "[Concept A] and [concept B] sound similar. Give me an example where [concept A] applies but [concept B] doesn't."
+- "A friend confuses [concept A] with [concept B]. How would you explain the distinction?"
+
+#### Mixed-Context Application Questions
+- "If [event] happens, which of your chains is relevant? Is it the [chain X] we built today or the [chain Y] from last session?"
+- "Apply [today's chain] to this scenario. Now apply [old chain] to this different scenario. What's different about how you approach each?"
+
+### Interleaved Practice Round Templates
+
+Use for the Step 2a interleaved practice round.
+
+#### Sequence Design Rules
+1. Never ask two questions about the same concept consecutively
+2. Alternate between recall, application, and discrimination questions
+3. Include at least one "trick" question where the obvious concept is wrong
+4. End with a question that requires combining old + new concepts
+
+#### Sample Sequence Structure (6 questions)
+1. Application question — new concept from today's batch
+2. Recall question — old concept from 2+ sessions ago
+3. Discrimination question — today's concept vs. old concept
+4. Application question — old concept from last session
+5. "Which concept applies?" — scenario where multiple could fit
+6. Combination question — requires both old and new concepts

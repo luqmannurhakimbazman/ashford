@@ -192,3 +192,28 @@ A rising compression ratio means the learner is building a more powerful, more c
 | High confidence + Low quality | Dunning-Kruger risk | Intensify stress-tests, surface failures gently |
 | Low confidence + High quality | Impostor pattern | Reinforce wins, surface the evidence |
 | Low confidence + Low quality | Appropriate humility | Standard teaching, build up systematically |
+
+## 8. Interleaving Protocol
+
+### Cross-Factor Stress-Test Scheduling
+
+When designing a stress-test sequence, use the following scheduling template:
+
+#### Sequence Template (for N factors)
+1. Boundary probe — Factor [random]
+2. Assumption falsification — Factor [different from #1]
+3. Cross-factor interaction — Factors [any two]
+4. Minimal breaking case — Factor [different from #2 and #3]
+5. Cross-domain challenge — Factor [different from #4]
+6. Cross-factor interaction — Factors [different pair from #3]
+
+#### Scheduling Rules
+1. Never test the same factor with the same probe type twice in a row
+2. Include at least one cross-factor interaction test for every 3 single-factor tests
+3. Vary probe types (boundary, assumption, cross-domain, minimal break) — don't run the same type consecutively
+4. If a factor breaks under test, don't immediately re-test it — test a different factor first, then return
+
+#### Cross-Factor Interaction Templates
+- "Factors [A] and [B] both apply to this case. They predict [different outcomes]. What actually happens, and what does that tell you about the boundary between them?"
+- "Build me a scenario where [Factor A] dominates. Now modify it slightly so [Factor B] takes over. What changed?"
+- "Your model uses [Factor A] and [Factor B] independently. Are they truly independent, or does one constrain the other?"

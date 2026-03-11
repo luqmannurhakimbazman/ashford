@@ -60,6 +60,7 @@ All learning content lives in the domain page body, not column properties. The p
 - `## Chains` — Procedural sequences built (Dot phase output)
 - `## Factors` — Shared structures discovered (Linear phase output)
 - `## Compressed Model` — Latest model statement (Network phase output)
+- `## Interleave Pool` — Concepts and factors eligible for interleaving (introduced in a prior session and passed initial comprehension check). Maintained by phase skills to enable cross-topic practice.
 - `## Calibration Log` — Per-concept confidence ratings, gate predictions vs actual outcomes, and calibration trend over time. Used by phase skills to detect overconfidence/underconfidence and adjust teaching intensity.
 - `## Open Questions` — Unresolved gaps
 - `## Weakness Queue` — Priority-ranked queue of items the learner has not mastered. Rewritten (not appended) at each teaching boundary. Derived from mastery table statuses. Used by phase skills to drive session planning.
@@ -96,6 +97,8 @@ When creating a new domain profile, write this skeleton to the page body:
 |--------|--------|----------|-------------|
 
 ## Compressed Model
+
+## Interleave Pool
 
 ## Calibration Log
 

@@ -194,3 +194,30 @@ If the queue consistently has 3+ items across multiple Linear sessions, flag to 
   - [Factor 1]: ___
   - [Factor 2]: ___
   - [Factor 3]: ___
+
+## 8. Interleaving Protocol
+
+### Interleaved Cross-Pollination Scheduling
+
+When planning multiple comparisons in a session, schedule them to maximize context-switching:
+
+#### Scheduling Rules
+1. Never compare two chain pairs that share the same sub-domain consecutively
+2. If possible, alternate between "likely to reveal new factor" and "likely to confirm existing factor" comparisons
+3. Insert factor application questions between comparisons (test old factors on new pairs)
+
+#### Factor Application Interjections
+
+Between cross-pollination rounds, insert:
+- "Does [existing factor] apply to this new pair? Why or why not?"
+- "You're about to compare [chain C] with [chain D]. Before you look for a new factor — do any of your existing factors already cover this?"
+- "Rate your confidence: is the factor here going to be new, or one you've already found?"
+
+The last prompt is particularly useful — it builds metacognitive awareness of factor coverage and prevents the learner from always expecting novelty.
+
+### "No Upgrade Available" Question Templates
+
+For interleaved upgrade operator practice:
+- "Here's a Dot question: [question]. Can you upgrade this to a Linear question? (It's possible there's no upgrade — not every question has one.)"
+- "Upgrade these three questions. But be warned — one of them doesn't have a Linear upgrade. Which one, and why?"
+- "[question A], [question B], [question C]. Two of these have factor-based upgrades. One is genuinely a standalone Dot question. Sort them."
