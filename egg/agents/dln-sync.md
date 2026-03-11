@@ -40,6 +40,9 @@ You will receive a payload from the teaching skill with these fields:
 - **column_updates**: Column property updates (Phase, Session Count, Last Session) — only for `session-end` action
 - **queued_writes**: Any previously failed writes to retry
 - **review_results**: (optional) Results from orchestrator review protocol — recalled items, forgotten items, recall percentage. Only present if review ran before this session.
+- **syllabus_updates**: (optional) List of syllabus topic status changes. Each entry has:
+  - `topic`: The syllabus topic name (must match a `- [ ]` or `- [x]` line in `## Syllabus`)
+  - `status`: `checked` (all related concepts mastered) or `unchecked` (not all mastered)
 
 ## Execution Steps
 
@@ -53,9 +56,10 @@ You will receive a payload from the teaching skill with these fields:
 1. If there are queued_writes, execute those first
 2. Append progress notes to the current session's Progress section
 3. Update Knowledge State subsections with newly confirmed knowledge
-4. Read back the Knowledge State section and current session section
-5. Compress the read-back into a re-anchor payload
-6. Return the compressed re-anchor payload
+4. If `syllabus_updates` is present, update the `## Syllabus` section: for each topic, find the matching line and set `- [x]` (checked) or `- [ ]` (unchecked)
+5. Read back the Knowledge State section and current session section
+6. Compress the read-back into a re-anchor payload
+7. Return the compressed re-anchor payload
 
 ### For `session-end` action:
 1. Execute the sync steps above
@@ -71,6 +75,16 @@ When the write_payload includes mastery updates, merge them into the existing ma
 3. **Never delete rows** — concepts, chains, and factors are permanent once added. Only status and evidence change.
 
 The mastery tables use pipe-delimited Markdown table format. Preserve formatting.
+
+## Syllabus Checkbox Updates
+
+When `syllabus_updates` is present in the payload:
+
+1. Find the `## Syllabus` section in the page body.
+2. For each update, find the line matching `- [ ] <topic>` or `- [x] <topic>`.
+3. Set `- [x]` if status is `checked`, `- [ ]` if status is `unchecked`.
+4. If the topic is not found in the syllabus, skip it (the user may have removed it).
+5. Never add new topics — only toggle existing checkboxes.
 
 ## Compression
 
