@@ -112,7 +112,7 @@ Example output:
 | Immunology | Network | 12 | 2026-03-09 | In 5 days |
 
 **`reset [domain]`** — Find the matching row. Confirm with the user before executing. Then:
-1. Replace the page body with the initialization template (clearing all Knowledge State and session logs)
+1. Replace the page body with the initialization template from `@references/init-template.md` (clearing all Knowledge State and session logs)
 2. Set Phase back to Dot
 3. Reset Session Count to 0
 4. Clear Last Session
