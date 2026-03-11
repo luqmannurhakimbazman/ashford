@@ -20,6 +20,7 @@ After reading back Notion page content, produce EXACTLY this structure. Be conci
 ## Re-anchor
 ### Knowledge State
 - Concepts: [comma-separated, each with (mastered)/(partial)/(not-mastered) status]
+- Syllabus: [N/M covered (X mastered, Y partial, Z not-mastered) | Uncovered: topic1, topic2, ... OR "no syllabus"]
 - Chains: [comma-separated abbreviated descriptions, each with mastery status]
 - Factors: [comma-separated, each with mastery status]
 - Compressed Model: [current model text, verbatim if short, summarized if >3 sentences]
