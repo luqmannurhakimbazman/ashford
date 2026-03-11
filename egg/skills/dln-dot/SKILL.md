@@ -194,7 +194,61 @@ If a concept was previously `partial` and the learner demonstrates understanding
 
 If a concept was `mastered` in a prior session but the learner fails to recall it in the current session's warm-up or chain-building, downgrade to `partial` and append evidence. This prevents false mastery from decaying recall.
 
-Teach in batches of **2-3 concepts**. For each concept, deliver:
+Teach in batches of **1-4 concepts**, dynamically sized based on concept complexity and learner performance. The default starting batch size is **2**. Adjust using the rules below.
+
+#### Estimating Concept Complexity
+
+Before each batch, classify each concept's **element interactivity** — how many elements the learner must hold in working memory simultaneously to understand the concept:
+
+| Complexity | Element Interactivity | Examples | Default Batch Size |
+|------------|----------------------|----------|-------------------|
+| **Low** | 1-2 elements, can be understood in isolation | stock, bond, dividend, variable, function | 3-4 concepts per batch |
+| **Medium** | 3-4 elements, requires relating to other concepts | interest rate (relates to inflation, bond price, lending), recursion (relates to base case, call stack, return) | 2 concepts per batch |
+| **High** | 5+ elements, requires simultaneous manipulation of multiple interacting pieces | options delta (requires: underlying price, strike, time, volatility, and their interactions), backpropagation (requires: loss, chain rule, gradients, weights, layers) | 1 concept per batch |
+
+When a batch contains concepts of mixed complexity, size the batch to the MOST complex concept in it. A batch with one High concept is a single-concept batch, even if the other planned concepts are Low.
+
+#### Load Monitoring Signals
+
+Watch for these **overload indicators** during and after each batch:
+
+| Signal | Severity | What It Means |
+|--------|----------|---------------|
+| Failed comprehension check (first attempt) | Moderate | May be a gap, not necessarily overload. Re-teach with different analogy. |
+| Failed comprehension check (second attempt after re-teach) | High | Likely overloaded. The concept or batch is too complex. |
+| Learner asks to repeat the explanation | Moderate | Working memory full. Slow down. |
+| Learner confuses current concept with a previous one | High | Too many similar items in working memory. Separate them. |
+| Learner gives circular or verbatim-repeat answers | High | Not processing — just echoing. Overloaded. |
+| Learner stops attempting and says "I don't know" | High | Shut down. Immediate intervention needed. |
+| Learner answers quickly and correctly | Low (positive) | Capacity available. Can increase batch size. |
+| Learner asks "above-phase" questions | Low (positive) | Engaged and ahead. Can increase batch size. |
+
+#### Overload Response Protocol
+
+When 2+ High-severity signals appear in a single batch:
+
+1. **Stop the current batch immediately.** Do not push through.
+2. **Acknowledge without blame:** "Let's slow down — I threw too much at you at once."
+3. **Reduce batch size by 1** for the remainder of the session (minimum: 1 concept per batch).
+4. **Add a worked micro-example** for the concept that caused overload — a 2-3 sentence scenario that exercises just that one concept in isolation.
+5. **Re-attempt the comprehension check** after the micro-example.
+6. **Log the adjustment** in the next `dln-sync` dispatch as a plan adjustment.
+
+When the learner shows positive signals across 2+ consecutive batches, increase batch size by 1 (maximum: 4).
+
+#### Interaction with Worked Examples
+
+When batch size is reduced to 1 due to overload:
+- Add a worked example after EVERY concept, not just after chains are built.
+- Use the "faded example" progression: first example is fully worked, second has one step for the learner to fill in, third has two steps for the learner.
+- This increases germane load (productive processing) while reducing extraneous load (unnecessary complexity).
+
+When the learner is performing well (batch size 3-4):
+- Worked examples can be more complex and combine multiple concepts.
+- The learner should lead the walkthrough with minimal guidance.
+- Skip the faded progression — go straight to learner-led examples.
+
+For each concept, deliver:
 
 1. **Plain-language definition** — No jargon unless you define it inline.
 2. **Concrete analogy** — Something from everyday life that maps to the concept.
