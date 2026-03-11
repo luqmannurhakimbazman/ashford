@@ -334,6 +334,24 @@ Connect the delivered concepts into **causal or procedural sequences**. A chain 
 
 Example: "We covered inflation, interest rates, and bond prices. Now: if inflation rises, what happens to interest rates? And then what happens to bond prices? Walk me through it."
 
+#### Chain Visualization
+
+After presenting a chain verbally, render it as a Mermaid flowchart:
+
+```mermaid
+graph LR
+    A[Inflation rises] -->|"central bank responds"| B[Interest rates rise]
+    B -->|"fixed coupons less attractive"| C[Bond prices fall]
+```
+
+Label the edges with the **mechanism** (the "why" of each link), not just the direction. This forces both teacher and learner to articulate the causal mechanism, not just the sequence.
+
+After the learner explains the chain back, ask them to describe what their version of the diagram would look like:
+
+> "If you were drawing this chain, what boxes would you have, and what labels would go on the arrows?"
+
+Compare their verbal diagram to yours. Discrepancies reveal misunderstandings that verbal-only explanations might miss — a learner who puts the arrows in the wrong direction has a different causal model than they expressed in words.
+
 #### Chain Mastery Updates
 
 After each chain explain-back, update the chain's mastery status:
@@ -380,6 +398,22 @@ Walk through a **concrete scenario** in the domain that exercises the chain:
 4. Highlight where the chain applies in practice.
 
 Use the worked example scaffolding structure from `@references/dot-protocol.md`.
+
+#### Scenario Trace Diagram
+
+After completing the worked example walkthrough, render a diagram that traces the scenario through the chain:
+
+```mermaid
+graph TD
+    S["Scenario: Fed announces 0.5% rate hike"] --> A[Interest rates ↑]
+    A --> B[Bond prices ↓]
+    A --> C[Mortgage rates ↑]
+    C --> D[Housing demand ↓]
+
+    style S fill:#f9f,stroke:#333
+```
+
+Use a distinct style for the scenario trigger node to visually separate "what happened" from "what the chain predicts." This gives the learner a spatial map of how the abstract chain applies to the concrete case.
 
 ### 5. Phase Gate
 
