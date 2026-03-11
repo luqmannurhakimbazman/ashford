@@ -152,3 +152,28 @@ Use at the start of every Linear session to prompt factor recall.
 | 80-100% factors recalled + structural explanations | Strong retention | Proceed with new comparisons |
 | 50-79% factors recalled OR surface explanations | Moderate | Revisit weakest factor through a fresh chain comparison before new material |
 | < 50% factors recalled | Significant decay | Run a full cross-pollination exercise on forgotten factors before introducing new comparisons |
+
+## 6. Weakness-Driven Session Planning
+
+### Factor Weakness Identification
+
+In Linear phase, weaknesses come from two sources:
+
+1. **Dot-level decay:** Concepts or chains the learner can no longer recall, detected during warm-up or cross-pollination. These re-enter the Weakness Queue with their original type (`concept` or `chain`) and phase (`Dot`).
+
+2. **Factor-level weakness:** Factors that are `partial` or `not-mastered` after hypothesis or prediction attempts.
+
+### Priority Computation for Linear Phase
+
+Same formula as Dot phase, but factor weaknesses are weighted +1 higher than concept weaknesses at equivalent severity (since factor weakness is phase-appropriate and more actionable).
+
+### Balance: Remediation vs. New Discovery
+
+| Queue State | Session Allocation |
+|-------------|-------------------|
+| Empty | 100% new cross-pollination and factor discovery |
+| 1-2 items, all `partial` | 20% warm-up remediation, 80% new work |
+| 1-2 items, any `not-mastered` | 30% remediation, 70% new work |
+| 3+ items | 40% remediation, 60% new work. Consider whether the learner was promoted to Linear too early. |
+
+If the queue consistently has 3+ items across multiple Linear sessions, flag to the learner: "Your foundations might need more reinforcement. Would you like to do a Dot-phase refresher session?" This is a suggestion, not a forced regression.

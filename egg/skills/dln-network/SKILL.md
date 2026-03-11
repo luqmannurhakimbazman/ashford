@@ -31,6 +31,7 @@ Before asking for the learner's model, **dispatch the `dln-sync` agent** with ac
 - Planned stress-tests: [edge cases, counterexamples, or cross-domain analogies to probe]
 - Transfer domains: [adjacent domains to test model generality]
 - Open questions from last session: [carry forward from Knowledge State]
+- Weakness-targeted stress-tests: [factors from Weakness Queue to prioritize in stress-testing]
 
 ### Progress
 (populated by sync loop)
@@ -114,6 +115,14 @@ Present edge cases, counterexamples, or cross-domain analogies that should break
 > "Your model predicts X — but what about this case where Y happens?"
 
 Push until the model creaks. Use the stress-test generation prompts from `@references/network-protocol.md` to systematically probe boundaries between factors, test hidden assumptions, and find the simplest breaking case.
+
+#### Weakness-First Stress-Test Selection
+
+If the Weakness Queue contains `partial` factors, design the first stress-test to specifically target the weakest factor. The goal is to either:
+- Confirm the learner has strengthened it (upgrade to `mastered`), or
+- Surface the precise gap (inform further contraction/revision).
+
+After weakness-targeted stress-tests, proceed to exploratory stress-tests as normal. This ensures each session makes progress on known weaknesses before seeking new ones.
 
 #### Factor Mastery Updates from Stress-Tests
 

@@ -61,6 +61,7 @@ All learning content lives in the domain page body, not column properties. The p
 - `## Factors` — Shared structures discovered (Linear phase output)
 - `## Compressed Model` — Latest model statement (Network phase output)
 - `## Open Questions` — Unresolved gaps
+- `## Weakness Queue` — Priority-ranked queue of items the learner has not mastered. Rewritten (not appended) at each teaching boundary. Derived from mastery table statuses. Used by phase skills to drive session planning.
 
 Each of Concepts, Chains, and Factors uses a mastery tracking table with columns:
 - **Status:** `not-mastered` | `partial` | `mastered`
@@ -96,6 +97,11 @@ When creating a new domain profile, write this skeleton to the page body:
 ## Compressed Model
 
 ## Open Questions
+
+## Weakness Queue
+
+| Priority | Item | Type | Phase | Severity | Source | Added |
+|----------|------|------|-------|----------|--------|-------|
 ~~~
 
 ---

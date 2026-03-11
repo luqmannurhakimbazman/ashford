@@ -217,3 +217,55 @@ Use these at the start of every Dot session (except the first) to prompt free re
 | Accurate | All links correct, correct direction, mechanism explained | Move on |
 | Partial | Direction right but missing intermediate steps or weak on mechanism | Quick re-walk, then move on |
 | Failed | Wrong direction, major errors, or can't attempt | Re-teach the chain as part of today's session plan |
+
+## 7. Weakness Identification Protocol
+
+### When Weaknesses Are Detected
+
+A weakness is identified whenever a mastery status is set to `not-mastered` or `partial`. Sources:
+
+| Source | When | What enters the queue |
+|--------|------|----------------------|
+| Comprehension check | After each concept batch | Concepts scored `not-mastered` or `partial` |
+| Chain explain-back | After each chain building | Chains scored `not-mastered` or `partial` |
+| Worked example | During scenario trace | Concepts/chains the learner misapplied |
+| Phase gate | During gate assessment | Items that caused gate failure or downgrade |
+| Session warm-up | When recalling prior material | Previously `mastered` items the learner cannot recall (decay detection) |
+
+### Priority Computation
+
+Priority is computed by combining severity and recency:
+
+```
+Priority Score = Severity Weight + Recency Penalty
+
+Severity Weights:
+  not-mastered = 3
+  partial (failed 2+ times) = 2
+  partial (failed once) = 1
+
+Recency Penalty:
+  Failed this session = +2
+  Failed last session = +1
+  Failed 2+ sessions ago = +0
+```
+
+Sort descending by Priority Score. Ties broken by: items failed more recently first.
+
+### Weakness Resolution
+
+An item exits the Weakness Queue when:
+- Its mastery status reaches `mastered` (via comprehension check, retrieval practice, or phase gate), OR
+- The learner advances to a new phase (Linear/Network) — at which point remaining Dot-level weaknesses are archived but not deleted. If they resurface during Linear phase (e.g., learner cannot recall a concept needed for factor discovery), they re-enter the queue.
+
+### Remediation Strategy Selection
+
+Match the intervention to the failure mode:
+
+| Failure Mode | Strategy |
+|-------------|----------|
+| Cannot recall definition | Re-teach with new analogy + immediate recall check |
+| Circular or confused definition | Break concept into 2 sub-concepts, teach each, then reunify |
+| Correct concept, wrong relationship | Isolate the relationship, use a micro-example showing cause→effect |
+| Cannot apply to scenario | Walk through an ultra-simple scenario (simpler than the original), then scale up |
+| Decay (was mastered, now partial) | Retrieval practice only — ask, wait, then confirm. No re-teaching unless retrieval fails completely. |

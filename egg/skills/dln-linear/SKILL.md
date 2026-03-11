@@ -37,10 +37,11 @@ Before any teaching begins, **dispatch the `dln-sync` agent** with action `plan-
 ## Session [N] — [date] (Linear Phase)
 
 ### Plan
+- Weakness remediation: [top 1-2 items from Weakness Queue — may include Dot-level concepts that decayed or Linear-level factors that are `partial`]
+- Remediation strategy: [for each: re-activate → diagnose → intervene → re-check]
 - Chains to compare: [which chains from Knowledge State will be juxtaposed]
 - Target factors: [hypothesized shared structures to discover]
 - Upgrade operator goals: [Dot→Linear question upgrades to practice]
-- Priorities: [reinforcement needs from previous sessions]
 
 ### Progress
 (populated by sync loop)
@@ -142,6 +143,16 @@ Present a new problem in the learner's domain. Use the Chains from the Knowledge
 - Which chain do they reach for, and why?
 
 Do not correct mistakes yet. The goal is to surface the *limits* of chain-level thinking.
+
+#### Weakness-Targeted Warm-Up
+
+If the Weakness Queue contains items, select the warm-up problem to specifically exercise the weakest item. For example:
+- If the weakest item is a `partial` factor, choose a problem that requires that factor to solve.
+- If the weakest item is a Dot-level concept that decayed, choose a problem where that concept is a prerequisite.
+
+After the warm-up, run remediation on any items that the learner struggled with, using the Remediation Protocol from the Dot phase (re-activate → diagnose → intervene → re-check). Update mastery and the Weakness Queue via `dln-sync`.
+
+Spend at most the first quarter of the session on warm-up + remediation. Then proceed to new cross-pollination work.
 
 ### Step 2: Cross-Pollination
 

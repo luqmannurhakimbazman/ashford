@@ -21,7 +21,19 @@ description: >
 
 - State the domain clearly: "Today we're working on [domain]."
 - Read the Knowledge State from the page body. Acknowledge what the learner already knows from the Concepts and Chains sections. If empty, say so honestly: "This is a fresh start — no prior concepts recorded."
-- Preview today's learning goals: 3-5 concepts you plan to cover and the chain(s) you'll build from them.
+
+#### Weakness-Driven Priority Setting
+
+Before previewing today's goals, check the **Weakness Queue** from the page body:
+
+- **If the queue is non-empty:** The top 1-2 items from the queue become the session's primary targets. Preview today's plan as: "Last time, [item] gave you trouble — we're going to nail that first today, then move on to new material."
+- **If the queue is empty:** Plan normally — preview 3-5 new concepts and target chains.
+
+The session plan must allocate time as follows:
+- **Queue non-empty:** First third of the session is remediation of queued items. Remaining two-thirds is new content.
+- **Queue empty:** Full session is new content.
+
+This ensures weakness remediation always happens before new content delivery, preventing knowledge gaps from compounding.
 
 ### 1a. Session Plan Write
 
@@ -33,10 +45,11 @@ Before any teaching begins, **dispatch the `dln-sync` agent** with action `plan-
 ## Session [N] — [date] (Dot Phase)
 
 ### Plan
-- Concepts: [list the 3-5 concepts you plan to cover]
-- Target chains: [the causal chains you'll build from these concepts]
-- Comprehension checks: [specific questions you'll ask after each batch]
-- Priorities: [anything to reinforce from previous sessions, based on Knowledge State review]
+- Weakness remediation: [top 1-2 items from Weakness Queue, or "none — queue empty"]
+- Remediation strategy: [for each item: different analogy / break into sub-concepts / micro-example + re-check]
+- New concepts: [list the 2-5 new concepts, adjusted for time spent on remediation]
+- Target chains: [the causal chains you'll build]
+- Comprehension checks: [specific questions]
 
 ### Progress
 (populated by sync loop)
@@ -101,6 +114,7 @@ After each of the following boundaries, **dispatch a fresh `dln-sync` agent** wi
 - Chain [X→Y] — built. Learner traced [correctly on first attempt / needed N hints].
 ```
 - Knowledge State updates: newly confirmed concepts for `## Concepts`, newly built chains for `## Chains`
+- Weakness Queue rebuild: [full updated queue reflecting mastery changes this boundary]
 - Any queued writes from previous failed syncs
 
 **On agent return** — use the re-anchor payload to prompt a **learner-generated checkpoint**. Do NOT state the summary yourself — ask the learner to produce it:
@@ -189,6 +203,30 @@ After each chain explain-back, update the chain's mastery status:
 | Wrong direction, major gaps, or needed full re-teaching | `not-mastered` |
 
 Include chain mastery in the `dln-sync` dispatch. A chain cannot be `mastered` unless ALL its constituent concepts are `mastered` or `partial`. If a concept downgrades, any chain containing it downgrades to at most `partial`.
+
+### 3a. Remediation Block
+
+If the Weakness Queue was non-empty at session start, the remediation block runs BEFORE new concept delivery (or interleaved with the first concept batch if the weak item connects to new material).
+
+#### Remediation Protocol
+
+For each queued item, in priority order:
+
+1. **Re-activate:** Ask the learner to recall what they know about the item. Do not re-teach yet. This surfaces the current state of their understanding.
+2. **Diagnose:** Compare their recall to the mastery rubric. Identify the specific gap:
+   - Cannot recall at all → full re-teach with new analogy
+   - Recalls partially but wrong mechanism → targeted correction
+   - Recalls but cannot apply → application-focused practice
+3. **Intervene:** Use the recovery action matched to the diagnosis. Always use a DIFFERENT approach than what was used when the item was first taught (different analogy, different example, different angle of explanation).
+4. **Re-check:** Run a comprehension check immediately after intervention. Score using the mastery rubric.
+5. **Update:** Include the mastery update in the next `dln-sync` dispatch. If the item reaches `mastered`, it exits the Weakness Queue. If it improves to `partial`, reduce its severity. If it stays `not-mastered`, escalate its severity and keep it at the top of the queue.
+
+#### Remediation Limits
+
+- Spend at most **2 remediation attempts** per item per session. If the item is still `not-mastered` after 2 attempts, note this in progress and move on. The item stays in the queue for next session with severity `high`.
+- If the queue has 3+ items, remediate only the top 2 per session. The rest carry forward.
+
+Tell the learner: "We'll spend a few minutes reinforcing [item] before we dive into new material."
 
 ### 4. Worked Example
 
