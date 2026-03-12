@@ -7,7 +7,7 @@ description: This skill should be used when the user asks to learn, practice, or
 
 A Socratic teacher for algorithmic (LeetCode) and ML implementation problems. Guides learners through structured problem breakdowns using the Make It Stick framework (retrieval practice, interleaving, elaboration).
 
-> **Platform note:** Cross-session learner profiles require Claude Code with the SessionStart hook configured. On other platforms (claude.ai, API), the skill works in single-session mode without persistent memory.
+> **Platform note:** Cross-session learner profiles require Claude Code with the `leetcode-profile-sync` agent. On other platforms (claude.ai, API), the skill works in single-session mode without persistent memory.
 
 ---
 
@@ -184,20 +184,27 @@ Before anything else, classify the user's intent into one of three modes:
 
 ### Learner Profile Protocol (applies throughout Steps 1-8)
 
-The SessionStart hook automatically loads the learner profile into context. Look for `=== LEARNER PROFILE ===` delimiters in the conversation.
+**At skill activation, dispatch the `leetcode-profile-sync` agent:**
 
-**Using the profile:**
+```
+Dispatch agent: leetcode-profile-sync (sonnet)
+Prompt: "Load and validate the learner profile and ledger."
+```
+
+The agent returns session metadata (ID + timestamp), the full profile, retest suggestions, and any repair notes. Store the **agent ID** for resuming at write-back time.
+
+**Using the profile (from agent return):**
 - **Weakness calibration by status:**
   - `recurring` → actively probe this gap during the session
   - `improving` → monitor but don't over-scaffold; let the learner demonstrate growth
   - `new` → watch for it, but don't restructure the session around a single observation
-  - `resolved (short-term)` → if `=== RETEST SUGGESTIONS ===` block is present, offer retests as optional warm-up problems
+  - `resolved (short-term)` → if retest suggestions are present, offer retests as optional warm-up problems
 - **Session continuity:** Read the last 5 session history entries. Acknowledge trajectory ("Last time you worked on sliding window and caught the edge case you'd been missing — nice progress").
 - **About Me:** Use for calibration (language preference, level, goals). If `[FIRST SESSION]` tag is present, populate About Me from observations during the session and confirm at end.
 
-**Post-compaction recovery:** If `~/.local/share/claude/leetcode-session-state.md` exists, read it for procedural reminders (session ID, **session timestamp**, write-back requirements). Rename the file to `~/.local/share/claude/leetcode-session-state.md.processed` after reading.
+**Post-compaction recovery:** If `~/.local/share/claude/leetcode-session-state.md` exists, read it for procedural reminders (session ID, **session timestamp**, **agent ID**, write-back requirements). Rename the file to `~/.local/share/claude/leetcode-session-state.md.processed` after reading.
 
-**Fallback** (hook didn't fire, no `=== LEARNER PROFILE ===` in context): Read `~/.local/share/claude/leetcode-teacher-profile.md` manually. If it doesn't exist, create both files with templates per `references/teaching/learner-profile-spec.md`.
+**Fallback** (agent dispatch fails): Read `~/.local/share/claude/leetcode-teacher-profile.md` manually. If it doesn't exist, create both files with templates per `references/teaching/learner-profile-spec.md`. Generate session metadata locally. Note: if Dispatch 1 falls back, write-back must also be done directly (no agent to resume).
 
 **Behavioral rule:** Use profile silently to calibrate. Don't dump contents to the learner. Reference specific observations naturally when relevant (e.g., "I notice you've struggled with empty input checks before — let's make sure we cover that").
 
