@@ -345,13 +345,34 @@ Produce structured Markdown study notes (see Output Format below). Offer to save
 
 ### Step 8B: Update Ledger & Learner Profile
 
-After generating study notes, perform BOTH writes in order. Consult `references/teaching/learner-profile-spec.md` Section "Update Protocol — Learning Mode" for full details.
+After generating study notes, resume the `leetcode-profile-sync` agent to write back session results. Consult `references/teaching/learner-profile-spec.md` Section "Update Protocol — Learning Mode" for verdict and gap tag definitions.
 
-**Write 1 — Ledger (mandatory, do this first).** Append one row to `~/.local/share/claude/leetcode-teacher-ledger.md`. If the file does not exist, create it with the header row first. Columns: `Timestamp | Session ID | Problem | Pattern | Mode | Verdict | Gaps | Review Due`. This is the source of truth.
+**Resume the agent** (using the agent ID stored at skill activation):
 
-**Write 2 — Profile.** Append to Session History (newest first, 20-entry cap) and update Known Weaknesses in `~/.local/share/claude/leetcode-teacher-profile.md`. Verdict and gap tags must match the ledger row exactly.
+```
+Resume agent: leetcode-profile-sync (by agent ID)
+Prompt:
+"Resume: Write back session results.
 
-Use Session Timestamp from `=== SESSION METADATA ===` context (see spec for fallback chain). On first session, show About Me draft and ask learner to confirm.
+Session ID: <from session metadata>
+Session Timestamp: <from session metadata>
+Problem: <name> (<number>)
+Pattern: <primary pattern>
+Mode: learning
+Verdict: <solved_independently | solved_with_minor_hints | solved_with_significant_scaffolding | did_not_reach_solution>
+Gaps: <comma-separated gap tags>
+Review Due: <date based on verdict>
+Observations: <free-form session observations — algorithm intuition, code translation quality, weakness trajectory>
+Weakness Updates:
+- <weakness name>: <new | recurring | improving | resolved (short-term)> (description of what happened)
+- ..."
+```
+
+The agent writes the ledger row first (source of truth), then updates the profile. Wait for confirmation before ending the session.
+
+On first session, show About Me draft and ask the learner to confirm before dispatching write-back.
+
+**Fallback** (agent resume fails): Write both files directly per the protocol in `references/teaching/learner-profile-spec.md`.
 
 ---
 
@@ -361,7 +382,7 @@ Full protocol in `references/teaching/recall-workflow.md`. Load it when Recall M
 
 **Core contract:** Interviewer, not teacher. Neutral acknowledgments only ("Okay", "Got it"). No hints, no praise, no correction — probe. Use `references/teaching/recall-drills.md` for question banks.
 
-**Steps:** R1 (Problem Framing) → R2 (Unprompted Reconstruction) → R3 (Edge Case Drill — calibrate from Known Weaknesses) → R4 (Complexity Challenge) → R5 (Pattern Classification) → R6 (Variation Adaptation) → R7 (Debrief & Scoring) → R7B (Update Ledger & Learner Profile per `references/teaching/learner-profile-spec.md`)
+**Steps:** R1 (Problem Framing) → R2 (Unprompted Reconstruction) → R3 (Edge Case Drill — calibrate from Known Weaknesses) → R4 (Complexity Challenge) → R5 (Pattern Classification) → R6 (Variation Adaptation) → R7 (Debrief & Scoring) → R7B (Update Ledger & Learner Profile — resume `leetcode-profile-sync` agent with recall session results per Step 8B protocol, using recall-mode verdicts: `strong_pass` / `pass` / `borderline` / `needs_work`)
 
 **Scoring (R7):** Strong Pass / Pass / Borderline / Needs Work. Review schedule: all correct → 7 days; minor gaps → 3 days; major gaps → tomorrow + 3 days.
 
