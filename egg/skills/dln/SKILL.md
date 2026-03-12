@@ -123,7 +123,7 @@ If no syllabus exists for a domain, show "No syllabus" in the Coverage column.
 
 Use the Notion MCP to query the DLN Profiles database for a row matching the domain name.
 
-**If found:** Read the current Phase, Session Count, and page body content.
+**If found:** Read the current Phase, Session Count, and page body content. Then validate the page body structure (see Step 3 validation below).
 
 **If not found:** Create a new row with:
 - Domain = parsed domain name
@@ -135,6 +135,26 @@ Then write the page body initialization template (see Schema section above) to t
 Set Next Review = tomorrow's date and Review Interval = 1 for new domains.
 
 Tell the user: *"New domain detected. Starting you in the Dot phase — we'll build your foundational concepts first."*
+
+#### Step 3 Validation: Page Body Structure Check
+
+After loading an existing profile, check whether the page body contains these four core Knowledge State headers: `## Concepts`, `## Chains`, `## Factors`, `## Compressed Model`.
+
+These four are sufficient because they are the structural headers that phase skills actively read mastery tables from. The remaining headers (`## Interleave Pool`, `## Calibration Log`, `## Load Profile`, `## Open Questions`, `## Weakness Queue`, `## Engagement Signals`, `## Syllabus`) are auxiliary — phase skills create them on first write if absent.
+
+**If all four core headers are present:** The profile is valid. Proceed to Step 3a.
+
+**If any core header is missing:** The profile exists but predates the current DLN template (or was created outside DLN). Auto-initialize:
+
+1. Read the current page body content.
+2. Write the initialization template from `@references/init-template.md` to the page body, appending the original content under a `## Prior Notes` header at the bottom.
+3. Backfill column properties, each only if that property is currently empty/missing:
+   - Phase → Dot (only if empty)
+   - Session Count → 0 (only if empty)
+   - Next Review → tomorrow's date (only if empty)
+   - Review Interval → 1 (only if empty)
+4. Tell the user: *"Upgraded your [domain] profile to the current DLN format. Your previous session content is preserved under Prior Notes."*
+5. Proceed to Step 3a as normal.
 
 ### Step 3a: Review Check
 
