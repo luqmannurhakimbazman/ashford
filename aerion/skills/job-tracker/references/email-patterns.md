@@ -6,7 +6,7 @@
 
 | Domain | Platform |
 |--------|----------|
-| `greenhouse.io` | Greenhouse |
+| `greenhouse.io`, `greenhouse-mail.io` | Greenhouse |
 | `lever.co` | Lever |
 | `ashbyhq.com` | Ashby |
 | `myworkdayjobs.com`, `myworkday.com` | Workday |
