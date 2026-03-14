@@ -21,6 +21,10 @@
 | `hackerrankforwork.com` | HackerRank (OA platform) |
 | `codesignal.com` | CodeSignal (OA platform) |
 | `codility.com` | Codility (OA platform) |
+| `hirevue.com` | HireVue (OA/video platform) |
+| `brassring.com` | IBM/Kenexa BrassRing |
+| `avature.net` | Avature |
+| `phenom.com` | Phenom People |
 
 ## Subject Line Patterns by Stage
 
@@ -31,12 +35,14 @@
 - "Application confirmation"
 - "Your application for [Role] at [Company]"
 - "Application submitted successfully"
+- "Your submission" (generic confirmation from some ATS platforms)
+- "Candidate reference" (reference check request, may also indicate later stages)
 
 ### Online Assessment
 - "Online assessment invitation"
 - "Complete your assessment"
 - "Coding challenge"
-- "HackerRank" / "CodeSignal" / "Codility" in subject or body
+- "HackerRank" / "CodeSignal" / "Codility" / "HireVue" in subject or body
 - "Technical assessment for [Role]"
 - "Please complete the following test"
 
