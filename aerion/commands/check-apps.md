@@ -25,7 +25,7 @@ Use `$ARGUMENTS` as the number of days to look back. Default to 7 if not provide
 Use the Gmail search tool (`gmail_search_messages` or `Search Gmail Emails`) with this query:
 
 ```
-to:lluqmannurhakim@gmail.com (subject:application OR subject:interview OR subject:offer OR subject:assessment OR subject:"online assessment" OR subject:"phone screen" OR subject:"coding challenge" OR subject:"not moving forward" OR subject:congratulations OR subject:"candidate reference" OR subject:"your submission" OR subject:superday OR subject:"virtual onsite" OR subject:"final round" OR subject:"regret to inform" OR subject:"schedule a call" OR subject:"pleased to offer" OR subject:"offer letter" OR from:greenhouse.io OR from:greenhouse-mail.io OR from:lever.co OR from:ashbyhq.com OR from:myworkdayjobs.com OR from:myworkday.com OR from:icims.com OR from:smartrecruiters.com OR from:jobvite.com OR from:successfactors.com OR from:successfactors.eu OR from:taleo.net OR from:hire.jazz.co OR from:breezy.hr OR from:applytojob.com OR from:hackerrankforwork.com OR from:codesignal.com OR from:codility.com OR from:hirevue.com OR from:brassring.com OR from:avature.net OR from:phenom.com) newer_than:${days}d
+to:lluqmannurhakim@gmail.com (subject:application OR subject:interview OR subject:offer OR subject:assessment OR subject:"online assessment" OR subject:"phone screen" OR subject:"coding challenge" OR subject:"not moving forward" OR subject:congratulations OR subject:"candidate reference" OR subject:"your submission" OR subject:superday OR subject:"virtual onsite" OR subject:"final round" OR subject:"regret to inform" OR subject:"schedule a call" OR subject:"pleased to offer" OR subject:"offer letter" OR from:greenhouse.io OR from:greenhouse-mail.io OR from:lever.co OR from:ashbyhq.com OR from:myworkdayjobs.com OR from:myworkday.com OR from:icims.com OR from:smartrecruiters.com OR from:jobvite.com OR from:successfactors.com OR from:successfactors.eu OR from:taleo.net OR from:hire.jazz.co OR from:breezy.hr OR from:applytojob.com OR from:hackerrankforwork.com OR from:codesignal.com OR from:codility.com OR from:hirevue.com OR from:hackerearth.com OR from:karat.com OR from:shl.com OR from:testgorilla.com OR from:brassring.com OR from:avature.net OR from:phenom.com) newer_than:${days}d
 ```
 
 ### 3. Read Matched Emails
@@ -46,11 +46,20 @@ Invoke the `job-tracker` skill knowledge to:
 - Match against existing sheet rows by Company + Role
 - Apply stage progression rules (forward-only, except Rejected/Ghosted)
 
+### 5a. Scan for Ghosted Applications
+
+After classifying emails, scan all existing sheet rows for potential ghosted applications:
+- For each row where Stage is **not** a terminal state (Rejected, Ghosted, Offered):
+  - If `Last Contact Date` is more than 30 days before today's date, flag it as a Ghosted candidate
+- Do **not** flag rows that received a new email in this scan (they have recent activity)
+- Collect flagged rows into a separate "Possibly Ghosted" list for user review
+
 ### 6. Present Summary
 
 Show the user:
 - **Updates** — existing rows with stage changes (old → new)
 - **New applications** — rows to add (Stage = Applied)
+- **Possibly Ghosted** — rows with no email activity for >30 days (show Company, Role, current Stage, Last Contact Date, and days since last contact). Ask the user to confirm each one before marking as Ghosted.
 - **Ambiguous** — emails that need user input
 
 ### 7. Confirm and Write

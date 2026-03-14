@@ -22,6 +22,10 @@
 | `codesignal.com` | CodeSignal (OA platform) |
 | `codility.com` | Codility (OA platform) |
 | `hirevue.com` | HireVue (OA/video platform) |
+| `hackerearth.com` | HackerEarth (OA platform) |
+| `karat.com` | Karat (technical interview platform) |
+| `shl.com` | SHL (psychometric/aptitude platform) |
+| `testgorilla.com` | TestGorilla (assessment platform) |
 | `brassring.com` | IBM/Kenexa BrassRing |
 | `avature.net` | Avature |
 | `phenom.com` | Phenom People |
@@ -42,18 +46,26 @@
 - "Online assessment invitation"
 - "Complete your assessment"
 - "Coding challenge"
-- "HackerRank" / "CodeSignal" / "Codility" / "HireVue" in subject or body
+- "HackerRank" / "CodeSignal" / "Codility" / "HireVue" / "HackerEarth" / "Karat" / "SHL" / "TestGorilla" in subject or body
 - "Technical assessment for [Role]"
 - "Please complete the following test"
 
-### Behavioral Interview
+### Phone Screen
 - "Phone screen"
 - "Schedule a call"
 - "Introductory call"
 - "Recruiter call"
-- "First-round interview"
 - "We'd like to learn more about you"
-- Calendly/calendar invite link in body
+- Calendly/calendar invite link in body (when sender is a recruiter, not an interviewer)
+
+### Behavioral Interview
+- "Behavioral interview"
+- "First-round interview"
+- "Second-round interview"
+- "Tell me about a time"
+- "STAR format"
+- "Meet with the hiring manager"
+- Calendly/calendar invite link in body (when sender is a hiring manager or interviewer)
 
 ### Onsite Interview
 - "Onsite interview"

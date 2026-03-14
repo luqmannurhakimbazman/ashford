@@ -19,7 +19,7 @@ The Job Tracker sheet has these columns (in order):
 |--------|------|--------|
 | A: Company | Text | Company name |
 | B: Role | Text | Role/position title |
-| C: Stage | Dropdown | Applied, Behavioral Interview, Online Assessment, Onsite Interview, Rejected, Ghosted, Offered |
+| C: Stage | Dropdown | Applied, Phone Screen, Online Assessment, Behavioral Interview, Onsite Interview, Rejected, Ghosted, Offered |
 | D: Last Contact Date | Date | YYYY-MM-DD format |
 | E: Notes | Text | Append-only summary notes |
 
@@ -36,7 +36,7 @@ Classify each email into a Stage using signals from the subject line, body, and 
 Stages have a natural forward order:
 
 ```
-Applied → Online Assessment → Behavioral Interview → Onsite Interview → Offered
+Applied → Phone Screen → Online Assessment → Behavioral Interview → Onsite Interview → Offered
 (Rejected/Ghosted can override any stage — they are terminal states)
 ```
 
