@@ -23,7 +23,7 @@ The learner may feel they are going backwards (their model was "fine" before str
 
 ### 0. Session Plan Write
 
-Before asking for the learner's model, **dispatch the `dln-sync` agent** with action `plan-write`. Include `session_number: <Session Count + 1>` in the dispatch payload, along with the following plan content:
+Before asking for the learner's model, write the session plan to Notion. Follow the merge protocol in `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/merge-protocol.md` with action `plan-write`. Include `session_number: <Session Count + 1>` and the following plan content:
 
 ```
 ---
@@ -55,13 +55,13 @@ If the model absorbs it cleanly, that's evidence of good compression. If it brea
 
 ### Sync Loop (runs at every teaching boundary)
 
-After each of the following boundaries, **dispatch a fresh `dln-sync` agent** with action `sync`:
+After each of the following boundaries, **run the merge protocol** in `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/merge-protocol.md` with action `replace`:
 - After state model capture (Step 1)
 - After each stress-test round (Step 2)
 - After each contraction attempt (Step 4)
 - After the transfer test (Step 5)
 
-**Dispatch payload** — include in the agent prompt:
+**Boundary outcomes** — gather these before running the merge protocol:
 - `session_number`: current session number (Session Count + 1)
 - Progress notes to append (append-only):
 ```
@@ -71,6 +71,7 @@ After each of the following boundaries, **dispatch a fresh `dln-sync` agent** wi
 - Transfer test: [adjacent domain] → model [transferred successfully / broke at X].
 ```
 - Knowledge State updates: replace `## Compressed Model` with latest revision, append new factors to `## Factors`, update `## Open Questions` with remaining gaps
+- Weakness Queue rebuild: [full updated queue reflecting factor mastery changes]
 - Any queued writes from previous failed syncs
 
 **On agent return** — follow the learner-generated checkpoint, plan adjustment, calibration-driven adjustment, and Notion failure handling protocols in `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/sync-protocol.md`. For Network phase, plan adjustments use this format:
@@ -299,7 +300,7 @@ Network is the terminal phase. There is no gate to pass. The sync loop tracks th
 
 ## Notion Write-Back
 
-Most write-back happens continuously via `dln-sync` dispatches. At session end, dispatch `dln-sync` with action `session-end`. Include `session_number: <Session Count + 1>` in the dispatch payload, along with:
+Most write-back happens continuously via the merge protocol during the sync loop. At session end, run the merge protocol one final time with action `replace-end`. Include `session_number: <Session Count + 1>`, along with:
 
 | Target | Field | Action |
 |--------|-------|--------|
