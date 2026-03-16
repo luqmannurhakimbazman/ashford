@@ -39,7 +39,7 @@ Never frame abstraction difficulty as a learner deficit. Frame it as a feature o
 
 ### Step 0: Session Plan Write
 
-Before any teaching begins, **dispatch the `dln-sync` agent** with action `plan-write`. Include `session_number: <Session Count + 1>` in the dispatch payload, along with the following plan content:
+Before any teaching begins, write the session plan to Notion. Follow the merge protocol in `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/merge-protocol.md` with action `plan-write`. Include `session_number: <Session Count + 1>` and the following plan content:
 
 ```
 ---
@@ -100,17 +100,17 @@ This "cued recall" attempt is still a retrieval event — even if they can't rec
 
 7. **Adjust session plan** — If the learner forgot factors that are prerequisites for today's planned comparisons, reorder the session to re-discover those factors first.
 
-8. **Dispatch `dln-sync`** with retrieval results in progress notes.
+8. **Run the merge protocol** (`@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/merge-protocol.md`) with action `replace`. Include retrieval results in progress notes.
 
 ### Sync Loop (runs at every teaching boundary)
 
-After each of the following boundaries, **dispatch a fresh `dln-sync` agent** with action `sync`:
+After each of the following boundaries, **run the merge protocol** in `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/merge-protocol.md` with action `replace`:
 - After each cross-pollination comparison
 - After each factor hypothesis + precision rating
 - After each upgrade operator round
 - Before and after the phase gate
 
-**Dispatch payload** — include in the agent prompt:
+**Boundary outcomes** — gather these before running the merge protocol:
 - `session_number`: current session number (Session Count + 1)
 - Progress notes to append (append-only):
 ```
@@ -118,7 +118,8 @@ After each of the following boundaries, **dispatch a fresh `dln-sync` agent** wi
 - Factor hypothesis: "[learner's stated factor]" — rating: [vague/structural/predictive]. [Notes on precision pushback.]
 - Upgrade operator: converted [Dot question] → [Linear question]. [Success/needed guidance.]
 ```
-- Knowledge State updates: confirmed factors for `## Factors`, parked Network-level questions for `## Open Questions`
+- Knowledge State updates: newly confirmed factors for `## Factors`, updated chains
+- Weakness Queue rebuild: [full updated queue reflecting mastery changes]
 - Any queued writes from previous failed syncs
 
 **On agent return** — follow the learner-generated checkpoint, plan adjustment, calibration-driven adjustment, and Notion failure handling protocols in `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/sync-protocol.md`.
@@ -390,7 +391,7 @@ Include in the `session-end` dispatch to `dln-sync`.
 
 ## 5. Notion Write-Back
 
-Most write-back happens continuously via `dln-sync` dispatches. At session end, dispatch `dln-sync` with action `session-end`. Include `session_number: <Session Count + 1>` in the dispatch payload, along with:
+Most write-back happens continuously via the merge protocol during the sync loop. At session end, run the merge protocol one final time with action `replace-end`. Include `session_number: <Session Count + 1>`, along with:
 
 | Target | Field | Action |
 |--------|-------|--------|
