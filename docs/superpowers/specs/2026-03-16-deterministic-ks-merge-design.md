@@ -41,8 +41,8 @@ Phase skill (LLM)
     → dln-sync FETCH (Notion MCP)
       → raw KS block (between markers)
     → dln-sync NORMALIZE (LLM, 1 turn)
-      → /tmp/ks-merge-payload-<page_id>-<timestamp>.json
-      → /tmp/ks-merge-ks-<page_id>-<timestamp>.json
+      → /tmp/ks-merge-payload-<page_id>-<pid>-<timestamp>.json
+      → /tmp/ks-merge-ks-<page_id>-<pid>-<timestamp>.md
     → ks-merge.py (deterministic)
       → merged KS block (stdout)
     → dln-sync REPLACE (Notion MCP)
@@ -92,15 +92,22 @@ The JSON contract that the dln-sync normalizer must produce. All fields are opti
     }
   ],
   "section_rewrites": {
-    "compressed_model": "full replacement text for ## Compressed Model",
-    "open_questions": "full replacement text for ## Open Questions",
-    "interleave_pool": "full replacement text for ## Interleave Pool",
-    "calibration_trend": "full replacement text for ### Calibration Trend"
+    "compressed_model": "COMPLETE replacement text for ## Compressed Model",
+    "open_questions": "COMPLETE replacement text for ## Open Questions",
+    "interleave_pool": "COMPLETE replacement text for ## Interleave Pool"
+  },
+  "subsection_rewrites": {
+    "calibration_trend": "COMPLETE replacement text for ### Calibration Trend"
   },
   "section_appends": {
     "calibration_concept": "pipe-delimited table row (no header) to append to ### Concept-Level Confidence",
     "calibration_gate": "pipe-delimited table row (no header) to append to ### Gate Predictions",
     "load_session_history": "pipe-delimited table row (no header) to append to ### Session History"
+  },
+  "load_baseline": {
+    "working_batch_size": "number — observed working batch size",
+    "hint_tolerance": "string — e.g. 'low (needs <=1 hint per concept)'",
+    "recovery_pattern": "string — e.g. 'responds well to different analogies'"
   },
   "engagement": {
     "momentum": "positive | neutral | negative",
@@ -110,6 +117,12 @@ The JSON contract that the dln-sync normalizer must produce. All fields are opti
   }
 }
 ```
+
+**Important:** `section_rewrites` and `subsection_rewrites` values must be the COMPLETE replacement content for the section — not a delta or partial update. The script replaces everything between the header and the next same-or-higher-level header. Partial content will result in data loss.
+
+`section_rewrites` targets `##`-level headers. `subsection_rewrites` targets `###`-level headers. The script uses the header level to determine where the replacement ends (next same-or-higher-level header). Separating these makes the header-level distinction programmatically explicit.
+
+**Note on `syllabus_updates`:** In the current dln-sync agent, `syllabus_updates` is a standalone input field alongside `write_payload`. In this new flow, the normalizer consolidates `syllabus_updates` into the merge payload JSON. The merge script handles checkbox toggling — `syllabus_updates` no longer bypasses the merge step.
 
 This schema is documented in `dunk/references/merge-payload-schema.md` and included verbatim in the dln-sync normalizer prompt so Sonnet knows exactly what structure to produce.
 
@@ -147,18 +160,30 @@ python3 ks-merge.py <payload_path> <ks_block_path>
 4. **weakness_queue** — Find `## Weakness Queue` section. Replace everything between the header line and the next `##` header (or end of KS block) with the pipe-delimited table header row + new data rows from the payload. This is a full rewrite, not a merge.
 5. **syllabus_updates** — Find lines matching `- [ ] <topic>` or `- [x] <topic>` within the `## Syllabus` section. Toggle to `- [x]` if status is `checked`, `- [ ]` if `unchecked`. If topic not found, warn to stderr, skip.
 6. **section_rewrites** — For each key:
-   - Map key to header: `compressed_model` → `## Compressed Model`, `open_questions` → `## Open Questions`, `interleave_pool` → `## Interleave Pool`, `calibration_trend` → `### Calibration Trend`.
-   - Replace content between the header and the next same-or-higher-level header with the provided text.
-7. **section_appends** — For each key:
+   - Map key to header: `compressed_model` → `## Compressed Model`, `open_questions` → `## Open Questions`, `interleave_pool` → `## Interleave Pool`.
+   - Replace content between the `##` header and the next `##` header with the provided text.
+7. **subsection_rewrites** — For each key:
+   - Map key to header: `calibration_trend` → `### Calibration Trend`.
+   - Replace content between the `###` header and the next `###` or `##` header with the provided text.
+8. **section_appends** — For each key:
    - Map key to header: `calibration_concept` → `### Concept-Level Confidence`, `calibration_gate` → `### Gate Predictions`, `load_session_history` → `### Session History`.
    - Find the last `|...|` line in that section's table. Append the new row after it.
-8. **engagement** — Find each key-value line in `## Engagement Signals`:
+9. **load_baseline** — Find each key-value line in `### Baseline` (under `## Load Profile`):
+   - `working_batch_size` → `- Observed working batch size: <value>`
+   - `hint_tolerance` → `- Hint tolerance: <value>`
+   - `recovery_pattern` → `- Recovery pattern: <value>`
+   - Replace only the value portion after the colon.
+10. **engagement** — Find each key-value line in `## Engagement Signals`:
    - `momentum` → `- Momentum: <value>`
    - `consecutive_struggles` → `- Consecutive struggles: <value>`
    - `last_celebration` → `- Last celebration: <value>`
    - `notes` → `- Notes: <value>`
    - Replace only the value portion after the colon.
-9. **Reassemble** all sections in original order, wrap in `<!-- KS:start -->` and `<!-- KS:end -->` (unescaped), output to stdout.
+11. **Reassemble** all sections in original order, wrap in `<!-- KS:start -->` and `<!-- KS:end -->` (unescaped), output to stdout.
+
+### Operation ordering rationale
+
+`mastery_updates` runs before `syllabus_updates` because syllabus toggles depend on aggregate mastery state — by updating mastery first, the KS is in the correct state for any downstream logic. `weakness_queue` runs after mastery because a dispatch may update a concept to `mastered` and simultaneously remove it from the weakness queue; since they target different sections, order doesn't create conflicts, but mastery-first ensures the KS is consistent if inspected mid-operation.
 
 ### Invariants
 
@@ -177,26 +202,31 @@ Replace the current MERGE step (which instructs the agent to apply deltas manual
 
 #### Step 2a: NORMALIZE
 
-Read the prose dispatch payload from the phase skill. Produce a JSON object conforming to the merge payload schema (included verbatim in the agent prompt). Write it to:
+Read the prose dispatch payload from the phase skill **and** the fetched KS block from Step 1. The normalizer needs both because:
+
+- **Full-rewrite fields** (`weakness_queue`, `section_rewrites`) require the normalizer to produce COMPLETE replacement content. If the prose says "keep X, remove Y," the normalizer must look up X's current attributes in the fetched KS to reconstruct the full entry.
+- **Append fields** (`mastery_updates`, `section_appends`) only need the prose — the script handles the lookup and merge.
+
+Produce a JSON object conforming to the merge payload schema (included verbatim in the agent prompt). Write it to:
 
 ```
-/tmp/ks-merge-payload-<page_id>-<timestamp>.json
+/tmp/ks-merge-payload-<page_id>-<pid>-<timestamp>.json
 ```
 
 Also write the raw KS block from Step 1 (FETCH) to:
 
 ```
-/tmp/ks-merge-ks-<page_id>-<timestamp>.json
+/tmp/ks-merge-ks-<page_id>-<pid>-<timestamp>.md
 ```
 
-Use the page_id (first 8 chars) and Unix timestamp for uniqueness.
+Use the page_id (first 8 chars), Unix timestamp, and PID (`$$`) for uniqueness. The PID prevents collisions during automated testing where multiple merge calls may fire within the same second.
 
 #### Step 2b: MERGE
 
 Call the merge script:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/ks-merge.py" /tmp/ks-merge-payload-<page_id>-<timestamp>.json /tmp/ks-merge-ks-<page_id>-<timestamp>.json
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/ks-merge.py" /tmp/ks-merge-payload-<page_id>-<pid>-<timestamp>.json /tmp/ks-merge-ks-<page_id>-<pid>-<timestamp>.md
 ```
 
 If exit 0: use stdout as the merged KS block for Step 3 (REPLACE).
@@ -218,6 +248,72 @@ When producing the merge payload JSON, use exactly this structure. All fields ar
 <schema verbatim from merge-payload-schema.md>
 ```
 
+### Normalizer examples
+
+Include these in the dln-sync agent prompt as few-shot examples so Sonnet has concrete demonstrations of the prose → JSON mapping.
+
+**Example 1: Dot phase sync dispatch**
+
+Prose input from dln-dot:
+```
+Progress notes:
+- Concept "Put-Call Parity" — delivered, comprehension check: pass. Learner correctly identified C - P = S - PV(K).
+- Chain "Option Pricing → Put-Call Parity → Synthetic Positions" — built. Traced correctly on first attempt.
+
+Knowledge State updates:
+- Concept "Put-Call Parity" now mastered
+- Chain "Option Pricing → Put-Call Parity → Synthetic Positions" is partial
+- Update weakness queue: remove Put-Call Parity, keep Greeks intuition (priority 1)
+
+syllabus_updates:
+  - topic: "Options Basics"
+    status: "checked"
+```
+
+Expected JSON output:
+```json
+{
+  "mastery_updates": [
+    {"table": "concepts", "name": "Put-Call Parity", "status": "mastered", "evidence": "Comprehension check pass (S4)", "last_tested": "2026-03-16", "syllabus_topic": "Options Basics"},
+    {"table": "chains", "name": "Option Pricing → Put-Call Parity → Synthetic Positions", "status": "partial", "evidence": "Chain trace pass (S4)", "last_tested": "2026-03-16"}
+  ],
+  "weakness_queue": [
+    {"priority": 1, "item": "Greeks intuition", "type": "concept", "phase": "Dot", "severity": "not-mastered", "source": "S3 gap", "added": "2026-03-15"}
+  ],
+  "syllabus_updates": [
+    {"topic": "Options Basics", "status": "checked"}
+  ]
+}
+```
+
+**Example 2: Network phase sync dispatch**
+
+Prose input from dln-network:
+```
+Progress notes:
+- Stress-test 1: "What happens to put-call parity when the underlying pays dividends?" → model broke. Missing dividend adjustment term.
+- Contraction 1: model revised — 45 words → 32 words. Coverage: same.
+
+Knowledge State updates:
+- Replace compressed model with: "Options pricing is arbitrage-enforced replication. Any derivative payoff decomposable into underlying + bonds has a unique price. Put-call parity is the base case; Greeks measure sensitivity to replication inputs."
+- Replace open questions with: "How does continuous dividend yield change the replication argument?"
+- Update engagement: momentum positive, struggles 0
+```
+
+Expected JSON output:
+```json
+{
+  "section_rewrites": {
+    "compressed_model": "Options pricing is arbitrage-enforced replication. Any derivative payoff decomposable into underlying + bonds has a unique price. Put-call parity is the base case; Greeks measure sensitivity to replication inputs.",
+    "open_questions": "- How does continuous dividend yield change the replication argument?"
+  },
+  "engagement": {
+    "momentum": "positive",
+    "consecutive_struggles": 0
+  }
+}
+```
+
 ---
 
 ## Failure Handling and Diagnostics
@@ -233,8 +329,8 @@ When producing the merge payload JSON, use exactly this structure. All fields ar
    - Failed writes: [list of intended updates from the dispatch]
    - Merge error: "<stderr message from ks-merge.py>"
    - Debug artifacts:
-     - Payload: /tmp/ks-merge-payload-<page_id>-<timestamp>.json
-     - KS block: /tmp/ks-merge-ks-<page_id>-<timestamp>.json
+     - Payload: /tmp/ks-merge-payload-<page_id>-<pid>-<timestamp>.json
+     - KS block: /tmp/ks-merge-ks-<page_id>-<pid>-<timestamp>.md
    ```
 4. **Writes queued** for next boundary per existing Notion Failure Handling protocol in sync-protocol.md.
 5. **Session log appends still attempted** — they are independent of the KS merge and use a separate `update_content` call.
@@ -251,7 +347,28 @@ The three failure points and how to attribute them:
 2. **Normalizer produced bad JSON** — the JSON payload doesn't match the schema, or it misinterpreted the prose. The prose was clear but the LLM got it wrong. Fix: improve the normalizer prompt in dln-sync, add examples.
 3. **Merge script has a bug** — the JSON is valid, the KS block is valid, but the script crashed or produced wrong output. Fix: fix the Python code.
 
-To diagnose: read the payload JSON first. If it looks right, the script has a bug. If it looks wrong, compare it to the original prose dispatch (visible in the dln-sync agent's conversation transcript) to determine whether the prose or the normalizer was at fault.
+4. **Silent semantic corruption** — the normalizer produces valid JSON that the script executes successfully, but the data is wrong (e.g., misspelled concept name, evidence attributed to wrong row, wrong status value). VERIFY passes because the changes ARE reflected — they're just wrong. This failure mode is only caught by human review of the Notion page or by the teaching skill noticing inconsistent state in a future session. Mitigation: the `--dry-run` flag (see below) can be used during development to spot-check normalizer output without running a full sync.
+
+To diagnose failures #1-#3: read the payload JSON first. If it looks right, the script has a bug. If it looks wrong, compare it to the original prose dispatch (visible in the dln-sync agent's conversation transcript) to determine whether the prose or the normalizer was at fault.
+
+### Dry-run mode
+
+The merge script supports a `--dry-run` flag that outputs a human-readable diff of what would change instead of the merged KS block. This is for development and debugging — not used in production syncs.
+
+```bash
+python3 ks-merge.py --dry-run <payload_path> <ks_block_path>
+```
+
+Output to stdout is a summary like:
+```
+[mastery] UPDATE concepts "Put-Call Parity": status partial→mastered, evidence +="Recall pass (S4)"
+[mastery] ADD chains "Pricing → Parity → Synthetics": status=partial
+[weakness] REWRITE 3 rows (was 5)
+[syllabus] CHECK "Options Basics"
+[engagement] momentum: neutral→positive
+```
+
+Exit 0 always (dry-run never fails). This enables spot-checking the normalizer's JSON without committing to a Notion write.
 
 ---
 
