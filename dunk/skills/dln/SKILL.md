@@ -156,6 +156,10 @@ These four are sufficient because they are the structural headers that phase ski
 4. Tell the user: *"Upgraded your [domain] profile to the current DLN format. Your previous session content is preserved under Prior Notes."*
 5. Proceed to Step 3a as normal.
 
+#### KS Boundary Markers
+
+The Knowledge State block is wrapped in `<!-- KS:start -->` / `<!-- KS:end -->` HTML comment markers. These markers are managed by the `dln-sync` agent — the orchestrator does not add, remove, or check for them. If a profile is missing markers (pre-marker profiles), `dln-sync` will add them automatically on its first sync operation.
+
 ### Step 3a: Review Check
 
 After loading the profile, compute the review status by comparing today's date against the Next Review column value.
