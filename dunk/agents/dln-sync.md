@@ -19,7 +19,7 @@ tools:
   - Write
 skills:
   - dln-compress
-permissionMode: dontAsk
+permissionMode: bypassPermissions
 maxTurns: 15
 ---
 
