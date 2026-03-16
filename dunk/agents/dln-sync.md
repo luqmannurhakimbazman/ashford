@@ -17,6 +17,7 @@ tools:
   - mcp__plugin_Notion_notion__notion-query-database-view
   - Bash
   - Write
+  - Read
 skills:
   - dln-compress
 permissionMode: bypassPermissions
@@ -36,6 +37,8 @@ You are a mechanical I/O agent. Your job is to execute Notion operations, compre
 2. **Target sessions by number.** Use the `session_number` field from the dispatch payload to find `## Session {session_number}`. Do NOT search for session content by matching progress text or topic keywords.
 
 3. **Fail fast on missing content.** If the fetched page does not contain the expected section (e.g., `## Session {session_number}` is missing), set `Status.Write` to `failed`, include the intended update in `failed_writes`, and proceed to compression. Do NOT loop searching for alternative insertion points. A single re-fetch is permitted when the Core Protocol REPLACE step may have shifted content positions (e.g., plan-write append after KS update), but never more than one retry.
+
+4. **No inline scripts via Bash.** NEVER pass multi-line Python/Ruby/etc. code through `Bash` (e.g., `cat ... | python3 -c "..."`). Multi-line Bash commands with `#`-prefixed lines trigger a security block that cannot be bypassed. Instead: use the **Read** tool to read files, the **Write** tool to write files, and only use Bash for single-line commands like `python3 script.py arg1 arg2` or `rm -f path`.
 
 **Note:** The MARKER RULE in the Core Protocol applies to ALL `update_content` calls, including session log appends — not just KS replacement.
 
