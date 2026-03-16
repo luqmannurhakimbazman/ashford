@@ -1,6 +1,6 @@
 # Merge Payload Schema
 
-JSON contract between the dln-sync normalizer and `ks-merge.py`. The normalizer produces this; the script consumes it. All fields are optional — a dispatch only includes what changed.
+JSON contract between the phase skill normalizer (running in the parent conversation) and `ks-merge.py`. The phase skill produces this per the merge protocol (`dln/references/merge-protocol.md`); the script consumes it. All fields are optional — a dispatch only includes what changed.
 
 ## Schema
 
@@ -65,7 +65,7 @@ JSON contract between the dln-sync normalizer and `ks-merge.py`. The normalizer 
 - **`section_rewrites`** targets `##`-level headers. Values must be COMPLETE replacement content — not deltas. The script replaces everything between the header and the next `##` header. Partial content causes data loss.
 - **`subsection_rewrites`** targets `###`-level headers. Same complete-replacement semantics, but replacement ends at the next `###` or `##` header.
 - **`weakness_queue`** is a full rewrite — the script replaces the entire queue, not a merge.
-- **`syllabus_updates`** is consolidated into the merge payload by the normalizer. In the pre-script dln-sync, this was a standalone input field — now it's part of the merge JSON.
+- **`syllabus_updates`** is part of the merge JSON payload. The phase skill includes it when concept mastery changes affect syllabus topic coverage.
 - **`mastery_updates`** never delete rows. Existing rows are upserted; new rows are appended.
 
 ## Field Reference
