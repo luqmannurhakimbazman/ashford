@@ -16,6 +16,7 @@ tools:
   - mcp__plugin_Notion_notion__notion-search
   - mcp__plugin_Notion_notion__notion-query-database-view
   - Bash
+  - Write
 skills:
   - dln-compress
 permissionMode: dontAsk
@@ -209,26 +210,19 @@ Call `notion-fetch` with the page_id. Extract the **KS block**: everything from 
 
 Produce a JSON object conforming to the Normalizer Schema section above. You have access to both the prose dispatch payload and the fetched KS block from Step 1.
 
-Write the JSON to a temp file and the KS block to another temp file:
+Write the JSON to a temp file and the KS block to another temp file using the **Write tool** (NOT Bash heredocs — heredocs with `#`-prefixed lines trigger permission flags):
 
-```bash
-# Write the JSON payload
-cat > /tmp/ks-merge-payload-<page_id_8chars>-$$-$(date +%s).json << 'PAYLOAD_EOF'
-<your JSON here>
-PAYLOAD_EOF
+- Payload path: `/tmp/ks-merge-payload-<page_id_8chars>.json`
+- KS block path: `/tmp/ks-merge-ks-<page_id_8chars>.md`
 
-# Write the KS block
-cat > /tmp/ks-merge-ks-<page_id_8chars>-$$-$(date +%s).md << 'KS_EOF'
-<KS block from Step 1>
-KS_EOF
-```
+Use the Write tool for both files. Call them in parallel since they are independent.
 
 #### Step 2b: MERGE
 
 Call the merge script:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/ks-merge.py" /tmp/ks-merge-payload-<...>.json /tmp/ks-merge-ks-<...>.md
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/ks-merge.py" /tmp/ks-merge-payload-<page_id_8chars>.json /tmp/ks-merge-ks-<page_id_8chars>.md
 ```
 
 If exit 0: the stdout is the merged KS block. Use it as `new_str` in Step 3 (REPLACE).
@@ -236,7 +230,7 @@ If exit 0: the stdout is the merged KS block. Use it as `new_str` in Step 3 (REP
 If exit 1: **hard fail.**
 1. Read stderr for the error message.
 2. Set `Status.Write` to `failed` in the re-anchor payload.
-3. Include `Merge error: "<stderr>"` and the temp file paths in `Debug artifacts`.
+3. Include `Merge error: "<stderr>"` and the temp file paths in `Debug artifacts` (e.g., `/tmp/ks-merge-payload-<page_id_8chars>.json`, `/tmp/ks-merge-ks-<page_id_8chars>.md`).
 4. Queue the writes for the next boundary.
 5. Skip to compression — do NOT attempt manual merge.
 
@@ -283,7 +277,7 @@ Re-fetch the page. Confirm:
 Clean up temp files from Steps 2a-2b:
 
 ```bash
-rm -f /tmp/ks-merge-payload-<...>.json /tmp/ks-merge-ks-<...>.md
+rm -f /tmp/ks-merge-payload-<page_id_8chars>.json /tmp/ks-merge-ks-<page_id_8chars>.md
 ```
 
 Do NOT clean up on failure — temp files persist for manual inspection.
@@ -375,8 +369,8 @@ If the merge script fails (exit 1):
   - Failed writes: [list of intended updates from the dispatch]
   - Merge error: "<stderr message from ks-merge.py>"
   - Debug artifacts:
-    - Payload: /tmp/ks-merge-payload-<page_id>-<pid>-<timestamp>.json
-    - KS block: /tmp/ks-merge-ks-<page_id>-<pid>-<timestamp>.md
+    - Payload: /tmp/ks-merge-payload-<page_id_8chars>.json
+    - KS block: /tmp/ks-merge-ks-<page_id_8chars>.md
   ```
 - Do NOT attempt manual merge as fallback — queue writes for the next boundary.
 - Session log appends are still attempted — they are independent of the KS merge.
