@@ -6,5 +6,9 @@
   "exa": {
     "command": "bash",
     "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/exa-mcp.sh"]
+  },
+  "Notion": {
+    "type": "http",
+    "url": "https://mcp.notion.com/mcp"
   }
 }
