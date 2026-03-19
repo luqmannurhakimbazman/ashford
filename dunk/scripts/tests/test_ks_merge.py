@@ -497,20 +497,29 @@ def test_missing_section_still_succeeds():
     assert "<!-- KS:end -->" in result.stdout
 
 
-def test_headerless_table_skipped_gracefully():
-    """A section with a headerless table should warn and skip, not crash."""
-    ks_with_headerless = """\
+def test_html_table_with_header_row():
+    """HTML <table header-row="true"> should be normalized to pipe-delimited."""
+    ks_html = """\
 <!-- KS:start -->
 # Knowledge State
 
 ## Concepts
-
-| Concept | Status | Syllabus Topic | Evidence | Last Tested |
-|---------|--------|----------------|----------|-------------|
-| Put-Call Parity | partial | Options Basics | S2 pass | 2026-03-14 |
-
-| FastAPI uvicorn | not-mastered | Infra | Introduced (S4) | 2026-03-18 |
-| Container Misbehaving | not-mastered | Infra | Introduced (S4) | 2026-03-18 |
+<table header-row="true">
+<tr>
+<td>Concept</td>
+<td>Status</td>
+<td>Syllabus Topic</td>
+<td>Evidence</td>
+<td>Last Tested</td>
+</tr>
+<tr>
+<td>Put-Call Parity</td>
+<td>partial</td>
+<td>Options Basics</td>
+<td>S2 pass</td>
+<td>2026-03-14</td>
+</tr>
+</table>
 
 ## Chains
 
@@ -535,9 +544,150 @@ def test_headerless_table_skipped_gracefully():
             }
         ]
     }
-    result = run_merge(payload, ks_with_headerless)
+    result = run_merge(payload, ks_html)
     assert result.returncode == 0
     assert "| Put-Call Parity | mastered |" in result.stdout
+    assert "S2 pass, Recall pass (S5)" in result.stdout
+
+
+def test_html_duplicate_table_merged():
+    """Two HTML tables under ## Concepts — one with header, one without — should merge."""
+    ks_dup = """\
+<!-- KS:start -->
+# Knowledge State
+
+## Concepts
+<table header-row="true">
+<tr>
+<td>Concept</td>
+<td>Status</td>
+<td>Syllabus Topic</td>
+<td>Evidence</td>
+<td>Last Tested</td>
+</tr>
+<tr>
+<td>Put-Call Parity</td>
+<td>partial</td>
+<td>Options Basics</td>
+<td>S2 pass</td>
+<td>2026-03-14</td>
+</tr>
+</table>
+<table>
+<tr>
+<td>FastAPI uvicorn</td>
+<td>partial</td>
+<td>Infra</td>
+<td>Wrong factor (S8)</td>
+<td>2026-03-16</td>
+</tr>
+<tr>
+<td>Otherside VM</td>
+<td>mastered</td>
+<td>Infra</td>
+<td>Path resolution pass (S8)</td>
+<td>2026-03-16</td>
+</tr>
+</table>
+
+## Chains
+
+| Chain | Status | Evidence | Last Tested |
+|-------|--------|----------|-------------|
+
+## Factors
+
+| Factor | Status | Evidence | Last Tested |
+|--------|--------|----------|-------------|
+
+<!-- KS:end -->
+"""
+    payload = {
+        "mastery_updates": [
+            {
+                "table": "concepts",
+                "name": "FastAPI uvicorn",
+                "status": "mastered",
+                "evidence": "Correct factor (S9)",
+                "last_tested": "2026-03-19",
+            }
+        ]
+    }
+    result = run_merge(payload, ks_dup)
+    assert result.returncode == 0
+    # Both original rows preserved
+    assert "| Put-Call Parity | partial |" in result.stdout
+    assert "| Otherside VM | mastered |" in result.stdout
+    # Updated row from headerless table
+    assert "| FastAPI uvicorn | mastered |" in result.stdout
+    assert "Wrong factor (S8), Correct factor (S9)" in result.stdout
+    # Output is pipe-delimited, not HTML
+    assert "<table" not in result.stdout
+
+
+def test_html_normalization_outputs_single_table():
+    """After normalizing HTML tables, the output should have exactly one pipe table."""
+    ks_dup = """\
+<!-- KS:start -->
+# Knowledge State
+
+## Concepts
+<table header-row="true">
+<tr>
+<td>Concept</td>
+<td>Status</td>
+<td>Syllabus Topic</td>
+<td>Evidence</td>
+<td>Last Tested</td>
+</tr>
+<tr>
+<td>Alpha</td>
+<td>mastered</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</table>
+<table>
+<tr>
+<td>Beta</td>
+<td>partial</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</table>
+
+## Chains
+
+| Chain | Status | Evidence | Last Tested |
+|-------|--------|----------|-------------|
+
+## Factors
+
+| Factor | Status | Evidence | Last Tested |
+|--------|--------|----------|-------------|
+
+<!-- KS:end -->
+"""
+    payload = {
+        "mastery_updates": [
+            {
+                "table": "concepts",
+                "name": "Alpha",
+                "status": "mastered",
+                "evidence": "Confirmed (S9)",
+                "last_tested": "2026-03-19",
+            }
+        ]
+    }
+    result = run_merge(payload, ks_dup)
+    assert result.returncode == 0
+    # No HTML tables in output
+    assert "<table" not in result.stdout
+    # Both rows in a single pipe table
+    assert "| Alpha | mastered |" in result.stdout
+    assert "| Beta | partial |" in result.stdout
 
 
 def test_combined_operations():

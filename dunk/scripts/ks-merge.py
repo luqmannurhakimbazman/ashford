@@ -202,6 +202,62 @@ def find_section(sections: list, header_text: str, level: int | None = None) -> 
     return None
 
 
+# === Table parsing and normalization ===
+
+
+def parse_html_tables(body: str) -> list:
+    """Extract rows from all HTML <table> blocks in a section body.
+
+    Returns list of (has_header, rows) tuples where rows is a list of cell lists.
+    """
+    tables = []
+    for match in re.finditer(r"<table([^>]*)>(.*?)</table>", body, re.DOTALL):
+        attrs = match.group(1)
+        has_header = 'header-row="true"' in attrs or "header-row='true'" in attrs
+        rows = []
+        for tr in re.finditer(r"<tr>\s*(.*?)\s*</tr>", match.group(2), re.DOTALL):
+            cells = [c.strip() for c in re.findall(r"<td>(.*?)</td>", tr.group(1), re.DOTALL)]
+            rows.append(cells)
+        if rows:
+            tables.append((has_header, rows))
+    return tables
+
+
+def normalize_mastery_body(body: str, expected_columns: list) -> str:
+    """Normalize a mastery section body into a single pipe-delimited table.
+
+    Handles HTML <table> blocks, headerless tables, and multiple table blocks
+    by merging all data rows under the expected schema.
+    """
+    html_tables = parse_html_tables(body)
+    if not html_tables:
+        return body
+
+    data_rows = []
+    for has_header, rows in html_tables:
+        start = 1 if has_header else 0
+        for cells in rows[start:]:
+            padded = cells + [""] * max(0, len(expected_columns) - len(cells))
+            row = dict(zip(expected_columns, padded[: len(expected_columns)]))
+            data_rows.append(row)
+
+    # Also collect any pipe-delimited rows outside HTML blocks
+    clean = re.sub(r"<table[^>]*>.*?</table>", "", body, flags=re.DOTALL)
+    if clean.strip():
+        _, pipe_cols, pipe_rows = parse_table_rows(clean)
+        if pipe_cols:
+            data_rows.extend(pipe_rows)
+
+    header = "| " + " | ".join(expected_columns) + " |"
+    separator = "|" + "|".join("---" for _ in expected_columns) + "|"
+    lines = [header, separator]
+    for row in data_rows:
+        cells = [row.get(col, "") for col in expected_columns]
+        lines.append("| " + " | ".join(cells) + " |")
+
+    return "\n" + "\n".join(lines) + "\n"
+
+
 # === Merge operations ===
 
 
@@ -260,6 +316,8 @@ def apply_mastery_updates(sections: list, updates: list, dry_run: bool) -> list:
             continue
 
         section = sections[idx]
+        expected_cols = TABLE_SCHEMAS[table]
+        section.body = normalize_mastery_body(section.body, expected_cols)
         header_lines, columns, data_rows = parse_table_rows(section.body)
         if not columns:
             print(
