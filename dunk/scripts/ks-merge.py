@@ -812,11 +812,10 @@ def ensure_exam_sections(sections: list) -> None:
 
         # Find the right insertion point: after the last existing section
         # that precedes this one in canonical order.
-        canonical_names = [(n, l) for n, l in CANONICAL_SECTION_ORDER]
-        my_pos = canonical_names.index((name, level))
+        my_pos = CANONICAL_SECTION_ORDER.index((name, level))
         insert_at = len(sections)  # default: end
         for prev_pos in range(my_pos - 1, -1, -1):
-            prev_name, prev_level = canonical_names[prev_pos]
+            prev_name, prev_level = CANONICAL_SECTION_ORDER[prev_pos]
             prev_idx = find_section(sections, prev_name, level=prev_level)
             if prev_idx is not None:
                 insert_at = prev_idx + 1
