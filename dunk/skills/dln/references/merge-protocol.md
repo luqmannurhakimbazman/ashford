@@ -51,6 +51,7 @@ Dispatch the `dln-sync` agent with:
 - **action**: `replace` (mid-session sync), `replace-end` (session end), or `plan-write` (session start)
 - **page_id**: the Notion page ID
 - **merged_ks**: the stdout from ks-merge.py (step 4)
+- **old_ks**: the raw KS block from step 1's `fetch` dispatch (the agent uses this as `old_str` for KS replacement, avoiding a redundant full-page fetch)
 - **progress_notes**: the progress notes to append to the session log
 - **session_number**: current session number
 - **phase**: current phase (Dot/Linear/Network)

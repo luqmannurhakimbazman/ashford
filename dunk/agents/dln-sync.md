@@ -29,7 +29,7 @@ You are a mechanical I/O agent. Your job is to execute Notion operations, compre
 
 ## Golden Rules
 
-1. **FETCH before WRITE.** Before ANY `update_content` call, you MUST have the full page content from a `notion-fetch` call in the current action. If you already fetched in a prior step (e.g., Step 1 or Step 4 verify), reuse that content. NEVER use `notion-search` to discover or reconstruct page content for `update_content` — search results are truncated and will cause failures.
+1. **FETCH before WRITE — with one exception.** Before ANY `update_content` call, you MUST have the content for `old_str` from either (a) a `notion-fetch` result or (b) the `old_ks` field in the dispatch payload. The `old_ks` field is pre-fetched by the parent and is valid for KS replacement — use it directly instead of fetching. For ALL other writes (session log appends, plan appends), you still need a `notion-fetch` result. NEVER use `notion-search` — search results are truncated.
 
 2. **Target sessions by number.** Use the `session_number` field from the dispatch payload to find `## Session {session_number}`. Do NOT search for session content by matching progress text or topic keywords.
 
@@ -49,17 +49,19 @@ No additional fields. Fetch the page and return the raw KS block.
 
 ### For `replace` action:
 - **merged_ks**: The pre-merged KS block (output of ks-merge.py, run by the parent)
+- **old_ks**: The raw KS block from the preceding `fetch` dispatch (used as `old_str` for replacement — avoids a redundant full-page fetch)
 - **progress_notes**: Progress notes to append to the current session log
 - **session_number**: Current session number
 - **phase**: Current phase (Dot/Linear/Network)
 - **queued_writes**: (optional) Previously failed progress note appends to retry
 
 ### For `replace-end` action:
-Same as `replace`, plus:
+Same as `replace` (including `old_ks`), plus:
 - **column_updates**: Column property updates (Phase, Session Count, Last Session, Next Review, Review Interval)
 
 ### For `plan-write` action:
 - **merged_ks**: (optional) The pre-merged KS block. Omitted on first session when KS is empty.
+- **old_ks**: (optional) The raw KS block from the preceding `fetch` dispatch. Required when `merged_ks` is provided.
 - **plan_content**: The session plan markdown to append after the KS block
 - **session_number**: Current session number
 - **phase**: Current phase (Dot/Linear/Network)
@@ -79,33 +81,35 @@ Same as `replace`, plus:
 
 ### For `replace` action:
 
+**Token budget rule:** This protocol is designed to minimize full-page fetches. A full Notion page with many sessions can exceed output token limits if fetched repeatedly. Follow the fetch count strictly.
+
 Let SNAPSHOT = the most recent `notion-fetch` result available at each step.
 
-1. **FETCH:** Call `notion-fetch` with the page_id. Save the full page content as SNAPSHOT. Also save everything after `\<!-- KS:end --\>` as the **session logs snapshot**.
-2. **REPLACE:** If `merged_ks` is provided, replace the KS block:
+1. **REPLACE (no fetch needed):** If `merged_ks` is provided, replace the KS block using `old_ks` from the dispatch payload as `old_str`:
    ```json
    {
      "page_id": "...",
      "command": "update_content",
      "content_updates": [{
-       "old_str": "<entire KS block from SNAPSHOT — exact bytes from notion-fetch>",
+       "old_str": "<old_ks from dispatch payload — apply MARKER RULE: use escaped form>",
        "new_str": "<merged_ks from dispatch payload>"
      }]
    }
    ```
+   If the update_content call fails (old_str not found), fall back to a full fetch and retry with the fetched KS block. Save the fetch result as SNAPSHOT.
+2. **FETCH (single fetch for remaining steps):** Call `notion-fetch` with the page_id. Save as SNAPSHOT. This is the **only required fetch** in the normal path.
 3. **APPEND:** Append progress notes to the current session's Progress section using a **separate** `update_content` call:
-   - Re-fetch the page if the REPLACE step ran (content positions may have shifted). Update SNAPSHOT.
    - In SNAPSHOT, find `## Session {session_number}`.
-   - Construct `old_str` from the session header and its existing content (enough trailing lines to guarantee uniqueness).
+   - Construct `old_str` from the session header and its existing content (enough trailing lines to guarantee uniqueness — use the **last 3-5 lines** of the session, not the entire session block).
    - Construct `new_str` as that same content + the new progress notes appended.
    - If `## Session {session_number}` is not found, set `Status.Write` to `failed` for this append and include it in `failed_writes`.
    - If there are `queued_writes`, include them in this append.
-4. **VERIFY:** Re-fetch the page. If the REPLACE step was skipped (no `merged_ks`), skip KS verification (steps 4a-4b) and verify only the progress note append (step 4c). Otherwise, confirm:
-   a. Both `\<!-- KS:start --\>` and `\<!-- KS:end --\>` are present.
-   b. The merged KS content is reflected (spot-check: new rows, updated queue, etc.).
-   c. Content after `\<!-- KS:end --\>` includes the appended progress notes.
-   d. On verify failure: re-run steps 1-3 with freshly fetched content. Check whether deltas are already present to avoid double-applying. If retry fails: set `Status.Write` to `failed` and include `failed_writes`.
-5. **COMPRESS:** Compress the verified page content into the re-anchor format (dln-compress skill). Return the re-anchor payload.
+4. **VERIFY (inline — no additional fetch):** Check the SNAPSHOT from step 2 to confirm:
+   a. Both `\<!-- KS:start --\>` and `\<!-- KS:end --\>` are present (they should be — merged_ks includes them).
+   b. If the REPLACE step reported success, trust it. Only re-fetch if the REPLACE step required a fallback retry.
+   c. For the APPEND step: trust a successful update_content response. Only re-fetch on API error.
+   d. On verify failure: re-fetch once, check whether deltas are already present to avoid double-applying. If retry fails: set `Status.Write` to `failed` and include `failed_writes`.
+5. **COMPRESS:** Extract **only** the KS block and `## Session {session_number}` from SNAPSHOT. Compress into the re-anchor format (dln-compress skill). Do NOT process full session history — only the current session is needed for the re-anchor payload. Return the re-anchor payload.
 
 ### For `replace-end` action:
 
@@ -117,14 +121,14 @@ Let SNAPSHOT = the most recent `notion-fetch` result available at each step.
 
 Let SNAPSHOT = the most recent `notion-fetch` result available at each step.
 
-1. **FETCH:** Call `notion-fetch` with the page_id. Save as SNAPSHOT.
-2. **REPLACE KS (conditional):** If `merged_ks` is provided, replace the KS block (same as `replace` step 2). Re-fetch and update SNAPSHOT.
+1. **REPLACE KS (conditional, no fetch needed):** If `merged_ks` and `old_ks` are provided, replace the KS block (same as `replace` step 1). No initial fetch required.
+2. **FETCH (single fetch):** Call `notion-fetch` with the page_id. Save as SNAPSHOT.
 3. **APPEND PLAN:** Append the session plan section **after** `\<!-- KS:end --\>`:
    - If no session logs exist yet, use `old_str` = `\<!-- KS:end --\>` and `new_str` = `<!-- KS:end -->\n\n<plan_content>`.
-   - If session logs exist, find the last `## Session` header in SNAPSHOT. Use `old_str` = that header and its trailing content (enough lines for uniqueness), and `new_str` = that same content + the new plan appended.
+   - If session logs exist, find the last `## Session` header in SNAPSHOT. Use `old_str` = that header and its **last 3-5 lines** (enough for uniqueness), and `new_str` = that same content + the new plan appended.
    - If not found in SNAPSHOT, re-fetch once. If still not found, set `Status.Write` to `failed`.
-4. **VERIFY:** Re-fetch and confirm plan content is present.
-5. **COMPRESS:** Return the compressed re-anchor payload.
+4. **VERIFY (inline):** Trust successful update_content responses. Only re-fetch on API error.
+5. **COMPRESS:** Extract only the KS block and current session from SNAPSHOT. Return the compressed re-anchor payload.
 
 MARKER RULE — read this before every update_content call:
 
