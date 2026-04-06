@@ -16,8 +16,11 @@ INIT_TEMPLATE = (
 )
 
 
-def run_merge(payload: dict, ks_block: str) -> subprocess.CompletedProcess:
+def run_merge(
+    payload: dict, ks_block: str, extra_args: list[str] | None = None
+) -> subprocess.CompletedProcess:
     """Helper: write payload and KS block to temp files, run ks-merge.py."""
+    args = extra_args or []
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as pf:
         json.dump(payload, pf)
         payload_path = pf.name
@@ -25,14 +28,17 @@ def run_merge(payload: dict, ks_block: str) -> subprocess.CompletedProcess:
         kf.write(ks_block)
         ks_path = kf.name
     return subprocess.run(
-        [sys.executable, str(SCRIPT), payload_path, ks_path],
+        [sys.executable, str(SCRIPT), *args, payload_path, ks_path],
         capture_output=True,
         text=True,
     )
 
 
-def run_merge_dry(payload: dict, ks_block: str) -> subprocess.CompletedProcess:
+def run_merge_dry(
+    payload: dict, ks_block: str, extra_args: list[str] | None = None
+) -> subprocess.CompletedProcess:
     """Helper: run ks-merge.py with --dry-run."""
+    args = extra_args or []
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as pf:
         json.dump(payload, pf)
         payload_path = pf.name
@@ -40,7 +46,7 @@ def run_merge_dry(payload: dict, ks_block: str) -> subprocess.CompletedProcess:
         kf.write(ks_block)
         ks_path = kf.name
     return subprocess.run(
-        [sys.executable, str(SCRIPT), "--dry-run", payload_path, ks_path],
+        [sys.executable, str(SCRIPT), "--dry-run", *args, payload_path, ks_path],
         capture_output=True,
         text=True,
     )
@@ -146,6 +152,23 @@ def test_malformed_json_exits_1():
     )
     assert result.returncode == 1
     assert "json" in result.stderr.lower() or "parse" in result.stderr.lower()
+
+
+def test_unknown_top_level_key_fails_strict():
+    """Unknown top-level payload keys should fail in strict mode."""
+    ks_block = INIT_TEMPLATE.read_text()
+    result = run_merge({"unknown_top": "x"}, ks_block)
+    assert result.returncode == 1
+    assert "unknown top-level" in result.stderr.lower()
+
+
+def test_missing_required_mastery_field_fails_cleanly():
+    """Missing required mastery fields should fail with clear error (no traceback)."""
+    payload = {"mastery_updates": [{"table": "concepts", "status": "mastered"}]}
+    result = run_merge(payload, POPULATED_KS)
+    assert result.returncode == 1
+    assert "mastery_updates[0].name is required" in result.stderr
+    assert "traceback" not in result.stderr.lower()
 
 
 # === Task 3: Mastery table tests ===
@@ -289,12 +312,20 @@ def test_syllabus_toggle_unchecked():
     assert "- [ ] Options Basics" in result.stdout
 
 
-def test_syllabus_missing_topic_warns():
-    """Missing topic should warn to stderr, not error."""
+def test_syllabus_missing_topic_fails_strict():
+    """Missing topic should fail in strict mode."""
     payload = {"syllabus_updates": [{"topic": "Nonexistent Topic", "status": "checked"}]}
     result = run_merge(payload, POPULATED_KS)
-    assert result.returncode == 0
+    assert result.returncode == 1
     assert "nonexistent" in result.stderr.lower() or "not found" in result.stderr.lower()
+
+
+def test_syllabus_missing_topic_warns_lenient():
+    """Missing topic should warn (not fail) in lenient mode."""
+    payload = {"syllabus_updates": [{"topic": "Nonexistent Topic", "status": "checked"}]}
+    result = run_merge(payload, POPULATED_KS, extra_args=["--lenient"])
+    assert result.returncode == 0
+    assert "warning" in result.stderr.lower() or "not found" in result.stderr.lower()
 
 
 def test_section_rewrite_compressed_model():
@@ -470,8 +501,8 @@ def test_dry_run_does_not_modify():
     assert "## Concepts" not in result.stdout
 
 
-def test_missing_section_still_succeeds():
-    """Targeting a nonexistent section should warn but not fail."""
+def test_missing_section_fails_strict():
+    """Targeting a nonexistent section should fail in strict mode."""
     minimal_ks = (
         "<!-- KS:start -->\n# Knowledge State\n\n## Concepts\n\n"
         "| Concept | Status | Syllabus Topic | Evidence | Last Tested |\n"
@@ -490,11 +521,81 @@ def test_missing_section_still_succeeds():
         ]
     }
     result = run_merge(payload, minimal_ks)
+    assert result.returncode == 1
+    assert "not found" in result.stderr.lower()
+    assert "<!-- KS:start -->" not in result.stdout
+
+
+def test_missing_section_warns_lenient():
+    """Targeting a nonexistent section should warn but succeed in lenient mode."""
+    minimal_ks = (
+        "<!-- KS:start -->\n# Knowledge State\n\n## Concepts\n\n"
+        "| Concept | Status | Syllabus Topic | Evidence | Last Tested |\n"
+        "|---------|--------|----------------|----------|-------------|\n\n"
+        "<!-- KS:end -->\n"
+    )
+    payload = {
+        "mastery_updates": [
+            {
+                "table": "factors",
+                "name": "Test",
+                "status": "partial",
+                "evidence": "test",
+                "last_tested": "2026-03-16",
+            }
+        ]
+    }
+    result = run_merge(payload, minimal_ks, extra_args=["--lenient"])
     assert result.returncode == 0
     assert "warning" in result.stderr.lower() or "not found" in result.stderr.lower()
     # The output should still be valid with markers
     assert "<!-- KS:start -->" in result.stdout
     assert "<!-- KS:end -->" in result.stdout
+
+
+def test_escaped_markers_are_canonicalized():
+    """Escaped Notion markers should be normalized to a single canonical marker pair."""
+    ks_escaped = """\
+\\<!-- KS:start --\\>
+# Knowledge State
+
+## Engagement Signals
+
+- Momentum: neutral
+- Consecutive struggles: 0
+- Last celebration: none
+- Notes:
+\\<!-- KS:end --\\>
+"""
+    payload = {"engagement": {"momentum": "positive"}}
+    result = run_merge(payload, ks_escaped)
+    assert result.returncode == 0
+    assert result.stdout.count("<!-- KS:start -->") == 1
+    assert result.stdout.count("<!-- KS:end -->") == 1
+    assert r"\<!-- KS:start --\>" not in result.stdout
+    assert r"\<!-- KS:end --\>" not in result.stdout
+    assert "- Momentum: positive" in result.stdout
+
+
+def test_duplicate_markers_fail():
+    """Duplicate KS marker pairs should fail to prevent marker corruption."""
+    ks_dup = """\
+<!-- KS:start -->
+<!-- KS:start -->
+# Knowledge State
+
+## Engagement Signals
+- Momentum: neutral
+- Consecutive struggles: 0
+- Last celebration: none
+- Notes:
+<!-- KS:end -->
+<!-- KS:end -->
+"""
+    payload = {"engagement": {"momentum": "positive"}}
+    result = run_merge(payload, ks_dup)
+    assert result.returncode == 1
+    assert "duplicate marker" in result.stderr.lower()
 
 
 def test_html_table_with_header_row():
