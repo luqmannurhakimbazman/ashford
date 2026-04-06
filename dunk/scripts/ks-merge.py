@@ -75,6 +75,251 @@ ENGAGEMENT_MAP = {
     "notes": "Notes",
 }
 
+EXAM_METADATA_MAP = {
+    "exam_date": "exam_date",
+    "exam_format": "exam_format",
+    "duration": "duration",
+    "total_marks": "total_marks",
+    "ai_policy": "ai_policy",
+    "target_score_raw": "target_score_raw",
+    "target_score_numeric": "target_score_numeric",
+    "aspirational_target": "aspirational_target",
+    "time_horizon_preset": "time_horizon_preset",
+    "artifacts_ingested": "artifacts_ingested",
+    "last_reprioritization": "last_reprioritization",
+    "sessions_since_reprioritization": "sessions_since_reprioritization",
+}
+
+AGGREGATE_MAP = {
+    "estimated_exam_score": "Estimated exam score",
+    "hours_studied": "Hours studied",
+    "phase_session_minutes": "Phase session minutes",
+    "mock_session_minutes": "Mock session minutes",
+    "marks_gain_rate": "Marks gain rate",
+    "overall_no_ai_accuracy": "Overall no-AI accuracy",
+    "overall_ai_dependence_delta": "Overall AI-dependence delta",
+    "readiness": "Readiness",
+}
+
+# Table schemas for exam-related sections
+TOPIC_MAP_COLUMNS = [
+    "Topic",
+    "Marks Weight",
+    "Exam Frequency",
+    "Transfer Leverage",
+    "Hours To Floor",
+    "Priority Score",
+    "Current No-AI Score",
+]
+TOPIC_MAP_KEY_MAP = {
+    "topic": "Topic",
+    "marks_weight": "Marks Weight",
+    "exam_frequency": "Exam Frequency",
+    "transfer_leverage": "Transfer Leverage",
+    "hours_to_floor": "Hours To Floor",
+    "priority_score": "Priority Score",
+    "current_no_ai_score": "Current No-AI Score",
+}
+
+PAST_PAPER_COLUMNS = ["Paper", "Year", "Topics Covered", "Avg Marks/Topic"]
+PAST_PAPER_KEY_MAP = {
+    "paper": "Paper",
+    "year": "Year",
+    "topics_covered": "Topics Covered",
+    "avg_marks_per_topic": "Avg Marks/Topic",
+}
+
+PER_TOPIC_METRICS_COLUMNS = [
+    "Topic",
+    "Closed Book Acc",
+    "Time/Question (s)",
+    "Marks/Min",
+    "Retention Delta",
+    "AI Dep Delta",
+]
+PER_TOPIC_METRICS_KEY_MAP = {
+    "topic": "Topic",
+    "closed_book_acc": "Closed Book Acc",
+    "time_per_question": "Time/Question (s)",
+    "marks_per_min": "Marks/Min",
+    "retention_delta": "Retention Delta",
+    "ai_dep_delta": "AI Dep Delta",
+}
+
+PAST_EXAMS_COLUMNS = [
+    "Exam Date",
+    "Format",
+    "Total Marks",
+    "Target (raw)",
+    "Target (numeric)",
+    "Mock Count",
+    "Best Mock Score",
+    "Self-Reported Result",
+    "Archived",
+]
+PAST_EXAMS_KEY_MAP = {
+    "exam_date": "Exam Date",
+    "exam_format": "Format",
+    "total_marks": "Total Marks",
+    "target_score_raw": "Target (raw)",
+    "target_score_numeric": "Target (numeric)",
+    "mock_count": "Mock Count",
+    "best_mock_score": "Best Mock Score",
+    "self_reported_result": "Self-Reported Result",
+    "archived_at": "Archived",
+}
+
+QUESTION_BANK_COLUMNS = [
+    "ID",
+    "Topic",
+    "Format",
+    "Marks",
+    "Difficulty",
+    "Source",
+    "Used In Mock",
+    "Last Score",
+]
+QUESTION_BANK_KEY_MAP = {
+    "id": "ID",
+    "topic": "Topic",
+    "format": "Format",
+    "marks": "Marks",
+    "difficulty": "Difficulty",
+    "source": "Source",
+    "used_in_mock": "Used In Mock",
+    "last_score": "Last Score",
+}
+
+MOCK_HISTORY_COLUMNS = [
+    "Mock #",
+    "Date",
+    "Score",
+    "Time Used",
+    "Marks/Min",
+    "Weak Topics",
+    "Notes",
+]
+MOCK_HISTORY_KEY_MAP = {
+    "mock_number": "Mock #",
+    "date": "Date",
+    "score": "Score",
+    "time_used": "Time Used",
+    "marks_per_min": "Marks/Min",
+    "weak_topics": "Weak Topics",
+    "notes": "Notes",
+}
+
+ERROR_TAXONOMY_COLUMNS = [
+    "Error ID",
+    "Type",
+    "Description",
+    "Frequency",
+    "Topics Affected",
+    "Remediation",
+]
+ERROR_TAXONOMY_KEY_MAP = {
+    "error_id": "Error ID",
+    "type": "Type",
+    "description": "Description",
+    "frequency": "Frequency",
+    "topics_affected": "Topics Affected",
+    "remediation": "Remediation",
+}
+
+# Canonical section ordering for auto-creation of missing exam sections.
+CANONICAL_SECTION_ORDER = [
+    ("Syllabus", 2),
+    ("Exam Metadata", 2),
+    ("Exam Blueprint", 2),
+    ("Topic Map", 3),
+    ("High-Yield Queue", 3),
+    ("Past Paper Analysis", 3),
+    ("Concepts", 2),
+    ("Chains", 2),
+    ("Factors", 2),
+    ("Compressed Model", 2),
+    ("Interleave Pool", 2),
+    ("Calibration Log", 2),
+    ("Concept-Level Confidence", 3),
+    ("Gate Predictions", 3),
+    ("Calibration Trend", 3),
+    ("Load Profile", 2),
+    ("Baseline", 3),
+    ("Session History", 3),
+    ("Exam Metrics", 2),
+    ("Per-Topic Metrics", 3),
+    ("Aggregate", 3),
+    ("Question Bank", 2),
+    ("Mock History", 2),
+    ("Error Taxonomy", 2),
+    ("Past Exams", 2),
+    ("Open Questions", 2),
+    ("Weakness Queue", 2),
+    ("Engagement Signals", 2),
+]
+
+# Empty body templates for auto-created sections (contains table headers where needed).
+SECTION_EMPTY_BODIES = {
+    "Exam Metadata": (
+        "\n- exam_date:\n- exam_format:\n- duration:\n- total_marks:\n"
+        "- ai_policy:\n- target_score_raw:\n- target_score_numeric:\n"
+        "- aspirational_target:\n- time_horizon_preset:\n"
+        "- artifacts_ingested: 0\n- last_reprioritization: \n"
+        "- sessions_since_reprioritization: 0\n"
+    ),
+    "Topic Map": (
+        "\n| Topic | Marks Weight | Exam Frequency | Transfer Leverage"
+        " | Hours To Floor | Priority Score | Current No-AI Score |\n"
+        "|-------|-------------|----------------|-------------------|"
+        "----------------|----------------|---------------------|\n"
+    ),
+    "High-Yield Queue": "\n",
+    "Past Paper Analysis": (
+        "\n| Paper | Year | Topics Covered | Avg Marks/Topic |\n"
+        "|-------|------|----------------|------------------|\n"
+    ),
+    "Per-Topic Metrics": (
+        "\n| Topic | Closed Book Acc | Time/Question (s) | Marks/Min"
+        " | Retention Delta | AI Dep Delta |\n"
+        "|-------|----------------|-------------------|-----------|"
+        "-----------------|-------------|\n"
+    ),
+    "Aggregate": (
+        "\n- Estimated exam score:\n- Hours studied: 0\n"
+        "- Phase session minutes: 0\n- Mock session minutes: 0\n"
+        "- Marks gain rate:\n- Overall no-AI accuracy:\n"
+        "- Overall AI-dependence delta:\n- Readiness: NOT READY\n"
+    ),
+    "Question Bank": (
+        "\n| ID | Topic | Format | Marks | Difficulty | Source"
+        " | Used In Mock | Last Score |\n"
+        "|----|-------|--------|-------|------------|--------|"
+        "-------------|------------|\n"
+    ),
+    "Mock History": (
+        "\n| Mock # | Date | Score | Time Used | Marks/Min"
+        " | Weak Topics | Notes |\n"
+        "|--------|------|-------|-----------|-----------|"
+        "-------------|-------|\n"
+    ),
+    "Error Taxonomy": (
+        "\n| Error ID | Type | Description | Frequency"
+        " | Topics Affected | Remediation |\n"
+        "|----------|------|-------------|---------|"
+        "-----------------|-------------|\n"
+    ),
+    "Past Exams": (
+        "\n| Exam Date | Format | Total Marks | Target (raw)"
+        " | Target (numeric) | Mock Count | Best Mock Score"
+        " | Self-Reported Result | Archived |\n"
+        "|-----------|--------|-------------|--------------|"
+        "------------------|------------|-----------------|"
+        "---------------------|----------|\n"
+    ),
+    "Exam Blueprint": "\n",
+    "Exam Metrics": "\n",
+}
+
 
 @dataclass
 class Section:
@@ -547,6 +792,196 @@ def apply_key_value_updates(
     return messages
 
 
+def ensure_exam_sections(sections: list) -> None:
+    """Auto-create missing exam sections at their canonical positions.
+
+    Checks each section in CANONICAL_SECTION_ORDER. If missing, inserts an
+    empty section at the correct position relative to existing sections.
+    """
+    for name, level in CANONICAL_SECTION_ORDER:
+        idx = find_section(sections, name, level=level)
+        if idx is not None:
+            continue
+
+        body = SECTION_EMPTY_BODIES.get(name)
+        if body is None:
+            continue  # Only auto-create sections we have templates for
+
+        header = "#" * level + " " + name
+        new_section = Section(header=header, level=level, body=body)
+
+        # Find the right insertion point: after the last existing section
+        # that precedes this one in canonical order.
+        canonical_names = [(n, l) for n, l in CANONICAL_SECTION_ORDER]
+        my_pos = canonical_names.index((name, level))
+        insert_at = len(sections)  # default: end
+        for prev_pos in range(my_pos - 1, -1, -1):
+            prev_name, prev_level = canonical_names[prev_pos]
+            prev_idx = find_section(sections, prev_name, level=prev_level)
+            if prev_idx is not None:
+                insert_at = prev_idx + 1
+                break
+
+        sections.insert(insert_at, new_section)
+
+
+def apply_table_upsert(
+    sections: list,
+    section_name: str,
+    level: int,
+    columns: list,
+    key_columns: list,
+    key_map: dict,
+    entries: list,
+    dry_run: bool,
+    label: str,
+) -> list:
+    """Generic table upsert: match rows by one or more key columns.
+
+    Args:
+        sections: Parsed section list.
+        section_name: Header text of the target section.
+        level: Header level (2 or 3).
+        columns: Ordered list of display column names.
+        key_columns: Display column name(s) used for matching (e.g. ["Topic"]).
+        key_map: JSON field name -> display column name mapping.
+        entries: List of dicts with JSON field names as keys.
+        dry_run: If True, only report planned changes.
+        label: Label prefix for dry-run messages (e.g. "topic_map").
+
+    Returns:
+        List of dry-run message strings (empty list when not dry-run).
+
+    """
+    messages: list[str] = []
+    idx = find_section(sections, section_name, level=level)
+    if idx is None:
+        print(
+            f"Warning: {('#' * level)} {section_name} not found, skipping",
+            file=sys.stderr,
+        )
+        return messages
+
+    header_lines, parsed_cols, data_rows = parse_table_rows(sections[idx].body)
+    if not parsed_cols:
+        # Build header from schema
+        header_line = "| " + " | ".join(columns) + " |"
+        sep_line = "|" + "|".join("---" for _ in columns) + "|"
+        header_lines = header_line + "\n" + sep_line
+        parsed_cols = columns
+        data_rows = []
+
+    for entry in entries:
+        row_data = {}
+        for json_key, value in entry.items():
+            display_col = key_map.get(json_key)
+            if display_col:
+                row_data[display_col] = str(value)
+
+        # Find existing row by matching ALL key columns
+        existing_idx = None
+        for i, row in enumerate(data_rows):
+            if all(row.get(kc, "") == row_data.get(kc, "") for kc in key_columns):
+                existing_idx = i
+                break
+
+        if existing_idx is not None:
+            if dry_run:
+                key_desc = ", ".join(f"{kc}={row_data.get(kc, '')}" for kc in key_columns)
+                messages.append(f"[{label}] UPDATE row ({key_desc})")
+            else:
+                for col in columns:
+                    if col in row_data:
+                        data_rows[existing_idx][col] = row_data[col]
+        else:
+            new_row = {col: row_data.get(col, "") for col in columns}
+            data_rows.append(new_row)
+            if dry_run:
+                key_desc = ", ".join(f"{kc}={row_data.get(kc, '')}" for kc in key_columns)
+                messages.append(f"[{label}] ADD row ({key_desc})")
+
+    if not dry_run:
+        sections[idx].body = "\n" + render_table(header_lines, parsed_cols, data_rows) + "\n"
+
+    return messages
+
+
+def apply_table_append(
+    sections: list,
+    section_name: str,
+    level: int,
+    columns: list,
+    key_map: dict,
+    entries: list,
+    dry_run: bool,
+    label: str,
+) -> list:
+    """Append rows to a table without deduplication.
+
+    Args:
+        sections: Parsed section list.
+        section_name: Header text of the target section.
+        level: Header level (2 or 3).
+        columns: Ordered list of display column names.
+        key_map: JSON field name -> display column name mapping.
+        entries: List of dicts with JSON field names as keys.
+        dry_run: If True, only report planned changes.
+        label: Label prefix for dry-run messages.
+
+    Returns:
+        List of dry-run message strings (empty list when not dry-run).
+
+    """
+    messages: list[str] = []
+    idx = find_section(sections, section_name, level=level)
+    if idx is None:
+        print(
+            f"Warning: {('#' * level)} {section_name} not found, skipping",
+            file=sys.stderr,
+        )
+        return messages
+
+    for entry in entries:
+        row_data = {}
+        for json_key, value in entry.items():
+            display_col = key_map.get(json_key)
+            if display_col:
+                row_data[display_col] = str(value)
+
+        cells = [row_data.get(col, "") for col in columns]
+        row_text = "| " + " | ".join(cells) + " |"
+
+        if dry_run:
+            messages.append(f"[{label}] APPEND row")
+        else:
+            lines = sections[idx].body.split("\n")
+            last_pipe_idx = -1
+            for i, line in enumerate(lines):
+                if line.strip().startswith("|"):
+                    last_pipe_idx = i
+            if last_pipe_idx >= 0:
+                lines.insert(last_pipe_idx + 1, row_text)
+            else:
+                lines.append(row_text)
+            sections[idx].body = "\n".join(lines)
+
+    return messages
+
+
+def _has_exam_keys(payload: dict) -> bool:
+    """Return True if the payload contains any exam-related keys."""
+    exam_keys = {
+        "exam_metadata",
+        "exam_blueprint",
+        "exam_metrics",
+        "past_exams",
+        "question_bank",
+        "mock_history",
+        "error_taxonomy",
+    }
+    return bool(exam_keys & payload.keys())
+
+
 def main():
     """Entry point."""
     dry_run, payload_path, ks_path = parse_args()
@@ -556,6 +991,10 @@ def main():
     preamble, sections, postamble = parse_sections(ks_block)
 
     messages = []
+
+    # Auto-create missing exam sections before any exam handlers run.
+    if _has_exam_keys(payload):
+        ensure_exam_sections(sections)
 
     if "mastery_updates" in payload:
         messages.extend(apply_mastery_updates(sections, payload["mastery_updates"], dry_run))
@@ -581,6 +1020,148 @@ def main():
         messages.extend(
             apply_key_value_updates(
                 sections, payload["engagement"], ENGAGEMENT_MAP, "Engagement Signals", dry_run
+            )
+        )
+
+    # --- Exam handlers ---
+
+    if "exam_metadata" in payload:
+        messages.extend(
+            apply_key_value_updates(
+                sections,
+                payload["exam_metadata"],
+                EXAM_METADATA_MAP,
+                "Exam Metadata",
+                dry_run,
+            )
+        )
+
+    if "exam_blueprint" in payload:
+        bp = payload["exam_blueprint"]
+        if "topic_map" in bp:
+            messages.extend(
+                apply_table_upsert(
+                    sections,
+                    "Topic Map",
+                    3,
+                    TOPIC_MAP_COLUMNS,
+                    ["Topic"],
+                    TOPIC_MAP_KEY_MAP,
+                    bp["topic_map"],
+                    dry_run,
+                    "topic_map",
+                )
+            )
+        if "high_yield_queue" in bp:
+            idx = find_section(sections, "High-Yield Queue", level=3)
+            if idx is not None:
+                if dry_run:
+                    messages.append("[exam_blueprint] REPLACE ### High-Yield Queue")
+                else:
+                    sections[idx].body = "\n" + bp["high_yield_queue"] + "\n"
+            else:
+                print(
+                    "Warning: ### High-Yield Queue not found, skipping",
+                    file=sys.stderr,
+                )
+        if "past_paper_analysis" in bp:
+            messages.extend(
+                apply_table_upsert(
+                    sections,
+                    "Past Paper Analysis",
+                    3,
+                    PAST_PAPER_COLUMNS,
+                    ["Paper", "Year"],
+                    PAST_PAPER_KEY_MAP,
+                    bp["past_paper_analysis"],
+                    dry_run,
+                    "past_paper",
+                )
+            )
+
+    if "exam_metrics" in payload:
+        em = payload["exam_metrics"]
+        if "per_topic" in em:
+            messages.extend(
+                apply_table_upsert(
+                    sections,
+                    "Per-Topic Metrics",
+                    3,
+                    PER_TOPIC_METRICS_COLUMNS,
+                    ["Topic"],
+                    PER_TOPIC_METRICS_KEY_MAP,
+                    em["per_topic"],
+                    dry_run,
+                    "per_topic_metrics",
+                )
+            )
+        if "aggregate" in em:
+            messages.extend(
+                apply_key_value_updates(
+                    sections,
+                    em["aggregate"],
+                    AGGREGATE_MAP,
+                    "Aggregate",
+                    dry_run,
+                )
+            )
+
+    if "past_exams" in payload:
+        messages.extend(
+            apply_table_upsert(
+                sections,
+                "Past Exams",
+                2,
+                PAST_EXAMS_COLUMNS,
+                ["Exam Date"],
+                PAST_EXAMS_KEY_MAP,
+                payload["past_exams"],
+                dry_run,
+                "past_exams",
+            )
+        )
+
+    if "question_bank" in payload:
+        messages.extend(
+            apply_table_upsert(
+                sections,
+                "Question Bank",
+                2,
+                QUESTION_BANK_COLUMNS,
+                ["ID"],
+                QUESTION_BANK_KEY_MAP,
+                payload["question_bank"],
+                dry_run,
+                "question_bank",
+            )
+        )
+
+    if "mock_history" in payload:
+        messages.extend(
+            apply_table_append(
+                sections,
+                "Mock History",
+                2,
+                MOCK_HISTORY_COLUMNS,
+                MOCK_HISTORY_KEY_MAP,
+                payload["mock_history"],
+                dry_run,
+                "mock_history",
+            )
+        )
+
+    if "error_taxonomy" in payload:
+        messages.extend(
+            apply_table_upsert(
+                sections,
+                "Error Taxonomy",
+                2,
+                ERROR_TAXONOMY_COLUMNS,
+                ["Error ID"],
+                ERROR_TAXONOMY_KEY_MAP,
+                payload["error_taxonomy"],
+                dry_run,
+                "error_taxonomy",
             )
         )
 

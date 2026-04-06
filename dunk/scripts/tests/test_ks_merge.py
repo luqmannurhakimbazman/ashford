@@ -725,3 +725,601 @@ def test_combined_operations():
     assert "- [x] Greeks" in result.stdout
     assert "Options = replication." in result.stdout
     assert "- Momentum: positive" in result.stdout
+
+
+# === Task 7: Exam handler tests ===
+
+# A KS block with all exam sections for testing exam handlers.
+EXAM_KS = """\
+<!-- KS:start -->
+# Knowledge State
+
+## Syllabus
+Goal: Pass COMP3000 exam
+- [x] Sorting
+- [ ] Graphs
+
+## Exam Metadata
+
+- exam_date: 2026-06-15
+- exam_format: closed-book
+- duration: 3h
+- total_marks: 100
+- ai_policy: closed-book
+- target_score_raw: 80+
+- target_score_numeric: 80
+- aspirational_target: false
+- time_horizon_preset: 10w
+- artifacts_ingested: 2
+- last_reprioritization: 2026-04-01
+- sessions_since_reprioritization: 3
+
+## Exam Blueprint
+
+### Topic Map
+
+| Topic | Marks Weight | Exam Frequency | Transfer Leverage | Hours To Floor | Priority Score | Current No-AI Score |
+|-------|-------------|----------------|-------------------|----------------|----------------|---------------------|
+| Sorting | 20 | high | 0.8 | 4 | 85 | 70 |
+
+### High-Yield Queue
+
+1. Graphs \u2014 Dijkstra
+2. Sorting \u2014 Quicksort edge cases
+
+### Past Paper Analysis
+
+| Paper | Year | Topics Covered | Avg Marks/Topic |
+|-------|------|----------------|-----------------|
+| Midterm | 2025 | Sorting, Trees | 12 |
+
+## Concepts
+
+| Concept | Status | Syllabus Topic | Evidence | Last Tested |
+|---------|--------|----------------|----------|-------------|
+| Quicksort | mastered | Sorting | Recall pass (S1) | 2026-04-01 |
+
+## Chains
+
+| Chain | Status | Evidence | Last Tested |
+|-------|--------|----------|-------------|
+
+## Factors
+
+| Factor | Status | Evidence | Last Tested |
+|--------|--------|----------|-------------|
+
+## Compressed Model
+
+## Interleave Pool
+
+## Calibration Log
+
+### Concept-Level Confidence
+| Concept | Self-Rating (1-5) | Actual Performance | Gap | Date |
+|---------|-------------------|-------------------|-----|------|
+
+### Gate Predictions
+| Phase Gate | Predicted Outcome | Actual Outcome | Date |
+|------------|------------------|----------------|------|
+
+### Calibration Trend
+
+## Load Profile
+
+### Baseline
+- Observed working batch size: 2
+- Hint tolerance: low (needs <=1 hint per concept)
+- Recovery pattern: responds well to different analogies
+
+### Session History
+| Session | Avg Batch Size | Overload Signals | Adjustments Made |
+|---------|---------------|------------------|-----------------|
+
+## Exam Metrics
+
+### Per-Topic Metrics
+
+| Topic | Closed Book Acc | Time/Question (s) | Marks/Min | Retention Delta | AI Dep Delta |
+|-------|----------------|-------------------|-----------|-----------------|-------------|
+| Sorting | 0.75 | 45 | 1.2 | +0.1 | -0.05 |
+
+### Aggregate
+
+- Estimated exam score: 72
+- Hours studied: 10
+- Phase session minutes: 300
+- Mock session minutes: 120
+- Marks gain rate: 2.5
+- Overall no-AI accuracy: 0.70
+- Overall AI-dependence delta: -0.03
+- Readiness: NOT READY
+
+## Question Bank
+
+| ID | Topic | Format | Marks | Difficulty | Source | Used In Mock | Last Score |
+|----|-------|--------|-------|------------|--------|-------------|------------|
+| Q1 | Sorting | short-answer | 5 | medium | Past Paper 2025 | yes | 4 |
+
+## Mock History
+
+| Mock # | Date | Score | Time Used | Marks/Min | Weak Topics | Notes |
+|--------|------|-------|-----------|-----------|-------------|-------|
+| 1 | 2026-04-01 | 65 | 2h30m | 0.9 | Graphs | First attempt |
+
+## Error Taxonomy
+
+| Error ID | Type | Description | Frequency | Topics Affected | Remediation |
+|----------|------|-------------|-----------|-----------------|-------------|
+| E1 | conceptual | Off-by-one in loop bounds | 3 | Sorting | Practice boundary conditions |
+
+## Past Exams
+
+| Exam Date | Format | Total Marks | Target (raw) | Target (numeric) | Mock Count | Best Mock Score | Self-Reported Result | Archived |
+|-----------|--------|-------------|--------------|------------------|------------|-----------------|---------------------|----------|
+
+## Open Questions
+
+## Weakness Queue
+
+| Priority | Item | Type | Phase | Severity | Source | Added |
+|----------|------|------|-------|----------|--------|-------|
+
+## Engagement Signals
+
+- Momentum: neutral
+- Consecutive struggles: 0
+- Last celebration: none
+- Notes:
+<!-- KS:end -->
+"""
+
+
+def test_exam_metadata_update():
+    """Update exam metadata key-value pairs."""
+    payload = {
+        "exam_metadata": {
+            "exam_date": "2026-07-01",
+            "target_score_numeric": 85,
+            "sessions_since_reprioritization": 0,
+        }
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "- exam_date: 2026-07-01" in result.stdout
+    assert "- target_score_numeric: 85" in result.stdout
+    assert "- sessions_since_reprioritization: 0" in result.stdout
+    # Untouched fields preserved
+    assert "- exam_format: closed-book" in result.stdout
+    assert "- duration: 3h" in result.stdout
+
+
+def test_topic_map_upsert_existing():
+    """Update an existing row in ### Topic Map."""
+    payload = {
+        "exam_blueprint": {
+            "topic_map": [
+                {
+                    "topic": "Sorting",
+                    "marks_weight": "25",
+                    "exam_frequency": "very-high",
+                    "transfer_leverage": "0.9",
+                    "hours_to_floor": "3",
+                    "priority_score": "90",
+                    "current_no_ai_score": "80",
+                }
+            ]
+        }
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "| Sorting | 25 | very-high | 0.9 | 3 | 90 | 80 |" in result.stdout
+
+
+def test_topic_map_upsert_new():
+    """Add a new row to ### Topic Map."""
+    payload = {
+        "exam_blueprint": {
+            "topic_map": [
+                {
+                    "topic": "Graphs",
+                    "marks_weight": "30",
+                    "exam_frequency": "high",
+                    "transfer_leverage": "0.7",
+                    "hours_to_floor": "6",
+                    "priority_score": "92",
+                    "current_no_ai_score": "40",
+                }
+            ]
+        }
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "| Graphs | 30 | high | 0.7 | 6 | 92 | 40 |" in result.stdout
+    # Existing row untouched
+    assert "| Sorting | 20 | high |" in result.stdout
+
+
+def test_high_yield_queue_rewrite():
+    """Replace ### High-Yield Queue content."""
+    payload = {
+        "exam_blueprint": {"high_yield_queue": "1. Graphs \u2014 BFS/DFS\n2. DP \u2014 Knapsack"}
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "Graphs \u2014 BFS/DFS" in result.stdout
+    assert "DP \u2014 Knapsack" in result.stdout
+    # Old content gone
+    assert "Quicksort edge cases" not in result.stdout
+
+
+def test_past_paper_analysis_composite_upsert_existing():
+    """Update existing row in ### Past Paper Analysis (composite key)."""
+    payload = {
+        "exam_blueprint": {
+            "past_paper_analysis": [
+                {
+                    "paper": "Midterm",
+                    "year": "2025",
+                    "topics_covered": "Sorting, Trees, Graphs",
+                    "avg_marks_per_topic": "14",
+                }
+            ]
+        }
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "| Midterm | 2025 | Sorting, Trees, Graphs | 14 |" in result.stdout
+
+
+def test_past_paper_analysis_composite_upsert_new():
+    """Add new row with different year \u2014 composite key means it's a new row."""
+    payload = {
+        "exam_blueprint": {
+            "past_paper_analysis": [
+                {
+                    "paper": "Midterm",
+                    "year": "2024",
+                    "topics_covered": "Sorting",
+                    "avg_marks_per_topic": "10",
+                }
+            ]
+        }
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    # Both rows should exist
+    assert "| Midterm | 2025 |" in result.stdout
+    assert "| Midterm | 2024 | Sorting | 10 |" in result.stdout
+
+
+def test_per_topic_metrics_upsert():
+    """Update existing row in ### Per-Topic Metrics."""
+    payload = {
+        "exam_metrics": {
+            "per_topic": [
+                {
+                    "topic": "Sorting",
+                    "closed_book_acc": "0.85",
+                    "time_per_question": "40",
+                    "marks_per_min": "1.5",
+                    "retention_delta": "+0.15",
+                    "ai_dep_delta": "-0.08",
+                }
+            ]
+        }
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "| Sorting | 0.85 | 40 | 1.5 | +0.15 | -0.08 |" in result.stdout
+
+
+def test_per_topic_metrics_add_new():
+    """Add new topic to ### Per-Topic Metrics."""
+    payload = {
+        "exam_metrics": {
+            "per_topic": [
+                {
+                    "topic": "Graphs",
+                    "closed_book_acc": "0.50",
+                    "time_per_question": "60",
+                    "marks_per_min": "0.8",
+                    "retention_delta": "+0.0",
+                    "ai_dep_delta": "-0.01",
+                }
+            ]
+        }
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "| Graphs | 0.50 | 60 |" in result.stdout
+    assert "| Sorting | 0.75 |" in result.stdout
+
+
+def test_aggregate_update():
+    """Update ### Aggregate key-value pairs."""
+    payload = {
+        "exam_metrics": {
+            "aggregate": {
+                "estimated_exam_score": "78",
+                "readiness": "BORDERLINE",
+            }
+        }
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "- Estimated exam score: 78" in result.stdout
+    assert "- Readiness: BORDERLINE" in result.stdout
+    # Untouched fields preserved
+    assert "- Hours studied: 10" in result.stdout
+
+
+def test_past_exams_upsert():
+    """Add a row to ## Past Exams."""
+    payload = {
+        "past_exams": [
+            {
+                "exam_date": "2026-01-15",
+                "exam_format": "closed-book",
+                "total_marks": "80",
+                "target_score_raw": "60",
+                "target_score_numeric": "60",
+                "mock_count": "2",
+                "best_mock_score": "55",
+                "self_reported_result": "58",
+                "archived_at": "2026-02-01",
+            }
+        ]
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "| 2026-01-15 | closed-book | 80 |" in result.stdout
+
+
+def test_question_bank_upsert_existing():
+    """Update existing question in ## Question Bank."""
+    payload = {
+        "question_bank": [
+            {
+                "id": "Q1",
+                "topic": "Sorting",
+                "format": "short-answer",
+                "marks": "5",
+                "difficulty": "hard",
+                "source": "Past Paper 2025",
+                "used_in_mock": "yes",
+                "last_score": "5",
+            }
+        ]
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "| Q1 | Sorting | short-answer | 5 | hard |" in result.stdout
+
+
+def test_question_bank_add_new():
+    """Add new question to ## Question Bank."""
+    payload = {
+        "question_bank": [
+            {
+                "id": "Q2",
+                "topic": "Graphs",
+                "format": "coding",
+                "marks": "10",
+                "difficulty": "hard",
+                "source": "Custom",
+                "used_in_mock": "no",
+                "last_score": "",
+            }
+        ]
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "| Q2 | Graphs | coding | 10 | hard |" in result.stdout
+    assert "| Q1 |" in result.stdout  # existing preserved
+
+
+def test_mock_history_append():
+    """Append a row to ## Mock History \u2014 no dedup."""
+    payload = {
+        "mock_history": [
+            {
+                "mock_number": "2",
+                "date": "2026-04-05",
+                "score": "72",
+                "time_used": "2h45m",
+                "marks_per_min": "1.0",
+                "weak_topics": "Graphs",
+                "notes": "Improved on sorting",
+            }
+        ]
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    # Both rows present (original + appended)
+    assert "| 1 | 2026-04-01 | 65 |" in result.stdout
+    assert "| 2 | 2026-04-05 | 72 |" in result.stdout
+
+
+def test_mock_history_append_no_dedup():
+    """Appending same mock number twice creates two rows."""
+    payload = {
+        "mock_history": [
+            {
+                "mock_number": "1",
+                "date": "2026-04-01",
+                "score": "65",
+                "time_used": "2h30m",
+                "marks_per_min": "0.9",
+                "weak_topics": "Graphs",
+                "notes": "Duplicate",
+            }
+        ]
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    # Should have two rows with Mock # = 1
+    lines = [ln for ln in result.stdout.split("\n") if "| 1 |" in ln and "2026-04-01" in ln]
+    assert len(lines) == 2
+
+
+def test_error_taxonomy_upsert_existing():
+    """Update existing error in ## Error Taxonomy."""
+    payload = {
+        "error_taxonomy": [
+            {
+                "error_id": "E1",
+                "type": "conceptual",
+                "description": "Off-by-one in loop bounds",
+                "frequency": "5",
+                "topics_affected": "Sorting, Graphs",
+                "remediation": "Practice boundary conditions + tracing",
+            }
+        ]
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "| E1 | conceptual | Off-by-one in loop bounds | 5 |" in result.stdout
+    assert "Sorting, Graphs" in result.stdout
+
+
+def test_error_taxonomy_add_new():
+    """Add new error to ## Error Taxonomy."""
+    payload = {
+        "error_taxonomy": [
+            {
+                "error_id": "E2",
+                "type": "procedural",
+                "description": "Forgot to mark visited",
+                "frequency": "2",
+                "topics_affected": "Graphs",
+                "remediation": "BFS/DFS checklist",
+            }
+        ]
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "| E2 | procedural | Forgot to mark visited |" in result.stdout
+    assert "| E1 |" in result.stdout  # existing preserved
+
+
+def test_ensure_exam_sections_auto_create():
+    """Legacy KS without exam sections should auto-create them."""
+    payload = {
+        "exam_metadata": {
+            "exam_date": "2026-06-15",
+            "total_marks": "100",
+        }
+    }
+    result = run_merge(payload, POPULATED_KS)
+    assert result.returncode == 0
+    assert "## Exam Metadata" in result.stdout
+    assert "- exam_date: 2026-06-15" in result.stdout
+    assert "- total_marks: 100" in result.stdout
+
+
+def test_ensure_exam_sections_creates_tables():
+    """Auto-created exam table sections should have proper headers."""
+    payload = {
+        "question_bank": [
+            {
+                "id": "Q1",
+                "topic": "Sorting",
+                "format": "coding",
+                "marks": "10",
+                "difficulty": "medium",
+                "source": "Custom",
+                "used_in_mock": "no",
+                "last_score": "",
+            }
+        ]
+    }
+    result = run_merge(payload, POPULATED_KS)
+    assert result.returncode == 0
+    assert "## Question Bank" in result.stdout
+    assert "| Q1 | Sorting | coding |" in result.stdout
+
+
+def test_ensure_exam_sections_canonical_order():
+    """Auto-created sections should appear in canonical order."""
+    payload = {
+        "exam_metadata": {"exam_date": "2026-06-15"},
+        "mock_history": [
+            {
+                "mock_number": "1",
+                "date": "2026-04-01",
+                "score": "65",
+                "time_used": "2h",
+                "marks_per_min": "1.0",
+                "weak_topics": "All",
+                "notes": "First",
+            }
+        ],
+    }
+    result = run_merge(payload, POPULATED_KS)
+    assert result.returncode == 0
+    out = result.stdout
+    # Exam Metadata should come before Concepts
+    assert out.index("## Exam Metadata") < out.index("## Concepts")
+    # Mock History should come after Compressed Model
+    assert out.index("## Mock History") > out.index("## Compressed Model")
+
+
+def test_exam_dry_run():
+    """Dry-run should report exam operations."""
+    payload = {
+        "exam_metadata": {"exam_date": "2026-07-01"},
+        "exam_blueprint": {
+            "topic_map": [
+                {"topic": "Sorting", "marks_weight": "25"},
+            ],
+            "high_yield_queue": "1. Graphs",
+            "past_paper_analysis": [
+                {"paper": "Final", "year": "2025", "topics_covered": "All"},
+            ],
+        },
+        "exam_metrics": {
+            "per_topic": [
+                {"topic": "Sorting", "closed_book_acc": "0.9"},
+            ],
+            "aggregate": {"readiness": "READY"},
+        },
+        "question_bank": [{"id": "Q1", "topic": "Sorting"}],
+        "mock_history": [{"mock_number": "1", "date": "2026-04-01"}],
+        "error_taxonomy": [{"error_id": "E1", "type": "conceptual"}],
+    }
+    result = run_merge_dry(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "[exam metadata]" in result.stdout.lower()
+    assert "[topic_map]" in result.stdout
+    assert "[exam_blueprint] REPLACE ### High-Yield Queue" in result.stdout
+    assert "[past_paper]" in result.stdout
+    assert "[per_topic_metrics]" in result.stdout
+    assert "[question_bank]" in result.stdout
+    assert "[mock_history] APPEND" in result.stdout
+    assert "[error_taxonomy]" in result.stdout
+
+
+def test_combined_exam_and_legacy_operations():
+    """Exam handlers and legacy handlers should work together."""
+    payload = {
+        "mastery_updates": [
+            {
+                "table": "concepts",
+                "name": "Quicksort",
+                "status": "mastered",
+                "evidence": "Recall pass (S2)",
+                "last_tested": "2026-04-05",
+            }
+        ],
+        "exam_metadata": {"sessions_since_reprioritization": 4},
+        "exam_metrics": {
+            "aggregate": {"estimated_exam_score": "75"},
+        },
+    }
+    result = run_merge(payload, EXAM_KS)
+    assert result.returncode == 0
+    assert "| Quicksort | mastered |" in result.stdout
+    assert "Recall pass (S1), Recall pass (S2)" in result.stdout
+    assert "- sessions_since_reprioritization: 4" in result.stdout
+    assert "- Estimated exam score: 75" in result.stdout
