@@ -143,7 +143,111 @@ JSON format for merge payloads. All fields are optional — only include fields 
     "consecutive_struggles": 0,
     "last_celebration": "string",
     "notes": "string"
-  }
+  },
+  "exam_metadata": {
+    "exam_date": "YYYY-MM-DD",
+    "exam_format": "string",
+    "duration": "string",
+    "total_marks": "number",
+    "ai_policy": "closed-book | open-notes | open-ai",
+    "target_score_raw": "string — display only",
+    "target_score_numeric": "number — in [0, total_marks]",
+    "aspirational_target": "boolean",
+    "time_horizon_preset": "long | medium | short | critical",
+    "artifacts_ingested": "number",
+    "last_reprioritization": "YYYY-MM-DD",
+    "sessions_since_reprioritization": "number"
+  },
+  "exam_blueprint": {
+    "topic_map": [
+      {
+        "topic": "string — must match syllabus topic",
+        "marks_weight": "number 0-1",
+        "exam_frequency": "number 0-1",
+        "transfer_leverage": "number 1-3",
+        "hours_to_floor": "number",
+        "priority_score": "number (computed)",
+        "current_no_ai_score": "number 0-1"
+      }
+    ],
+    "high_yield_queue": "COMPLETE replacement text for ### High-Yield Queue",
+    "past_paper_analysis": [
+      {
+        "paper": "string",
+        "year": "string",
+        "topics_covered": "string (comma-separated)",
+        "avg_marks_per_topic": "number"
+      }
+    ]
+  },
+  "exam_metrics": {
+    "per_topic": [
+      {
+        "topic": "string",
+        "closed_book_acc": "number 0-1",
+        "time_per_question": "number (seconds)",
+        "marks_per_min": "number",
+        "retention_delta": "number",
+        "ai_dep_delta": "number 0-1"
+      }
+    ],
+    "aggregate": {
+      "estimated_exam_score": "string (e.g. '72/100')",
+      "hours_studied": "number — derived: (phase_session_minutes + mock_session_minutes) / 60",
+      "phase_session_minutes": "number — cumulative; incremented by phase skills at replace-end with their delta",
+      "mock_session_minutes": "number — cumulative; incremented by the mock-replace dispatch with its delta",
+      "marks_gain_rate": "number",
+      "overall_no_ai_accuracy": "number 0-1",
+      "overall_ai_dependence_delta": "number 0-1",
+      "readiness": "NOT READY | APPROACHING | READY"
+    }
+  },
+  "past_exams": [
+    {
+      "exam_date": "YYYY-MM-DD — PRIMARY KEY for upsert",
+      "exam_format": "string",
+      "total_marks": "number",
+      "target_score_raw": "string",
+      "target_score_numeric": "number",
+      "mock_count": "number — snapshot from ## Mock History at archive time",
+      "best_mock_score": "string — snapshot from ## Mock History at archive time",
+      "self_reported_result": "string (nullable until learner answers post-exam prompt)",
+      "archived_at": "YYYY-MM-DD"
+    }
+  ],
+  "question_bank": [
+    {
+      "id": "string (e.g. Q001)",
+      "topic": "string",
+      "format": "string",
+      "marks": "number",
+      "difficulty": "easy | medium | hard",
+      "source": "string",
+      "used_in_mock": "string or null",
+      "last_score": "string or null"
+    }
+  ],
+  "mock_history": [
+    {
+      "mock_number": "number",
+      "date": "YYYY-MM-DD",
+      "score": "string (e.g. '62/100')",
+      "time_used": "string (e.g. '108/120 min')",
+      "marks_per_min": "number",
+      "weak_topics": "string (comma-separated)",
+      "notes": "string"
+    }
+  ],
+  "error_taxonomy": [
+    {
+      "error_id": "string (e.g. E001)",
+      "type": "conceptual | procedural | application",
+      "description": "string",
+      "frequency": "number",
+      "topics_affected": "string (comma-separated)",
+      "remediation": "string"
+    }
+  ]
 }
 ```
 
@@ -153,6 +257,16 @@ JSON format for merge payloads. All fields are optional — only include fields 
 - `weakness_queue` is a full rewrite — the script replaces the entire queue.
 - `syllabus_updates` toggles checkboxes in the `## Syllabus` section.
 - `mastery_updates` never delete rows. Existing rows are upserted; new rows are appended.
+- `exam_metadata` — Section rewrite of `## Exam Metadata` key-value list.
+- `exam_blueprint.topic_map` — Table upsert in `### Topic Map` (match on `topic` column).
+- `exam_blueprint.high_yield_queue` — Full rewrite of `### High-Yield Queue`.
+- `exam_blueprint.past_paper_analysis` — Table upsert in `### Past Paper Analysis` keyed on composite `(paper, year)` tuple.
+- `exam_metrics.per_topic` — Table upsert in `### Per-Topic Metrics` (match on `topic` column).
+- `exam_metrics.aggregate` — Key-value rewrite in `### Aggregate`. All fields are full-replacement values — callers that want to increment must read current value, add delta, send new total.
+- `past_exams` — Table upsert in `## Past Exams` (match on `exam_date` column).
+- `question_bank` — Table upsert in `## Question Bank` (match on `id` column).
+- `mock_history` — Table append in `## Mock History` (pure append, no dedup).
+- `error_taxonomy` — Table upsert in `## Error Taxonomy` (match on `error_id` column).
 
 ---
 
