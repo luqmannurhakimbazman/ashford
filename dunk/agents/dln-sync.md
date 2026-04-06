@@ -41,7 +41,7 @@ You are a mechanical I/O agent. Your job is to execute Notion operations, compre
 
 You will receive a payload from the teaching skill with these fields:
 
-- **action**: `fetch` | `replace` | `replace-end` | `plan-write`
+- **action**: `fetch` | `replace` | `replace-end` | `plan-write` | `replace-ks-only`
 - **page_id**: The Notion page ID for this domain's profile
 
 ### For `fetch` action:
@@ -63,6 +63,11 @@ Same as `replace`, plus:
 - **plan_content**: The session plan markdown to append after the KS block
 - **session_number**: Current session number
 - **phase**: Current phase (Dot/Linear/Network)
+
+### For `replace-ks-only` action:
+- **merged_ks**: The pre-merged KS block (output of ks-merge.py)
+
+No session_number, no phase, no progress_notes, no column_updates.
 
 ## Execution Protocol
 
@@ -125,6 +130,18 @@ Let SNAPSHOT = the most recent `notion-fetch` result available at each step.
    - If not found in SNAPSHOT, re-fetch once. If still not found, set `Status.Write` to `failed`.
 4. **VERIFY:** Re-fetch and confirm plan content is present.
 5. **COMPRESS:** Return the compressed re-anchor payload.
+
+### For `replace-ks-only` action:
+
+1. **FETCH:** Call `notion-fetch` with the page_id. Save as SNAPSHOT.
+2. **REPLACE:** Replace the KS block using `update_content`:
+   - `old_str`: entire KS block from SNAPSHOT (exact bytes from notion-fetch)
+   - `new_str`: merged_ks from dispatch payload
+   Apply MARKER RULE (old_str uses escaped markers, new_str uses unescaped).
+3. **VERIFY:** Re-fetch and confirm the KS block was updated.
+   - On success: return minimal confirmation `Status.Write: success`
+   - On failure: one retry (re-fetch, re-attempt replace). If retry fails: return `Status.Write: failed` with error details.
+4. **NO COMPRESSION.** Do not compress. Do not return re-anchor payload. Return only the status line.
 
 MARKER RULE — read this before every update_content call:
 
