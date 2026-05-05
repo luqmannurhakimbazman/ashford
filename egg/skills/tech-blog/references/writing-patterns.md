@@ -138,6 +138,19 @@ This signals to the reader that the hard part is done.
 - Acknowledge when something is beyond the post's scope
 - Point to better resources: "For a rigorous treatment, see [reference]"
 
+### Technical Diction
+
+When the audience is mathematically fluent (quants, ML practitioners, statisticians, traders), reach for the precise technical term over the plain-English approximation. Words like *orthogonal*, *ergodic*, *convexity*, *idempotent*, *stationary*, *Lipschitz*, *manifold*, *concentration*, *measure-zero*, *almost surely*, *Pareto*, *positive-definite*, *non-stationary*, *heavy-tailed*, and *information-theoretic* compress dense concepts into a single load-bearing word — and signal that you think in terms of structure (geometry, dynamics, second-order effects) rather than narrative.
+
+The rule: use the technical word when it's the most precise word available, not as decoration.
+
+- **Earn the word.** Only reach for the term if (a) you can define it on demand and (b) it is *literally* true under the rigorous meaning. "These two effects are orthogonal" must mean genuinely independent, not merely "different." "The payoff is convex in volatility" must hold for the second derivative, not vibe. If you can't pass a quick examination on the term, replace it with plain English.
+- **Don't downshift it.** Don't paraphrase "convexity" as "curved upward" or "ergodic" as "the average works out the same" when writing for a fluent audience. The technical word *is* the plain word for them, and the paraphrase loses information.
+- **Gloss on first use.** Even fluent readers vary. The first time a load-bearing term appears, give a one-clause gloss in the prose: "the process is *ergodic* — its time average equals its ensemble average — so we can substitute one for the other." After that, use the term freely without re-defining.
+- **Avoid jargon-as-flex.** If a plain word adds equal precision, use the plain word. "These two refactors are orthogonal" is fine and earns its keep; "the codebase has an orthogonal feel" is bullshit and should be cut. The test: would removing the technical word *lose information* or *just lose vocabulary*?
+
+Reaching for the rigorous word when it fits — and only when it fits — is a texture choice that distinguishes serious quantitative writing from generic explainer prose. It is the lexical counterpart to anti-condescension: both are about respecting the reader's intelligence.
+
 ### Anti-Condescension
 
 Never use "obviously", "trivially", "simple algebra shows", "the reader should know", or "it's easy to see." Use instead: "We can see that...", "A quick calculation shows...", "Recall that...", "Notice that..."
