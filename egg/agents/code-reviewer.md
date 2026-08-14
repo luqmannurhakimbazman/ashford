@@ -31,7 +31,6 @@ description: >
   </commentary>
   </example>
 model: inherit
-color: yellow
 tools: ["Read", "Glob", "Grep", "Bash"]
 ---
 

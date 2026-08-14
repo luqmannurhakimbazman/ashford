@@ -116,7 +116,7 @@ If accepted → jump to R3. If declined → continue Learning Mode.
 Triggered by: "how am I doing?", "what should I study?", "show me my progress", "what are my weak areas?"
 
 ### Protocol
-1. Read both `~/.local/share/claude/markets-teacher-profile.md` and `~/.local/share/claude/markets-teacher-ledger.md`
+1. Read both `${CLAUDE_PLUGIN_DATA}/markets-teacher-profile.md` and `${CLAUDE_PLUGIN_DATA}/markets-teacher-ledger.md`
 2. Synthesize and present:
    - Total sessions and time span
    - Asset class coverage (which classes covered, which gaps remain)

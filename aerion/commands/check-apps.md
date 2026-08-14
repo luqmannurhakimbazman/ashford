@@ -1,7 +1,7 @@
 ---
 description: Scan Gmail for job application updates and sync to Job Tracker sheet
-argument-hint: [days] (default: 7)
-allowed-tools: mcp__plugin_aerion_gmail__*, mcp__plugin_aerion_google-sheets__*, mcp__*gmail*, mcp__*google-sheets*, mcp__*google_sheets*
+argument-hint: "[days] (default: 7)"
+allowed-tools: mcp__plugin_aerion_gmail, mcp__plugin_aerion_google-sheets
 ---
 
 # Check Applications
@@ -25,7 +25,7 @@ Use `$ARGUMENTS` as the number of days to look back. Default to 7 if not provide
 Use the Gmail search tool (`gmail_search_messages` or `Search Gmail Emails`) with this query:
 
 ```
-to:lluqmannurhakim@gmail.com (subject:application OR subject:interview OR subject:offer OR subject:assessment OR subject:"online assessment" OR subject:"phone screen" OR subject:"coding challenge" OR subject:"not moving forward" OR subject:congratulations OR subject:"candidate reference" OR subject:"your submission" OR subject:superday OR subject:"virtual onsite" OR subject:"final round" OR subject:"regret to inform" OR subject:"schedule a call" OR subject:"pleased to offer" OR subject:"offer letter" OR from:greenhouse.io OR from:greenhouse-mail.io OR from:lever.co OR from:ashbyhq.com OR from:myworkdayjobs.com OR from:myworkday.com OR from:icims.com OR from:smartrecruiters.com OR from:jobvite.com OR from:successfactors.com OR from:successfactors.eu OR from:taleo.net OR from:hire.jazz.co OR from:breezy.hr OR from:applytojob.com OR from:hackerrankforwork.com OR from:codesignal.com OR from:codility.com OR from:hirevue.com OR from:hackerearth.com OR from:karat.com OR from:shl.com OR from:testgorilla.com OR from:brassring.com OR from:avature.net OR from:phenom.com) newer_than:${days}d
+(subject:application OR subject:interview OR subject:offer OR subject:assessment OR subject:"online assessment" OR subject:"phone screen" OR subject:"coding challenge" OR subject:"not moving forward" OR subject:congratulations OR subject:"candidate reference" OR subject:"your submission" OR subject:superday OR subject:"virtual onsite" OR subject:"final round" OR subject:"regret to inform" OR subject:"schedule a call" OR subject:"pleased to offer" OR subject:"offer letter" OR from:greenhouse.io OR from:greenhouse-mail.io OR from:lever.co OR from:ashbyhq.com OR from:myworkdayjobs.com OR from:myworkday.com OR from:icims.com OR from:smartrecruiters.com OR from:jobvite.com OR from:successfactors.com OR from:successfactors.eu OR from:taleo.net OR from:hire.jazz.co OR from:breezy.hr OR from:applytojob.com OR from:hackerrankforwork.com OR from:codesignal.com OR from:codility.com OR from:hirevue.com OR from:hackerearth.com OR from:karat.com OR from:shl.com OR from:testgorilla.com OR from:brassring.com OR from:avature.net OR from:phenom.com) newer_than:${days}d
 ```
 
 ### 3. Read Matched Emails
@@ -36,7 +36,7 @@ For each search result, use the Gmail read tool (`gmail_read_message` or `Read G
 
 ### 4. Read Current Sheet
 
-1. Use `list_spreadsheets` to find "Job Tracker" in the hojicha folder.
+1. Use `list_spreadsheets` to find the spreadsheet named "Job Tracker".
 2. Use `list_sheets` with the spreadsheet ID to discover the sheet tab name (it's `job-tracker`).
 3. Use `get_sheet_data` with the spreadsheet ID and sheet name `job-tracker` to read all current rows.
 

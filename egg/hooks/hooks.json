@@ -6,17 +6,28 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/python-lint.sh"
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/python-lint.sh"],
+            "timeout": 10
           }
         ]
       }
     ],
     "SessionStart": [
       {
+        "matcher": "startup|clear",
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/markets-profile-load.sh"
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/learner-profile-load.sh"],
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/markets-profile-load.sh"],
+            "timeout": 15
           }
         ]
       }
@@ -26,7 +37,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/learner-session-snapshot.sh"
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/learner-session-snapshot.sh"],
+            "timeout": 15
           }
         ]
       },
@@ -34,7 +47,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/markets-session-snapshot.sh"
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/markets-session-snapshot.sh"],
+            "timeout": 15
           }
         ]
       }
@@ -44,7 +59,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/learner-profile-check.sh"
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/learner-profile-check.sh"],
+            "timeout": 15
           }
         ]
       },
@@ -52,7 +69,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/markets-profile-check.sh"
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/markets-profile-check.sh"],
+            "timeout": 15
           }
         ]
       }

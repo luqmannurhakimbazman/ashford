@@ -5,11 +5,11 @@ description: This skill should be used when the user runs /check-apps or asks to
 
 # Job Application Tracker
 
-Track job application status by scanning Gmail and updating the Google Sheets "Job Tracker" in the hojicha Drive folder.
+Track job application status by scanning the connected Gmail account and updating the Google Sheets spreadsheet named "Job Tracker".
 
 ## Target Email
 
-lluqmannurhakim@gmail.com
+Use the Gmail account connected to the aerion Gmail MCP server.
 
 ## Sheet Schema
 

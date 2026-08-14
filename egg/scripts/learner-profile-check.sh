@@ -1,73 +1,105 @@
 #!/bin/bash
 # Stop command hook: Verify learner profile and ledger were written during
 # leetcode-teacher sessions. Exit 2 to block stop if write-back is missing.
-#
-# Transcript JSONL schema (for grep patterns):
-# Each line is one JSON object with top-level "type": "user"|"assistant"|"summary"
-# Assistant tool use appears in message.content[] as:
-#   {"type":"tool_use","name":"Write","input":{"file_path":"...","content":"..."}}
-#   {"type":"tool_use","name":"Edit","input":{"file_path":"...","old_string":"...","new_string":"..."}}
-#   {"type":"tool_use","name":"MultiEdit","input":{"file_path":"...",...}}
-# Tool names for file writes: "Write", "Edit", "MultiEdit"
-# A Read of the same file has "name":"Read" and will NOT be matched.
-# Since each JSONL entry is a single line, tool name and file_path co-occur on the same line.
 
 INPUT=$(cat)
 
-# Guard against infinite loops
-STOP_HOOK_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null)
+[ -n "${CLAUDE_PLUGIN_DATA:-}" ] || exit 0
+DATA_DIR="$CLAUDE_PLUGIN_DATA"
+
+# Current Stop input semantics set this after a Stop hook has continued the turn.
+STOP_HOOK_ACTIVE=$(printf '%s' "$INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null)
 if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
   exit 0
 fi
 
-TRANSCRIPT=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
+SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
+TRANSCRIPT=$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
 if [ -z "$TRANSCRIPT" ] || [ ! -f "$TRANSCRIPT" ]; then
   exit 0
 fi
 
-# Detect actual teaching — reference file reads only happen during active teaching,
-# not from the SessionStart hook passively loading the profile into context.
-REFS_READ=$(grep -E '"name"\s*:\s*"Read"' "$TRANSCRIPT" 2>/dev/null \
-  | grep -c 'leetcode-teacher/references/' 2>/dev/null)
+# Independent defense-in-depth guard. Atomic mkdir permits at most one block for
+# this check and session even if stop_hook_active is absent or malformed.
+block_once() {
+  local session_key guard_root guard_path
+  session_key=$(printf '%s' "$SESSION_ID" | tr -cd '[:alnum:]_-')
+  [ -n "$session_key" ] || session_key="unknown"
+  guard_root="$DATA_DIR/.stop-hook-guards"
+  guard_path="$guard_root/learner-$session_key"
+  mkdir -p "$guard_root" 2>/dev/null || return 1
+  mkdir "$guard_path" 2>/dev/null
+}
+
+# Detect actual teaching — reference file reads only happen during active teaching.
+REFS_READ=$(jq -r '
+  select(.type == "assistant")
+  | (.message.content // [])
+  | if type == "array" then .[] else empty end
+  | select(.type == "tool_use" and .name == "Read")
+  | (.input.file_path // .input.path // "")
+  | select(contains("leetcode-teacher/references/"))
+  | 1
+' "$TRANSCRIPT" 2>/dev/null | wc -l | tr -d ' ')
 if [ "${REFS_READ:-0}" -eq 0 ]; then
   exit 0
 fi
 
-# Count genuine human messages — tool-result carriers are user-role messages
-# whose content is exclusively tool_result entries. A message counts as human
-# if it contains any non-tool_result content (future-proofs against mixed messages).
+# Count genuine human messages. Plain prompts have string content; tool-result
+# carriers have arrays containing only tool_result entries.
 USER_TURNS=$(jq -r '
   select(.type == "user")
-  | select((.content // []) | any(.type != "tool_result"))
+  | select(
+      (.message.content // [])
+      | if type == "array" then any(.type != "tool_result") else true end
+    )
   | 1
 ' "$TRANSCRIPT" 2>/dev/null | wc -l | tr -d ' ')
 USER_TURNS=${USER_TURNS:-0}
-# Require at least 2 real human turns: the problem prompt + at least one
-# Socratic Q&A response, meaning teaching has genuinely begun.
 if [ "$USER_TURNS" -lt 2 ]; then
   exit 0
 fi
 
-# Check for write-back via the leetcode-profile-sync agent (primary path).
-# Subagent tool calls do NOT appear in the main transcript — only the Agent
-# tool dispatch does. So we check for an Agent resume with write-back prompt.
-# TODO: Verify assumption that subagent tool calls are absent from main transcript.
-#       If they DO appear, the direct-write fallback check below would also catch
-#       agent-internal writes, making the agent dispatch check redundant but harmless.
-AGENT_WRITEBACK=$(grep -E '"name"\s*:\s*"Agent"' "$TRANSCRIPT" 2>/dev/null | grep -c 'Write back session results' 2>/dev/null)
+# Subagent tool calls are not expected in the main transcript, so recognize the
+# Agent dispatch requesting write-back.
+AGENT_WRITEBACK=$(jq -r '
+  select(.type == "assistant")
+  | (.message.content // [])
+  | if type == "array" then .[] else empty end
+  | select(.type == "tool_use" and .name == "Agent")
+  | (.input.prompt // "")
+  | select(contains("Write back session results"))
+  | 1
+' "$TRANSCRIPT" 2>/dev/null | wc -l | tr -d ' ')
 AGENT_WRITEBACK=${AGENT_WRITEBACK:-0}
-
 if [ "$AGENT_WRITEBACK" -gt 0 ]; then
   exit 0
 fi
 
-# Fallback: check for direct file writes (used when agent dispatch/resume fails)
-PROFILE_WRITTEN=$(grep -E '"name"\s*:\s*"(Write|Edit|MultiEdit)"' "$TRANSCRIPT" 2>/dev/null | grep -c 'leetcode-teacher-profile' 2>/dev/null)
+PROFILE_WRITTEN=$(jq -r '
+  select(.type == "assistant")
+  | (.message.content // [])
+  | if type == "array" then .[] else empty end
+  | select(.type == "tool_use" and (.name == "Write" or .name == "Edit" or .name == "MultiEdit"))
+  | (.input.file_path // .input.path // "")
+  | select(contains("leetcode-teacher-profile"))
+  | 1
+' "$TRANSCRIPT" 2>/dev/null | wc -l | tr -d ' ')
 PROFILE_WRITTEN=${PROFILE_WRITTEN:-0}
-LEDGER_WRITTEN=$(grep -E '"name"\s*:\s*"(Write|Edit|MultiEdit)"' "$TRANSCRIPT" 2>/dev/null | grep -c 'leetcode-teacher-ledger' 2>/dev/null)
+LEDGER_WRITTEN=$(jq -r '
+  select(.type == "assistant")
+  | (.message.content // [])
+  | if type == "array" then .[] else empty end
+  | select(.type == "tool_use" and (.name == "Write" or .name == "Edit" or .name == "MultiEdit"))
+  | (.input.file_path // .input.path // "")
+  | select(contains("leetcode-teacher-ledger"))
+  | 1
+' "$TRANSCRIPT" 2>/dev/null | wc -l | tr -d ' ')
 LEDGER_WRITTEN=${LEDGER_WRITTEN:-0}
 
 if [ "$PROFILE_WRITTEN" -gt 0 ] && [ "$LEDGER_WRITTEN" -gt 0 ]; then
+  exit 0
+elif ! block_once; then
   exit 0
 elif [ "$PROFILE_WRITTEN" -gt 0 ]; then
   echo "Profile was updated but ledger was not. Append the missing ledger row for this session." >&2
@@ -76,6 +108,6 @@ elif [ "$LEDGER_WRITTEN" -gt 0 ]; then
   echo "Ledger was updated but profile was not. Update the profile session history and known weaknesses." >&2
   exit 2
 else
-  echo "This leetcode-teacher session ended without updating the learner profile or ledger. Complete Step 8B/R7B: write the ledger row first (source of truth), then update the profile. Both files at ~/.local/share/claude/." >&2
+  echo "This leetcode-teacher session ended without updating the learner profile or ledger. Complete Step 8B/R7B: write the ledger row first (source of truth), then update the profile. Both files are under ${CLAUDE_PLUGIN_DATA}." >&2
   exit 2
 fi

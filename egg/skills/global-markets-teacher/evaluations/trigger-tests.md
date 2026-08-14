@@ -115,3 +115,18 @@ Manual evaluation scenarios for verifying skill activation and routing behavior.
 ### 22. Firm-type calibration
 - **Query:** "mock interview me for Trafigura"
 - **Expected:** Loads firm-trading-house.md, emphasizes physical commodities, logistics, Incoterms in M3-M4
+
+
+## Persistent State `AUTO`
+
+### 23. Description budget
+```bash
+description=$(sed -n 's/^description: //p' egg/skills/global-markets-teacher/SKILL.md)
+[ "${#description}" -le 1536 ]
+```
+- **Expected:** Exit 0; the decoded plain-scalar description stays within the skill listing cap.
+
+### 24. Legacy state migration
+- **Setup:** Set `HOME` and `CLAUDE_PLUGIN_DATA` to temporary fixture directories. Put valid markets profile, ledger, and session-state files only under `$HOME/.local/share/claude/`.
+- **Action:** Run `egg/scripts/markets-profile-load.sh` with a SessionStart JSON fixture.
+- **Expected:** All three files move to `${CLAUDE_PLUGIN_DATA}`; no legacy file remains; existing files in plugin data are never overwritten.

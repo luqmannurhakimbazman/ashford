@@ -1,0 +1,70 @@
+name: Validate marketplace
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.14.0
+
+      - name: Install Claude Code CLI
+        run: npm install --global @anthropic-ai/claude-code@2.1.231
+
+      - name: Install JSON and shell validators
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends jq shellcheck
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+        with:
+          version: "0.11.26"
+          enable-cache: true
+
+      - name: Validate JSON syntax
+        run: find . -type f -name '*.json' -not -path './.git/*' -print0 | xargs -0 -n1 jq empty
+
+      - name: Validate shell syntax
+        run: find . -type f -name '*.sh' -not -path './.git/*' -print0 | xargs -0 -n1 bash -n
+
+      - name: Run ShellCheck
+        run: find . -type f -name '*.sh' -not -path './.git/*' -print0 | xargs -0 shellcheck --severity=warning
+
+      - name: Run Ralph loop tests
+        run: bash egg/skills/ralph/evaluations/test-ralph-loop.sh
+
+      - name: Run profile hook tests
+        run: bash egg/scripts/tests/test-profile-hooks.sh
+
+      - name: Validate marketplace
+        run: claude plugin validate . --strict
+
+      - name: Validate plugins
+        run: |
+          claude plugin validate ./egg --strict
+          claude plugin validate ./aerion --strict
+          claude plugin validate ./dunk --strict
+
+      - name: Install Python test environment
+        run: |
+          uv python install 3.10.20
+          uv sync --project dunk/scripts --python 3.10.20 --frozen
+
+      - name: Run Python tests
+        run: |
+          uv run --project dunk/scripts --python 3.10.20 --frozen pytest dunk/scripts/tests/test_ks_merge.py
+          uv run --project dunk/scripts --python 3.10.20 --frozen pytest tools/dunk-migrations/test_migrate_docker.py

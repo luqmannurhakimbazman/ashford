@@ -1,5 +1,26 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dunk",
+  "version": "1.0.0",
   "description": "DLN (Dot-Linear-Network) domain-agnostic learning system",
-  "author": { "name": "Luqman Nurhakim" }
+  "author": {
+    "name": "Luqman Nurhakim"
+  },
+  "repository": "https://github.com/luqmannurhakimbazman/ashford",
+  "license": "MIT",
+  "keywords": [
+    "learning",
+    "knowledge-management",
+    "notion",
+    "dln"
+  ],
+  "userConfig": {
+    "exa_api_key": {
+      "type": "string",
+      "title": "Exa API key",
+      "description": "API key used to authenticate with the hosted Exa MCP server",
+      "sensitive": true,
+      "required": true
+    }
+  }
 }

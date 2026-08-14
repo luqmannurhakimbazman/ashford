@@ -1,5 +1,5 @@
 ---
-name: Technical Blog Writer
+name: tech-blog
 description: This skill should be used when the user asks to "write a blog post", "draft a blog post", "create a technical blog", "write a deep dive", "write an explainer", "blog about", "write a tutorial post", "turn this into a blog post", or wants to create technical content for a personal blog or static site. Default platform is Jekyll (Gundersen-style) with KaTeX math, BibTeX citations via jekyll-scholar, and custom figure HTML. Covers deep dives, explainers, tutorials, and project showcases on ML, statistics, computer science, finance, math, and quantitative topics. Generates Markdown with SEO frontmatter, code examples, and diagram suggestions.
 ---
 

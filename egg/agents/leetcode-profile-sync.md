@@ -8,13 +8,11 @@ description: >
   retest suggestion computation, and session write-back. Generates session
   metadata (ID + timestamp) on first dispatch.
 model: sonnet
-color: cyan
 tools:
   - Read
   - Write
   - Edit
   - Bash
-permissionMode: dontAsk
 maxTurns: 10
 ---
 
@@ -24,8 +22,10 @@ You are a mechanical I/O agent. Your job is to load, validate, repair, and write
 
 ## File Locations
 
-- **Profile:** `~/.local/share/claude/leetcode-teacher-profile.md`
-- **Ledger:** `~/.local/share/claude/leetcode-teacher-ledger.md`
+- **Profile:** `${CLAUDE_PLUGIN_DATA}/leetcode-teacher-profile.md`
+- **Ledger:** `${CLAUDE_PLUGIN_DATA}/leetcode-teacher-ledger.md`
+
+`CLAUDE_PLUGIN_DATA` is the plugin-scoped persistent directory. Do not fall back to a home-directory path. The SessionStart hook performs a one-time migration from the legacy `~/.local/share/claude/` location when needed.
 
 ## Action: Load
 
@@ -39,7 +39,7 @@ Run via Bash:
 
 ### 2. Ensure Files Exist
 
-If the profile file does not exist, create both files using the templates below. The canonical format specification lives in `references/teaching/learner-profile-spec.md` — if these templates ever diverge from the spec, the spec wins.
+If the profile file does not exist, create both files using the templates below. The canonical format specification lives at `${CLAUDE_PLUGIN_ROOT}/skills/leetcode-teacher/references/teaching/learner-profile-spec.md` — if these templates ever diverge from the spec, the spec wins.
 
 **Profile template:**
 ```

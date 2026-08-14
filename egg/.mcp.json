@@ -1,18 +1,23 @@
 {
-  "context7": {
-    "command": "npx",
-    "args": ["-y", "@upstash/context7-mcp@latest"]
-  },
-  "git": {
-    "command": "uvx",
-    "args": ["mcp-server-git"]
-  },
-  "chrome-devtools": {
-    "command": "npx",
-    "args": ["-y", "chrome-devtools-mcp@latest", "--browserUrl", "http://127.0.0.1:9222"]
-  },
-  "exa": {
-    "command": "bash",
-    "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/exa-mcp.sh"]
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@4.0.2"]
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git==2026.7.10"]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@1.7.0"]
+    },
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,crawling_exa,company_research_exa,people_search_exa,deep_researcher_start,deep_researcher_check",
+      "headers": {
+        "x-api-key": "${user_config.exa_api_key}"
+      }
+    }
   }
 }

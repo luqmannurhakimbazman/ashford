@@ -5,15 +5,25 @@ description: This skill should be used when the user wants a technical interview
 
 # Technical Interview Roadmap
 
-Generate a company-specific technical interview study plan from a JD URL or pasted job description. Extracts DSA-relevant signals directly from the JD, researches the company's engineering domain, consults the leetcode-teacher learner profile, and outputs a curated LeetCode problem list with phased study timeline. Output goes to `hojicha/<company>-<role>-resume/technical-roadmap.md`.
+Generate a company-specific technical interview study plan from a JD URL or pasted job description. Extracts DSA-relevant signals directly from the JD, researches the company's engineering domain, cross-references the learner profile, and produces a prioritized problem roadmap. Unlike `resume-analyzer` and `resume-tailor`, it does not depend on pre-existing `notes.md`.
+
+## Application Workspace
+
+Resolve output and optional candidate context before generating the roadmap:
+
+1. Use an output directory or resume workspace supplied by the user.
+2. Otherwise, default `<resume-root>` to `${CLAUDE_PROJECT_DIR}/resumes` and resolve `<application-dir>` as `<resume-root>/<company>-<role>-resume/`.
+3. If `${CLAUDE_PROJECT_DIR}` is unavailable, ask the user where to write the roadmap. Never assume a machine-specific directory.
+
+By convention, optional candidate context is `<resume-root>/candidate-context.md`. Explicit user-provided paths override these conventions.
 
 ## Critical Rules
 
-1. **Require JD input.** The user must provide a JD URL or paste JD text. The skill extracts its own DSA-focused signals directly from the JD — it does not depend on resume-builder output. If no JD is provided, prompt the user to provide a URL or paste the JD text.
+1. **Require JD input.** The user must provide a JD URL or paste JD text. The skill extracts its own DSA-focused signals directly from the JD — it does not depend on `resume-analyzer` or `resume-tailor` output. If no JD is provided, prompt the user to provide a URL or paste the JD text.
 2. **No paywalled sources.** Only use public engineering blogs, GitHub, official company pages, YouTube tech talks. Hard ban on Glassdoor, Blind, LeetCode Discuss company tags, or any paywalled content.
 3. **Cite all research.** Every company engineering claim needs a source URL in the appendix. No unsourced assertions about tech stack or interview process.
 4. **Align with leetcode-teacher taxonomy.** All pattern names, classifications, and difficulty labels must match `references/frameworks/problem-patterns.md` from the leetcode-teacher skill. Use the exact pattern names: Two Pointers, Sliding Window, Binary Search, Dynamic Programming, DFS/BFS, Backtracking, Greedy, Hash Table, Heap / Priority Queue, Union-Find.
-5. **Read-only on learner profile.** Never modify `~/.local/share/claude/leetcode-teacher-profile.md`. Read it for calibration only.
+5. **Read-only on learner profile.** Never modify `${CLAUDE_PLUGIN_DATA}/leetcode-teacher-profile.md`. Read it for calibration only.
 6. **15-25 problems total.** The problem list must be actionable, not overwhelming. Quality over quantity.
 7. **Every problem needs a "Why."** Connect each problem to the company domain, role requirements, or a learner weakness. No generic filler entries.
 8. **Companies test what they build.** Interview questions are not chosen at random. Companies select problems that test the foundational concepts their engineers use daily. A payments company asks graph problems because fraud detection traverses transaction graphs. A trading firm asks DP because optimal execution is a dynamic programming problem. A search company asks trie/string problems because their core product is text retrieval. Always reason backward from "what does this company's engineering team actually build?" to "what concepts must their engineers be fluent in?" to "which problems test those concepts?" Every problem in the roadmap must trace back to the company's business, tech stack, or core engineering challenges — not just to generic pattern frequency.
@@ -27,7 +37,7 @@ Generate a company-specific technical interview study plan from a JD URL or past
 
 ### Step 1: Parse Inputs
 
-The user provides a JD URL or pastes JD text. This is the only JD input — the skill does not read `notes.md` or any resume-builder output for JD analysis.
+The user provides a JD URL or pastes JD text. This is the only JD input — the skill does not read `notes.md`, `resume-analyzer` output, or `resume-tailor` output for JD analysis.
 
 **If JD URL or pasted text is provided:** Proceed to Step 1b.
 
@@ -38,8 +48,8 @@ The user provides a JD URL or pastes JD text. This is the only JD input — the 
 Also read these optional files if they exist:
 ```
 Optional:
-- ~/.local/share/claude/leetcode-teacher-profile.md (learner profile for calibration)
-- hojicha/candidate-context.md (discovery interview context — technical background, project details)
+- ${CLAUDE_PLUGIN_DATA}/leetcode-teacher-profile.md (learner profile for calibration)
+- User-provided candidate context or `<resume-root>/candidate-context.md` (discovery interview context — technical background, project details)
 ```
 
 ### Step 1b: DSA-Focused JD Extraction
@@ -67,7 +77,7 @@ The extracted signals (hard skills, domain keywords, role level, company name, r
 
 ### Step 2: Extract Technical Signals from JD
 
-Use the Hard Skills and Domain Keywords extracted in Step 1b.2. If `hojicha/candidate-context.md` exists, also scan it for additional technical signals (languages, frameworks, project domains) that may inform pattern prioritization.
+Use the Hard Skills and Domain Keywords extracted in Step 1b.2. If the resolved candidate context file exists, also scan it for additional technical signals (languages, frameworks, project domains) that may inform pattern prioritization.
 
 Focus on what JD keywords *imply for coding interviews*:
 
@@ -105,7 +115,7 @@ These engineering challenges drive Step 5 topic prioritization and Step 6b probl
 
 ### Step 4: Load Learner Profile
 
-Read `~/.local/share/claude/leetcode-teacher-profile.md` if it exists. Extract:
+Read `${CLAUDE_PLUGIN_DATA}/leetcode-teacher-profile.md` if it exists. Extract:
 
 - **Known Weaknesses** — recurring and improving weaknesses (these become priority study targets)
 - **Session History** — which patterns and problems have been practiced (avoid duplicates)
@@ -207,10 +217,10 @@ Organize the curated problems into 3 phases:
 
 ### Step 8: Output Generation
 
-Write `technical-roadmap.md` to `hojicha/<company>-<role>-resume/`:
+Write `technical-roadmap.md` to `<application-dir>/`:
 
 ```
-hojicha/<company>-<role>-resume/
+<application-dir>/
   technical-roadmap.md   # Generated by Step 8
 ```
 
@@ -223,13 +233,11 @@ Follow the output template in `references/output-template.md`.
 ### Output Directory Convention
 
 ```
-hojicha/<company>-<role>-resume/technical-roadmap.md
+<application-dir>/technical-roadmap.md
 ```
 
-Examples:
-- `hojicha/google-ml-engineer-resume/technical-roadmap.md`
-- `hojicha/stripe-backend-engineer-resume/technical-roadmap.md`
-- `hojicha/citadel-quantitative-developer-resume/technical-roadmap.md`
+Example using the project default:
+- `${CLAUDE_PROJECT_DIR}/resumes/google-ml-engineer-resume/technical-roadmap.md`
 
 ### leetcode-teacher Pattern Taxonomy
 

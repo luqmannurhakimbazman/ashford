@@ -74,7 +74,7 @@ When no experience maps to a predicted question, use these strategies in priorit
 1. **Adjacent experience** — A related but not exact match. Frame it explicitly: "I haven't done X specifically, but in a similar situation at Y, I [action] which required the same [trait]."
 2. **Transferable skill** — Different domain, same underlying trait. A story about debugging a production outage can demonstrate the same resilience as navigating org ambiguity.
 3. **Honest deflection** — When no experience is close enough: "I haven't encountered that professionally, but here's how I'd approach it based on [framework/principle]." Use a framework-first format: state the principle, then walk through how you'd apply it.
-4. **Gap-to-development bridge** — If `notes.md` from resume-builder identified this as a resume gap, reference it directly. The candidate can proactively acknowledge the gap and pivot to a learning narrative.
+4. **Gap-to-development bridge** — If `notes.md` from `resume-analyzer` identified this as a resume gap, reference it directly. The candidate can proactively acknowledge the gap and pivot to a learning narrative.
 
 Flag every gap in the story bank table so the candidate knows which answers need extra rehearsal.
 

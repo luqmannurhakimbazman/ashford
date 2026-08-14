@@ -1,12 +1,12 @@
 {
-  "gmail": {
-    "type": "http",
-    "url": "https://gmail.mcp.claude.com/mcp"
-  },
-  "google-sheets": {
-    "command": "bash",
-    "args": [
-      "${CLAUDE_PLUGIN_ROOT}/scripts/google-sheets-mcp.sh"
-    ]
+  "mcpServers": {
+    "gmail": {
+      "type": "http",
+      "url": "https://gmail.mcp.claude.com/mcp"
+    },
+    "google-sheets": {
+      "type": "http",
+      "url": "${user_config.sheets_mcp_url}"
+    }
   }
 }

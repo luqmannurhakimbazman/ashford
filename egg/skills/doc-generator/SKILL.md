@@ -1,10 +1,6 @@
 ---
-name: Documentation Generator
-description: Generates documentation for code files and projects
-trigger_patterns:
-  - "document this"
-  - "generate docs"
-  - "create documentation"
+name: doc-generator
+description: Generate documentation for code files and projects. Use when the user asks to document code, generate docs, create documentation, write a README or API documentation, or add code comments.
 ---
 
 # Documentation Generator Skill

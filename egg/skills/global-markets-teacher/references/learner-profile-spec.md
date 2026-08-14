@@ -1,10 +1,12 @@
 # Learner Profile Specification
 
+All paths below are scoped to this plugin via `${CLAUDE_PLUGIN_DATA}`. The profile hooks migrate legacy files from `~/.local/share/claude/` once, without overwriting files already present in plugin data.
+
 Two persistent files store cross-session learning state. Claude reads the profile every session; the ledger is read only on demand.
 
 ---
 
-## File 1: `~/.local/share/claude/markets-teacher-profile.md` (Working Memory)
+## File 1: `${CLAUDE_PLUGIN_DATA}/markets-teacher-profile.md` (Working Memory)
 
 Read at every session start (loaded by SessionStart hook). Capped sections. Three required sections:
 
@@ -101,7 +103,7 @@ The first line is trivially `cut -d'|'`-able for scripts. Observations go below 
 
 ---
 
-## File 2: `~/.local/share/claude/markets-teacher-ledger.md` (Long-Term Record)
+## File 2: `${CLAUDE_PLUGIN_DATA}/markets-teacher-ledger.md` (Long-Term Record)
 
 Append-only markdown table. Never edited, never capped, never read at session start.
 
@@ -136,7 +138,7 @@ Append-only markdown table. Never edited, never capped, never read at session st
 
 ## ISO Timestamp Format
 
-All timestamps use: `YYYY-MM-DDTHH:MM` (e.g., `2026-02-19T14:30`). No seconds, no timezone. Source: `Session Timestamp` from `=== SESSION METADATA ===` (injected at session start), or from `~/.local/share/claude/markets-session-state.md` (after compaction), or via `date +%Y-%m-%dT%H:%M` bash fallback if neither is available.
+All timestamps use: `YYYY-MM-DDTHH:MM` (e.g., `2026-02-19T14:30`). No seconds, no timezone. Source: `Session Timestamp` from `=== SESSION METADATA ===` (injected at session start), or from `${CLAUDE_PLUGIN_DATA}/markets-session-state.md` (after compaction), or via `date +%Y-%m-%dT%H:%M` bash fallback if neither is available.
 
 ## Session ID
 
@@ -151,17 +153,17 @@ Extracted from hook input JSON (`session_id` field). Used in ledger rows for deb
 Use a single Session Timestamp for all writes in a session — ledger row, profile session header, and all weakness field updates (`Last tested`, `Last failed`, `Last clean streak start`, `First observed`). Source precedence:
 
 1. `Session Timestamp` from `=== SESSION METADATA ===` (injected at session start)
-2. `Session Timestamp` from `~/.local/share/claude/markets-session-state.md` (after compaction)
+2. `Session Timestamp` from `${CLAUDE_PLUGIN_DATA}/markets-session-state.md` (after compaction)
 3. **Fallback** (neither available — hook failure or manual invocation): run `date +%Y-%m-%dT%H:%M` via Bash tool to get the current time
 
 ### Update Protocol — Learning Mode
 
 After generating study notes or a Socratic explanation, update the persistent learner profile. **Write ledger first (source of truth), then profile (elaboration).**
 
-1. **Append row to Ledger** (`~/.local/share/claude/markets-teacher-ledger.md`):
+1. **Append row to Ledger** (`${CLAUDE_PLUGIN_DATA}/markets-teacher-ledger.md`):
    - Session Timestamp (per timestamp rule above), session_id (from `=== SESSION METADATA ===` or `markets-session-state.md`, else `manual`), topic name, asset class, mode (`learning`), verdict label (`solved_independently` / `solved_with_minor_hints` / `solved_with_significant_scaffolding` / `did_not_reach_understanding`), gaps (semicolon-separated tags, or `none`), review due date.
 
-2. **Append to Session History** in profile (`~/.local/share/claude/markets-teacher-profile.md`), newest first. Enforce 20-entry cap by removing the oldest entry if needed. Use the semi-structured format:
+2. **Append to Session History** in profile (`${CLAUDE_PLUGIN_DATA}/markets-teacher-profile.md`), newest first. Enforce 20-entry cap by removing the oldest entry if needed. Use the semi-structured format:
    ```
    ### [ISO timestamp] | [topic-name] | [asset-class] | learning | [verdict_label]
    Gaps: [semicolon-separated tags, or "none"]
@@ -183,7 +185,7 @@ After generating study notes or a Socratic explanation, update the persistent le
 
 After the recall debrief, update the persistent learner profile. **Write ledger first, then profile.**
 
-1. **Append row to Ledger** (`~/.local/share/claude/markets-teacher-ledger.md`):
+1. **Append row to Ledger** (`${CLAUDE_PLUGIN_DATA}/markets-teacher-ledger.md`):
    - Session Timestamp (per timestamp rule above), session_id, topic, asset class, mode (`recall`), verdict (`strong_pass` / `pass` / `borderline` / `needs_work`), gaps (semicolon-separated tags, or `none`), review due date.
    - **Review interval by verdict:** Strong Pass = previous interval x2 (minimum 7d), Pass = previous interval x1.5 (minimum 5d), Borderline = 2d, Needs Work = 1d. If no previous interval exists, use the minimums.
 
@@ -204,7 +206,7 @@ After the recall debrief, update the persistent learner profile. **Write ledger 
 
 After delivering section-by-section feedback and an M6 overall verdict, update the persistent learner profile. **Write ledger first, then profile.**
 
-1. **Append row to Ledger** (`~/.local/share/claude/markets-teacher-ledger.md`):
+1. **Append row to Ledger** (`${CLAUDE_PLUGIN_DATA}/markets-teacher-ledger.md`):
    - Session Timestamp (per timestamp rule above), session_id, topic (use the interview theme or firm type, e.g., `rates-s&t-interview`), asset class (primary asset class covered in the mock), mode (`mock_interview`), verdict mapped from M6 scoring (`strong_hire` / `hire` / `on_the_fence` / `no_hire`), gaps derived from section-by-section feedback (semicolon-separated tags naming the specific concepts where the candidate was penalized), review due date.
    - **Review interval by verdict:** Strong Hire = 14d, Hire = 7d, On the Fence = 3d, No Hire = 1d.
 

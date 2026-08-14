@@ -24,26 +24,39 @@ The agent returns the raw KS block (everything between `<!-- KS:start -->` and `
 
 ### 2. Construct JSON payload
 
-Using the KS block from step 1 and the teaching boundary outcomes, construct a JSON object conforming to the Normalizer Schema below. Only include fields that have updates.
+Using the KS block from step 1 and the teaching boundary outcomes, construct a JSON object conforming to the Normalizer Schema below. For the standalone field contract, read `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/merge-payload-schema.md`. Only include fields that have updates.
 
 **Key rule:** Full-rewrite fields (`weakness_queue`, `section_rewrites`) require looking up existing values in the fetched KS block to produce COMPLETE replacement content. Append fields (`mastery_updates`, `section_appends`) only need the boundary outcomes — the script handles lookup and merge.
 
-### 3. Write temp files
+### 3. Create private temp files and run ks-merge.py
 
-Use the **Write tool** to create two files:
-- `/tmp/ks-merge-payload-<page_id_8chars>.json` — the JSON payload
-- `/tmp/ks-merge-ks-<page_id_8chars>.md` — the raw KS block from step 1
-
-Call both Write operations in parallel since they are independent.
-
-### 4. Run ks-merge.py
+Use one **Bash tool** call for the complete temporary-file lifecycle. Choose unique quoted heredoc delimiters that do not occur in the payload or KS block, replace the placeholders below with the actual content, and do not split creation and execution across separate shell calls:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/ks-merge.py" /tmp/ks-merge-payload-<page_id_8chars>.json /tmp/ks-merge-ks-<page_id_8chars>.md
+set -euo pipefail
+umask 077
+KS_MERGE_TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/dln-ks-merge.XXXXXXXXXX")
+trap 'rm -rf -- "$KS_MERGE_TMP_DIR"' EXIT HUP INT TERM
+
+cat >"$KS_MERGE_TMP_DIR/payload.json" <<'DLN_PAYLOAD_UNIQUE'
+<JSON payload>
+DLN_PAYLOAD_UNIQUE
+
+cat >"$KS_MERGE_TMP_DIR/ks-block.md" <<'DLN_KS_UNIQUE'
+<raw KS block from step 1>
+DLN_KS_UNIQUE
+
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/ks-merge.py" \
+  "$KS_MERGE_TMP_DIR/payload.json" \
+  "$KS_MERGE_TMP_DIR/ks-block.md"
 ```
 
+The private directory and both files are removed by the trap on success, script failure, or interruption.
+
+### 4. Inspect the merge result
+
 - **Exit 0:** stdout is the merged KS block. Proceed to step 5.
-- **Exit 1:** Hard fail. Read stderr for error message. Log the error and temp file paths. Queue the writes for the next boundary. Skip to step 6 (dispatch `replace` without merged KS — dln-sync will handle the failure status). Do NOT attempt manual merge.
+- **Exit 1:** Hard fail. Read stderr for the error message. Queue the writes for the next boundary. Proceed to step 5 without `merged_ks` so dln-sync can report the failure status. Do NOT attempt a manual merge.
 
 ### 5. Dispatch `replace` (or `replace-end` / `plan-write`)
 
@@ -61,14 +74,9 @@ Dispatch the `dln-sync` agent with:
 
 The agent returns the compressed re-anchor payload.
 
-### 6. Clean up temp files
+### 6. Confirm cleanup
 
-On successful return from dln-sync:
-```bash
-rm -f /tmp/ks-merge-payload-<page_id_8chars>.json /tmp/ks-merge-ks-<page_id_8chars>.md
-```
-
-On failure (dln-sync returns `Status.Write: failed`): do NOT clean up — temp files persist for manual inspection.
+The Bash cleanup trap removes the private temp directory before the tool call returns, regardless of the dln-sync outcome. Never preserve merge payloads or KS blocks in a shared temp directory. Retain only the queued write data already present in conversation context.
 
 ---
 
@@ -81,7 +89,7 @@ On the very first session (empty KS), skip steps 1-4 and dispatch `plan-write` d
 ## Merge Failure Handling
 
 If ks-merge.py fails (exit 1):
-1. Log the error message (stderr) and temp file paths in-conversation.
+1. Log the error message (stderr) in conversation; the cleanup trap has already removed the temp files.
 2. Queue the intended writes for the next boundary.
 3. Dispatch `replace` anyway with progress notes only (no `merged_ks`) — session log appends are independent of the KS merge.
 4. If 3+ consecutive merge failures: announce to the learner that persistence is temporarily offline. Continue with in-conversation checkpoints only.

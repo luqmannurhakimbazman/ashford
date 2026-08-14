@@ -2,7 +2,7 @@
 
 ## Overview
 
-This reference defines how to probe the candidate for real experiences instead of generating generic content. Both `resume-builder` and `behavioral-interview-prepper` reference this file. When in doubt, ASK — the only way to produce authentic output is to understand the candidate's actual life experiences, decision-making, and values.
+This reference defines how to probe the candidate for real experiences instead of generating generic content. Both `resume-analyzer` and `behavioral-interview-prepper` reference this file. When in doubt, ASK — the only way to produce authentic output is to understand the candidate's actual life experiences, decision-making, and values.
 
 ## Core Principle
 
@@ -100,7 +100,7 @@ The difference: Good probes give the candidate a concrete scenario to anchor the
 ## 4. Persistence Protocol
 
 ### When to Persist
-After each discovery exchange where the candidate provides substantive new information, append to `hojicha/candidate-context.md`.
+After each discovery exchange where the candidate provides substantive new information, append to the resolved candidate context file (a user-provided path or `<resume-root>/candidate-context.md`).
 
 ### Format
 

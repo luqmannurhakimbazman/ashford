@@ -5,7 +5,17 @@ description: This skill should be used when the user wants to analyze a job desc
 
 # Resume Analyzer
 
-Analyze a job description against the master resume (`hojicha/resume.tex`) and candidate context (`hojicha/candidate-context.md`). Output: `hojicha/<company>-<role>-resume/notes.md`.
+Analyze a job description against the user's master resume and candidate context. Output: `<application-dir>/notes.md`.
+
+## Resume Workspace
+
+Resolve the inputs before analysis:
+
+1. Use a resume workspace directory supplied by the user.
+2. Otherwise, default `<resume-root>` to `${CLAUDE_PROJECT_DIR}/resumes`.
+3. If `${CLAUDE_PROJECT_DIR}` is unavailable or the required files are absent, ask the user for the resume workspace or individual file paths. Never assume a machine-specific directory.
+
+By convention, the master resume is `<resume-root>/resume.tex`, candidate context is `<resume-root>/candidate-context.md`, and `<application-dir>` is `<resume-root>/<company>-<role>-resume/`. Explicit user-provided paths override these conventions.
 
 ## Critical Rules
 
@@ -21,8 +31,8 @@ Read the master resume, candidate context, and the job description.
 ```
 Required:
 - Job description (pasted text, file, or URL -- fetch URL content if needed)
-- Master resume: hojicha/resume.tex
-- Candidate context: hojicha/candidate-context.md
+- Master resume: user-provided path or `<resume-root>/resume.tex`
+- Candidate context: user-provided path or `<resume-root>/candidate-context.md`
 Optional (ask if not provided):
 - Company name
 - Role title
@@ -38,7 +48,7 @@ Cross-reference JD requirements against candidate materials. If there are 2+ are
 1. Read `references/candidate-discovery.md` for probing techniques
 2. Ask targeted questions one at a time -- wait for each response
 3. Maximum two follow-ups per topic
-4. Append new discoveries to `hojicha/candidate-context.md`
+4. Append new discoveries to the resolved candidate context file
 
 Skip if `candidate-context.md` already covers the JD requirements. Note in the output if skipped and why.
 
@@ -76,7 +86,7 @@ Prioritize High gaps first. Include at least one concrete project idea. Never re
 
 ### Step 6: Output
 
-Create `hojicha/<company>-<role>-resume/notes.md` containing:
+Create `<application-dir>/notes.md` containing:
 
 - JD summary
 - Keyword analysis table

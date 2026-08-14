@@ -9,15 +9,13 @@ description: >
   content, and updating column properties. Compresses raw read-back into
   a re-anchor payload using the preloaded dln-compress skill format.
 model: sonnet
-color: blue
 tools:
-  - mcp__plugin_Notion_notion__notion-fetch
-  - mcp__plugin_Notion_notion__notion-update-page
-  - mcp__plugin_Notion_notion__notion-search
-  - mcp__plugin_Notion_notion__notion-query-database-view
+  - mcp__plugin_dunk_Notion__notion-fetch
+  - mcp__plugin_dunk_Notion__notion-update-page
+  - mcp__plugin_dunk_Notion__notion-search
+  - mcp__plugin_dunk_Notion__notion-query-database-view
 skills:
   - dln-compress
-permissionMode: dontAsk
 maxTurns: 15
 ---
 
@@ -165,6 +163,8 @@ MARKER RULE — read this before every update_content call:
 After reading back page content, compress it into the re-anchor format defined in your preloaded `dln-compress` skill. The full format spec and rules are available in your context — follow them exactly.
 
 ## Error Handling
+
+Notion tool calls may trigger a permission prompt. Do not assume non-interactive access. If permission is denied, treat the call as failed under the rules below and include the denial in `failed_writes`.
 
 If the REPLACE step fails:
 - Run the verify-and-retry logic described in step 4.

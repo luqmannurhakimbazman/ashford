@@ -1,16 +1,26 @@
 ---
 name: behavioral-interview-prepper
-description: This skill should be used when the user wants to prepare for behavioral interviews, generate a behavioral answer bank, practice STAR or SOAR format answers, prep a resume walkthrough narrative, or generate questions to ask their interviewer. Trigger phrases include "prep behavioral", "behavioral interview prep", "prep me for interview at", "practice behavioral questions", "generate behavioral answers", "behavioral prep for", "interview stories for", "STAR method answers", "SOAR answers", "prep my stories", "answer bank for interview", "resume walkthrough", "walk me through your resume prep", "questions to ask my interviewer", or when a user has completed a resume-builder run and asks for interview preparation. It chains off resume-builder output (notes.md, resume.tex, candidate-context.md) to produce a tailored question-and-answer bank.
+description: This skill should be used when the user wants to prepare for behavioral interviews, generate a behavioral answer bank, practice STAR or SOAR format answers, prep a resume walkthrough narrative, or generate questions to ask their interviewer. Trigger phrases include "prep behavioral", "behavioral interview prep", "prep me for interview at", "practice behavioral questions", "generate behavioral answers", "behavioral prep for", "interview stories for", "STAR method answers", "SOAR answers", "prep my stories", "answer bank for interview", "resume walkthrough", "walk me through your resume prep", "questions to ask my interviewer", or when a user has completed resume analysis and tailoring and asks for interview preparation. It chains off resume-analyzer output (notes.md) and resume-tailor output (resume.tex), plus candidate-context.md, to produce a tailored question-and-answer bank.
 ---
 
 # Behavioral Interview Prepper
 
-Generate a tailored behavioral interview answer bank from resume-builder output. Output goes to the same `hojicha/<company>-<role>-resume/` directory as `behavioral-prep.md`.
+Generate a tailored behavioral interview answer bank from `resume-analyzer` and `resume-tailor` output. Save it as `<application-dir>/behavioral-prep.md`.
+
+## Resume Workspace
+
+Resolve the inputs before preparation:
+
+1. Use a resume workspace or application directory supplied by the user.
+2. Otherwise, default `<resume-root>` to `${CLAUDE_PROJECT_DIR}/resumes` and resolve `<application-dir>` as `<resume-root>/<company>-<role>-resume/`.
+3. If `${CLAUDE_PROJECT_DIR}` is unavailable or required inputs are absent, ask the user for the application directory and candidate context path. Never assume a machine-specific directory.
+
+By convention, candidate context is `<resume-root>/candidate-context.md`. Explicit user-provided paths override these conventions.
 
 ## Critical Rules
 
 1. **NEVER fabricate experiences.** Only use content from the resume and `candidate-context.md`. Rephrase and reframe — never invent.
-2. **Chain from resume-builder output.** Read existing `notes.md` and `resume.tex` from the output directory. Do not re-parse the JD from scratch.
+2. **Chain from existing producer output.** Read `notes.md` from `resume-analyzer` and `resume.tex` from `resume-tailor` in the application directory. Do not re-parse the JD from scratch.
 3. **Honest gap handling.** When the candidate lacks an experience for a question **and has confirmed this after probing (see Rule 5 and Step 4 inline probing)**, provide a deflection strategy — not a made-up story.
 4. **Story reuse limit.** No single experience may be used for more than 5 questions. Uses 4-5 require a distinct reframing angle (different trait cluster emphasis). See `references/story-mapping.md`.
 5. **Never generate generic or hypothetical answers — ask instead.** If you would produce a vague behavioral answer, stock STAR response, or hypothetical framework where a real experience should be, STOP and ask the candidate a probing question. See `references/candidate-discovery.md` for anti-generic detection and probing techniques. Every answer must be grounded in real experience. Hypothetical frameworks are only acceptable when the candidate explicitly confirms they have no related experience.
@@ -21,18 +31,18 @@ Generate a tailored behavioral interview answer bank from resume-builder output.
 
 ### Step 1: Parse Inputs
 
-Read from the existing resume-builder output directory:
+Read from the resolved application directory and resume workspace:
 
 ```
 Required:
-- hojicha/<company>-<role>-resume/notes.md (JD summary, keyword analysis, gap analysis)
-- hojicha/<company>-<role>-resume/resume.tex (tailored resume bullets)
-- hojicha/candidate-context.md (supplementary experiences beyond the resume)
+- `<application-dir>/notes.md` (JD summary, keyword analysis, gap analysis; from `resume-analyzer`)
+- `<application-dir>/resume.tex` (tailored resume bullets; from `resume-tailor`)
+- User-provided candidate context or `<resume-root>/candidate-context.md` (supplementary experiences beyond the resume)
 ```
 
 Derive the company name and role from the directory name or the JD summary in `notes.md`.
 
-**If required files do not exist:** Prompt the user to run the `resume-builder` skill first with the target JD. This skill requires resume-builder output — it does not accept raw JD/resume input directly.
+**If required files do not exist:** For missing `notes.md`, prompt the user to run `resume-analyzer` with the target JD. For missing `resume.tex`, prompt the user to run `resume-tailor` after analysis. This skill requires those producer outputs and does not accept raw JD/resume input directly.
 
 ### Step 2: Extract Behavioral Signals
 
@@ -45,7 +55,7 @@ Before predicting questions, probe the candidate for stories that their current 
 1. **Identify thin clusters.** Review the weighted trait clusters from Step 2. Cross-reference against available stories in `resume.tex` and `candidate-context.md`. Flag any cluster with fewer than 2 distinct stories.
 2. **Probe for real experiences.** For each under-covered cluster, ask a targeted question from the matching category in `references/candidate-discovery.md`. Example: "Your materials don't have a strong resilience story. Can you think of a time something went wrong — at work, in a project, or even personally — where you had to figure it out under pressure? What happened?"
 3. **Ask one at a time.** Wait for the candidate's response before moving to the next cluster. Follow up on vague answers per the probing technique in `references/candidate-discovery.md`.
-4. **Persist discoveries.** Append all new stories to `hojicha/candidate-context.md` using the persistence format in `references/candidate-discovery.md`.
+4. **Persist discoveries.** Append all new stories to the resolved candidate context file using the persistence format in `references/candidate-discovery.md`.
 5. **Proceed with enriched story bank.** Continue to Step 3 with the updated materials.
 
 **Skip conditions:** If all high-priority trait clusters have 2+ distinct stories in the existing materials, you may skip this step.
@@ -90,10 +100,10 @@ Generate 5-8 tailored questions the candidate should ask their interviewer, base
 Write `behavioral-prep.md` in the same output directory:
 
 ```
-hojicha/<company>-<role>-resume/
-  notes.md            # Already exists (from resume-builder)
-  resume.tex          # Already exists (from resume-builder)
-  cover-letter.md     # May exist (from resume-builder)
+<application-dir>/
+  notes.md            # Already exists (from resume-analyzer)
+  resume.tex          # Already exists (from resume-tailor)
+  cover-letter.md     # May exist (from cover-letter)
   behavioral-prep.md  # Generated by this skill
 ```
 
@@ -194,13 +204,11 @@ The generated `behavioral-prep.md` should follow this structure:
 ### Output Directory Convention
 
 ```
-hojicha/<company>-<role>-resume/behavioral-prep.md
+<application-dir>/behavioral-prep.md
 ```
 
-Examples:
-- `hojicha/kronos-research-ml-researcher-resume/behavioral-prep.md`
-- `hojicha/grab-data-engineer-resume/behavioral-prep.md`
-- `hojicha/stripe-backend-engineer-resume/behavioral-prep.md`
+Example using the project default:
+- `${CLAUDE_PROJECT_DIR}/resumes/kronos-research-ml-researcher-resume/behavioral-prep.md`
 
 ### Trait Cluster Summary
 

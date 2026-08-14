@@ -93,9 +93,9 @@ Generate structured Recall Mode output (see `output-formats.md`).
 
 After the R7 debrief, perform BOTH writes in order. Consult `learner-profile-spec.md` Section "Update Protocol — Recall Mode" for full details.
 
-**Write 1 — Ledger (mandatory, do this first).** Append one row to `~/.local/share/claude/leetcode-teacher-ledger.md`. If the file does not exist, create it with the header row first. Columns: `Timestamp | Session ID | Problem | Pattern | Mode | Verdict | Gaps | Review Due`. Review interval from R7 verdict: Strong Pass = previous interval x2 (min 7d), Pass = previous interval x1.5 (min 5d), Borderline = 2d, Needs Work = 1d.
+**Write 1 — Ledger (mandatory, do this first).** Append one row to `${CLAUDE_PLUGIN_DATA}/leetcode-teacher-ledger.md`. If the file does not exist, create it with the header row first. Columns: `Timestamp | Session ID | Problem | Pattern | Mode | Verdict | Gaps | Review Due`. Review interval from R7 verdict: Strong Pass = previous interval x2 (min 7d), Pass = previous interval x1.5 (min 5d), Borderline = 2d, Needs Work = 1d.
 
-**Write 2 — Profile.** Append to Session History (newest first, 20-entry cap) and update Known Weaknesses in `~/.local/share/claude/leetcode-teacher-profile.md`. Verdict and gap tags must match the ledger row exactly.
+**Write 2 — Profile.** Append to Session History (newest first, 20-entry cap) and update Known Weaknesses in `${CLAUDE_PLUGIN_DATA}/leetcode-teacher-profile.md`. Verdict and gap tags must match the ledger row exactly.
 
 On first session, show About Me draft and ask learner to confirm.
 
@@ -155,8 +155,8 @@ If no → continue Learning Mode as normal.
 
 When the learner asks to review their progress, read **both** files:
 
-1. **Profile** (`~/.local/share/claude/leetcode-teacher-profile.md`) — current weaknesses, recent session history
-2. **Ledger** (`~/.local/share/claude/leetcode-teacher-ledger.md`) — full session record for longitudinal analysis
+1. **Profile** (`${CLAUDE_PLUGIN_DATA}/leetcode-teacher-profile.md`) — current weaknesses, recent session history
+2. **Ledger** (`${CLAUDE_PLUGIN_DATA}/leetcode-teacher-ledger.md`) — full session record for longitudinal analysis
 
 Synthesize and present:
 - **Total sessions** and pattern coverage (which patterns practiced, which untouched)

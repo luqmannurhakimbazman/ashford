@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # validate-ks-markers.sh
-# PreToolUse hook for mcp__plugin_Notion_notion__notion-update-page
+# PreToolUse hook for mcp__plugin_dunk_Notion__notion-update-page
 # Validates KS marker escaping in update_content payloads.
 #
 # Rules:

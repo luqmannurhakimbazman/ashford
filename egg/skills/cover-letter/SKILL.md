@@ -5,9 +5,9 @@ description: This skill should be used when the user wants to write a cover lett
 
 # Cover Letter
 
-Generate a tailored cover letter. Reads `hojicha/<company>-<role>-resume/notes.md` (produced by `resume-analyzer`) for keyword and gap analysis.
+Generate a tailored cover letter. Reads `<application-dir>/notes.md` (produced by `resume-analyzer`) for keyword and gap analysis.
 
-**Prerequisite:** `notes.md` should exist for best results. If missing, ask for a JD and do lightweight keyword extraction inline.
+**Prerequisite:** `notes.md` should exist for best results. Resolve `<application-dir>` from a user-provided directory, or default it to `${CLAUDE_PROJECT_DIR}/resumes/<company>-<role>-resume/`. If `${CLAUDE_PROJECT_DIR}` is unavailable, ask the user where to write the file. Explicit user-provided paths override the convention. If `notes.md` is missing, ask for a JD and do lightweight keyword extraction inline.
 
 ## Critical Rules
 
@@ -48,6 +48,6 @@ Restate interest, mention availability, thank the reader. 2-3 sentences.
 ## Constraints
 
 - Length: 1 page max (~600 words standard, ~300 for short-form personal statements)
-- File: Save as `cover-letter.md` in the output directory (`hojicha/<company>-<role>-resume/`)
+- File: Save as `<application-dir>/cover-letter.md`
 - Don't repeat resume bullet-for-bullet -- add context the resume can't convey
 - Don't copy-paste company statistics from their About page

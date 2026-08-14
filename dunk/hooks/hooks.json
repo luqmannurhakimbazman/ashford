@@ -2,11 +2,13 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "mcp__plugin_Notion_notion__notion-update-page",
+        "matcher": "mcp__plugin_dunk_Notion__notion-update-page",
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-ks-markers.sh"
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/validate-ks-markers.sh"],
+            "timeout": 10
           }
         ]
       }

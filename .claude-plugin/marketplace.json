@@ -1,5 +1,4 @@
 {
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "ashford",
   "description": "Claude Code plugin marketplace for development workflows",
   "owner": {
@@ -9,17 +8,32 @@
     {
       "name": "egg",
       "source": "./egg",
-      "description": "Commands, agents, skills, hooks, and MCP servers for enhanced development workflows"
+      "description": "Commands, agents, skills, hooks, and MCP servers for enhanced development workflows",
+      "repository": "https://github.com/luqmannurhakimbazman/ashford",
+      "license": "MIT",
+      "keywords": ["development", "code-review", "interviews", "learning", "writing"],
+      "category": "development",
+      "tags": ["developer-tools", "career", "education"]
     },
     {
       "name": "aerion",
       "source": "./aerion",
-      "description": "Gmail-to-Google-Sheets job application tracker"
+      "description": "Gmail-to-Google-Sheets job application tracker",
+      "repository": "https://github.com/luqmannurhakimbazman/ashford",
+      "license": "MIT",
+      "keywords": ["job-search", "gmail", "google-sheets", "tracking"],
+      "category": "productivity",
+      "tags": ["career", "automation", "productivity"]
     },
     {
       "name": "dunk",
       "source": "./dunk",
-      "description": "DLN (Dot-Linear-Network) domain-agnostic learning system"
+      "description": "DLN (Dot-Linear-Network) domain-agnostic learning system",
+      "repository": "https://github.com/luqmannurhakimbazman/ashford",
+      "license": "MIT",
+      "keywords": ["learning", "knowledge-management", "notion", "dln"],
+      "category": "education",
+      "tags": ["education", "notion", "knowledge-management"]
     }
   ]
 }

@@ -2,12 +2,22 @@
 # PreCompact hook: Write a minimal procedural reminder before context compaction.
 # No transcript parsing, no semantic extraction — just a procedural nudge.
 
-SCRATCHPAD="$HOME/.local/share/claude/leetcode-session-state.md"
+[ -n "${CLAUDE_PLUGIN_DATA:-}" ] || exit 0
+DATA_DIR="$CLAUDE_PLUGIN_DATA"
+LEGACY_SCRATCHPAD="$HOME/.local/share/claude/leetcode-session-state.md"
+SCRATCHPAD="$DATA_DIR/leetcode-session-state.md"
 INPUT=$(cat)
+
+# One-time migration without overwriting state already present in plugin data.
+if [ -f "$LEGACY_SCRATCHPAD" ] && [ ! -e "$SCRATCHPAD" ]; then
+  mkdir -p "$DATA_DIR" 2>/dev/null || exit 0
+  mv -n "$LEGACY_SCRATCHPAD" "$SCRATCHPAD" 2>/dev/null || true
+fi
 TRANSCRIPT=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
 
 # Only write if this looks like a leetcode session
 if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ] && grep -q "leetcode-teacher" "$TRANSCRIPT" 2>/dev/null; then
+  mkdir -p "$DATA_DIR" 2>/dev/null || exit 0
   SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"' 2>/dev/null)
   if [ -z "$SESSION_ID" ] || [ "$SESSION_ID" = "null" ]; then
     SESSION_ID="unknown"
@@ -21,7 +31,7 @@ if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ] && grep -q "leetcode-teacher" "$
 
   cat > "$SCRATCHPAD" << EOF
 # LeetCode Session In Progress (saved before compaction)
-- You are in a leetcode-teacher session. Read ~/.local/share/claude/leetcode-teacher-profile.md for context.
+- You are in a leetcode-teacher session. Read ${CLAUDE_PLUGIN_DATA}/leetcode-teacher-profile.md for context.
 - Session ID: ${SESSION_ID}
 - Session Timestamp: ${SESSION_TS}
 - Write-back required at session end: Step 8B (learning) or R7B (recall).

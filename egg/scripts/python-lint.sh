@@ -11,14 +11,13 @@
 # Read tool input from stdin (Claude Code passes tool output as JSON via stdin)
 TOOL_INPUT=$(cat)
 
-# Extract file path from tool input JSON
-# Handle formats like: {"file_path": "/path/to/file.py"} or {"path": "/path/to/file.py"}
-FILE_PATH=""
-if echo "$TOOL_INPUT" | grep -q '"file_path"'; then
-    FILE_PATH=$(echo "$TOOL_INPUT" | sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-elif echo "$TOOL_INPUT" | grep -q '"path"'; then
-    FILE_PATH=$(echo "$TOOL_INPUT" | sed -n 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+# jq is required to safely parse the hook payload. Fail open if unavailable.
+if ! command -v jq &> /dev/null; then
+    exit 0
 fi
+
+# Extract the edited file path from the PostToolUse payload.
+FILE_PATH=$(jq -r '.tool_input.file_path // .tool_input.path // empty' <<<"$TOOL_INPUT" 2>/dev/null) || exit 0
 
 # If no path found in JSON, exit silently
 if [[ -z "$FILE_PATH" ]]; then
@@ -77,8 +76,7 @@ FIX_OUTPUT=$(ruff check "$FILE_PATH" \
     --select=$RUFF_RULES \
     --ignore=$RUFF_IGNORE \
     --line-length=$LINE_LENGTH \
-    --fix \
-    --unsafe-fixes 2>&1) || true
+    --fix 2>&1) || true
 
 if [[ "$FIX_OUTPUT" == *"Fixed"* ]]; then
     AUTO_FIXED=1
@@ -99,7 +97,8 @@ REMAINING=$(ruff check "$FILE_PATH" \
 
 # Check if there are remaining issues
 if [[ -n "$REMAINING" && "$REMAINING" != *"All checks passed"* ]]; then
-    # There are unfixable issues - exit 2 to prompt Claude to fix manually
+    # There are unfixable issues - send diagnostics to Claude on stderr.
+    exec 1>&2
     echo ""
     echo "=========================================="
 
@@ -154,7 +153,7 @@ if [[ -n "$REMAINING" && "$REMAINING" != *"All checks passed"* ]]; then
     echo ""
     echo "Please fix these issues and save the file again."
     echo ""
-    exit 1
+    exit 2
 else
     # All clean - either no issues or all were auto-fixed
     if [[ $AUTO_FIXED -eq 1 ]]; then

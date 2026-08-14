@@ -1,6 +1,6 @@
 # Merge Payload Schema
 
-JSON contract between the phase skill normalizer (running in the parent conversation) and `ks-merge.py`. The phase skill produces this per the merge protocol (`dln/references/merge-protocol.md`); the script consumes it. All fields are optional — a dispatch only includes what changed.
+JSON contract between the phase skill normalizer (running in the parent conversation) and `ks-merge.py`. The phase skill produces this per the co-located merge protocol (`merge-protocol.md`); the script consumes it. All fields are optional — a dispatch only includes what changed.
 
 ## Schema
 

@@ -10,7 +10,9 @@ PLAN_FILE="$RALPH_DIR/PLAN.md"
 TASKS_DIR="$RALPH_DIR/tasks"
 LOG_DIR="$RALPH_DIR/logs"
 PROTOCOL_FILE="$RALPH_DIR/iteration-protocol.md"
+MAX_ITERATIONS="${MAX_ITERATIONS:-25}"
 ITERATION=0
+LAST_TASK=""
 
 mkdir -p "$LOG_DIR"
 
@@ -44,6 +46,24 @@ strip_frontmatter() {
     awk 'BEGIN{n=0} /^---$/{n++; if(n==2){getline; found=1}} found{print}' "$file"
 }
 
+# --- Helper: block a task without relying on platform-specific sed -i ---
+mark_task_blocked() {
+    local task="$1"
+    local reason="$2"
+    local temporary="${PLAN_FILE}.tmp.$$"
+
+    awk -v task="$task" -v reason="$reason" '
+        $1 == "-" && $2 == "[" && $3 == "]" && $4 == task {
+            remainder = $0
+            sub(/^- \[ \] [0-9][0-9]*/, "", remainder)
+            print "- [BLOCKED: " reason "] " task remainder
+            next
+        }
+        { print }
+    ' "$PLAN_FILE" > "$temporary"
+    mv "$temporary" "$PLAN_FILE"
+}
+
 # --- Preflight checks ---
 for f in "$SPEC_FILE" "$PLAN_FILE" "$PROTOCOL_FILE"; do
     if [[ ! -f "$f" ]]; then
@@ -53,7 +73,13 @@ for f in "$SPEC_FILE" "$PLAN_FILE" "$PROTOCOL_FILE"; do
     fi
 done
 
-if [[ ! -d "$TASKS_DIR" ]] || [[ -z "$(ls -A "$TASKS_DIR" 2>/dev/null)" ]]; then
+if [[ ! "$MAX_ITERATIONS" =~ ^[1-9][0-9]*$ ]]; then
+    echo "ERROR: MAX_ITERATIONS must be a positive integer." >&2
+    exit 1
+fi
+
+TASK_FILES=("$TASKS_DIR"/*.md)
+if [[ ! -d "$TASKS_DIR" ]] || [[ ! -f "${TASK_FILES[0]}" ]]; then
     echo "ERROR: No task files found in $TASKS_DIR"
     exit 1
 fi
@@ -61,13 +87,14 @@ fi
 echo "=== Ralph Loop Starting ==="
 echo "Spec: $SPEC_FILE"
 echo "Plan: $PLAN_FILE"
-echo "Tasks: $(ls "$TASKS_DIR"/*.md 2>/dev/null | wc -l | tr -d ' ') task files"
+echo "Tasks: ${#TASK_FILES[@]} task files"
+echo "Max iterations: $MAX_ITERATIONS"
 echo ""
 
 # --- Main loop ---
 while :; do
-    # Find next unchecked task number
-    NEXT=$(grep -m1 '^\- \[ \]' "$PLAN_FILE" | grep -oE '[0-9]+' | head -1)
+    # Find the leading task number from the next unchecked plan item.
+    NEXT=$(sed -n 's/^- \[ \] \([0-9][0-9]*\).*/\1/p' "$PLAN_FILE" | head -1) || true
 
     if [[ -z "$NEXT" ]]; then
         echo ""
@@ -77,70 +104,105 @@ while :; do
         break
     fi
 
+    if [[ "$NEXT" == "$LAST_TASK" ]]; then
+        echo "WARNING: Task $NEXT remained unchecked after its iteration. Marking it blocked." >&2
+        mark_task_blocked "$NEXT" "repeated without completion"
+        LAST_TASK=""
+        continue
+    fi
+
+    if (( ITERATION >= MAX_ITERATIONS )); then
+        echo "ERROR: Reached MAX_ITERATIONS=$MAX_ITERATIONS with unchecked tasks remaining." >&2
+        exit 1
+    fi
+
     ITERATION=$((ITERATION + 1))
 
-    # Find the task file matching this number
-    TASK_FILE=$(ls "$TASKS_DIR/${NEXT}-"*.md 2>/dev/null | head -1)
+    # Find the task file matching this number.
+    TASK_FILE=""
+    for candidate in "$TASKS_DIR/${NEXT}-"*.md; do
+        if [[ -f "$candidate" ]]; then
+            TASK_FILE="$candidate"
+            break
+        fi
+    done
 
     if [[ -z "$TASK_FILE" ]]; then
         echo "WARNING: No task file found for task $NEXT. Skipping."
-        # Mark as blocked to prevent infinite loop
-        sed -i '' "s/^\(- \[ \] ${NEXT}\)/- [BLOCKED: task file missing] ${NEXT}/" "$PLAN_FILE" 2>/dev/null \
-            || sed -i "s/^\(- \[ \] ${NEXT}\)/- [BLOCKED: task file missing] ${NEXT}/" "$PLAN_FILE"
+        mark_task_blocked "$NEXT" "task file missing"
+        LAST_TASK=""
         continue
     fi
 
     echo "--- Iteration $ITERATION: Task $NEXT ($(basename "$TASK_FILE")) ---"
 
-    # Parse frontmatter declarations
-    SECTIONS=$(parse_frontmatter_array "$TASK_FILE" "spec-sections")
-    CODEBASE_FILES=$(parse_frontmatter_array "$TASK_FILE" "codebase-files")
+    # Parse frontmatter declarations.
+    SECTIONS=$(parse_frontmatter_array "$TASK_FILE" "spec-sections") || true
+    CODEBASE_FILES=$(parse_frontmatter_array "$TASK_FILE" "codebase-files") || true
 
-    # Assemble the prompt dynamically
+    # Assemble the prompt dynamically with real newline characters.
     PROMPT=""
 
     # 1. Inject declared spec sections
     if [[ -n "$SECTIONS" ]]; then
-        PROMPT+="# Project Spec (relevant sections)\n\n"
+        PROMPT+="# Project Spec (relevant sections)"$'\n\n'
         while IFS= read -r section; do
-            section=$(echo "$section" | xargs)  # trim whitespace
+            section=$(printf '%s' "$section" | xargs)
             [[ -z "$section" ]] && continue
             EXTRACTED=$(extract_section "$SPEC_FILE" "$section")
             if [[ -n "$EXTRACTED" ]]; then
                 PROMPT+="$EXTRACTED"
-                PROMPT+="\n\n"
+                PROMPT+=$'\n\n'
             else
-                PROMPT+="## $section\n[Section not found in spec]\n\n"
+                PROMPT+="## $section"$'\n'"[Section not found in spec]"$'\n\n'
             fi
         done <<< "$SECTIONS"
     fi
 
     # 2. Inject declared codebase files
     if [[ -n "$CODEBASE_FILES" ]]; then
-        PROMPT+="# Codebase Files (current state)\n\n"
+        PROMPT+="# Codebase Files (current state)"$'\n\n'
         while IFS= read -r filepath; do
-            filepath=$(echo "$filepath" | xargs)  # trim whitespace
+            filepath=$(printf '%s' "$filepath" | xargs)
             [[ -z "$filepath" ]] && continue
             if [[ -f "$filepath" ]]; then
-                PROMPT+="## File: $filepath\n\n\`\`\`\n"
+                PROMPT+="## File: $filepath"$'\n\n'
+                PROMPT+='```'$'\n'
                 PROMPT+="$(cat "$filepath")"
-                PROMPT+="\n\`\`\`\n\n"
+                PROMPT+=$'\n'
+                PROMPT+='```'$'\n\n'
             else
-                PROMPT+="## File: $filepath\n[File not found — may not be created yet]\n\n"
+                PROMPT+="## File: $filepath"$'\n'"[File not found — may not be created yet]"$'\n\n'
             fi
         done <<< "$CODEBASE_FILES"
     fi
 
     # 3. Inject task details (without frontmatter)
-    PROMPT+="# Your Task\n\n"
+    PROMPT+="# Your Task"$'\n\n'
     PROMPT+="$(strip_frontmatter "$TASK_FILE")"
-    PROMPT+="\n\n"
+    PROMPT+=$'\n\n'
 
     # 4. Inject iteration protocol
     PROMPT+="$(cat "$PROTOCOL_FILE")"
 
-    # Run Claude with assembled prompt
-    echo -e "$PROMPT" | claude -p 2>&1 | tee "$LOG_DIR/iteration-$(printf '%02d' $ITERATION).log"
+    # Run Claude with the assembled prompt and preserve its exit status through tee.
+    LAST_TASK="$NEXT"
+    LOG_FILE="$LOG_DIR/iteration-$(printf '%02d' "$ITERATION").log"
+    set +e
+    printf '%s' "$PROMPT" | claude -p 2>&1 | tee "$LOG_FILE"
+    PIPE_STATUSES=("${PIPESTATUS[@]}")
+    set -e
+
+    CLAUDE_STATUS="${PIPE_STATUSES[1]}"
+    TEE_STATUS="${PIPE_STATUSES[2]}"
+    if (( CLAUDE_STATUS != 0 )); then
+        echo "ERROR: claude -p failed for task $NEXT with exit $CLAUDE_STATUS." >&2
+        exit "$CLAUDE_STATUS"
+    fi
+    if (( TEE_STATUS != 0 )); then
+        echo "ERROR: Failed to write iteration log for task $NEXT (tee exit $TEE_STATUS)." >&2
+        exit "$TEE_STATUS"
+    fi
 
     echo ""
     echo "--- Iteration $ITERATION complete ---"

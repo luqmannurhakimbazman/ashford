@@ -18,6 +18,8 @@ node_modules/
 # Python
 __pycache__/
 *.pyc
+.pytest_cache/
+.ruff_cache/
 .venv/
 venv/
 
@@ -26,4 +28,5 @@ venv/
 
 # Misc. Folders
 hojicha/
-docs/
+docs/ralph/
+docs/scratch/

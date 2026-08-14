@@ -1,6 +1,6 @@
 ---
 name: global-markets-teacher
-description: This skill should be used when the user asks to learn, practice, or be tested on global markets, trading, and finance interview topics. Common triggers include "teach me about swaps", "explain contango", "quiz me on rates", "mock interview Goldman S&T", "headline analysis", "walk me through yield curves", "explain carry trade", "test me on Greeks", "how do credit default swaps work", "mock interview for Balyasny", "prepare me for S&T behavioral", "why trading", "what should I know for my interview", "fit questions", "stock pitch", "market dashboard", "how do I research a stock", "equity due diligence", "how do hedge fund analysts work", or pasting Bloomberg/financial news headlines. It covers FICC (Fixed Income, Currencies, Commodities), Equities, Credit, Crypto, Macro Economics, Derivatives, market mechanics, S&T behavioral/fit interview prep, and practitioner workflows (equity research process, trade idea generation, risk management in practice). Target firms span hedge funds (Balyasny, Citadel, Point72), banks (Goldman S&T, JPM), asset managers (BlackRock, PIMCO), trading houses (Glencore, Trafigura), energy majors (Exxon, Shell), and crypto trading/market-making firms (Galaxy, Cumberland, Wintermute, QCP). It acts as a Socratic teacher that prioritizes practitioner-level knowledge over textbook answers — teaching how traders and PMs actually think, research, and make decisions rather than academic frameworks. Includes structured concept breakdowns with progressive hints, and Mock Interview mode for full interview simulation.
+description: Use when the user wants to learn, practice, or be tested on global markets, trading, or finance interviews. Triggers include requests to explain instruments or market concepts (swaps, yield curves, contango, carry trades, Greeks, CDS), quiz or drill rates/FICC/equities/credit/crypto/macro/derivatives, analyze financial headlines, build market views or trade pitches, research a stock, prepare behavioral or fit answers, or run a mock interview for a bank, hedge fund, asset manager, trading house, energy major, or crypto market maker. Acts as a Socratic teacher with progressive hints and practitioner-level framing focused on how traders, analysts, and portfolio managers research, price risk, form views, and make decisions.
 ---
 
 > **Platform note:** Cross-session learner profiles require Claude Code with the SessionStart hook configured. On other platforms (claude.ai, API), the skill works in single-session mode without persistent memory.
@@ -181,9 +181,9 @@ The SessionStart hook automatically loads the learner profile into context. Look
 - **Session continuity:** Read the last 5 session history entries. Acknowledge trajectory ("Last time you worked on yield curve dynamics and nailed the convexity adjustment — nice progress").
 - **About Me:** Use for calibration (target firms, asset class focus, level, goals). If `[FIRST SESSION]` tag is present, populate About Me from observations during the session and confirm at end.
 
-**Post-compaction recovery:** If `~/.local/share/claude/markets-session-state.md` exists, read it for procedural reminders (session ID, **session timestamp**, write-back requirements). Rename the file to `~/.claude/markets-session-state.md.processed` after reading.
+**Post-compaction recovery:** If `${CLAUDE_PLUGIN_DATA}/markets-session-state.md` exists, read it for procedural reminders (session ID, **session timestamp**, write-back requirements). Rename the file to `${CLAUDE_PLUGIN_DATA}/markets-session-state.md.processed` after reading.
 
-**Fallback** (hook didn't fire, no `=== MARKETS PROFILE ===` in context): Read `~/.local/share/claude/markets-teacher-profile.md` manually. If it doesn't exist, create both files with templates per `references/learner-profile-spec.md`.
+**Fallback** (hook didn't fire, no `=== MARKETS PROFILE ===` in context): Read `${CLAUDE_PLUGIN_DATA}/markets-teacher-profile.md` manually. If it doesn't exist, create both files with templates per `references/learner-profile-spec.md`.
 
 **Behavioral rule:** Use profile silently to calibrate. Don't dump contents to the learner. Reference specific observations naturally when relevant (e.g., "I notice you've struggled with duration vs convexity before — let's make sure we nail that distinction").
 
@@ -273,9 +273,9 @@ Produce structured Markdown study notes (see Output Format below). Offer to save
 
 After generating study notes, perform BOTH writes in order. Consult `references/learner-profile-spec.md` Section "Update Protocol — Learning Mode" for full details.
 
-**Write 1 — Ledger (mandatory, do this first).** Append one row to `~/.local/share/claude/markets-teacher-ledger.md`. If the file does not exist, create it with the header row first. Columns: `Timestamp | Session ID | Topic | Asset Class | Mode | Verdict | Gaps | Review Due`. This is the source of truth.
+**Write 1 — Ledger (mandatory, do this first).** Append one row to `${CLAUDE_PLUGIN_DATA}/markets-teacher-ledger.md`. If the file does not exist, create it with the header row first. Columns: `Timestamp | Session ID | Topic | Asset Class | Mode | Verdict | Gaps | Review Due`. This is the source of truth.
 
-**Write 2 — Profile.** Append to Session History (newest first, 20-entry cap) and update Known Weaknesses in `~/.local/share/claude/markets-teacher-profile.md`. Verdict and gap tags must match the ledger row exactly.
+**Write 2 — Profile.** Append to Session History (newest first, 20-entry cap) and update Known Weaknesses in `${CLAUDE_PLUGIN_DATA}/markets-teacher-profile.md`. Verdict and gap tags must match the ledger row exactly.
 
 Use Session Timestamp from `=== SESSION METADATA ===` context (see spec for fallback chain). On first session, show About Me draft and ask learner to confirm.
 

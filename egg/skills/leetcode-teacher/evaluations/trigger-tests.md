@@ -193,7 +193,7 @@ Run all three checks from the repo root. All must return zero results.
 
 ### 24. No stale bare paths
 ```bash
-grep -rn 'references/[a-z]' egg/skills/leetcode-teacher/ \
+grep -rn --exclude=CLAUDE.md 'references/[a-z]' egg/skills/leetcode-teacher/ \
   | grep -v 'references/\(frameworks\|data-structures\|techniques\|algorithms\|graphs\|math\|numeric\|problems\|ml\|teaching\)/' \
   | grep -v 'TODO.md' \
   | grep -v 'evaluations/'
@@ -202,7 +202,7 @@ grep -rn 'references/[a-z]' egg/skills/leetcode-teacher/ \
 
 ### 25. No broken references
 ```bash
-grep -roh 'references/[a-zA-Z_/-]*\.md' egg/skills/leetcode-teacher/ \
+grep -roh --exclude=CLAUDE.md 'references/[a-zA-Z_/-]*\.md' egg/skills/leetcode-teacher/ \
   | sort -u | while read ref; do
   [ -f "egg/skills/leetcode-teacher/$ref" ] || echo "BROKEN: $ref"
 done
@@ -214,3 +214,17 @@ done
 find egg/skills/leetcode-teacher/references/ -name '*.md' -empty
 ```
 - **Expected:** Zero empty files
+
+
+## Persistent State `AUTO`
+
+### 32. Legacy state migration
+- **Setup:** Set `HOME` and `CLAUDE_PLUGIN_DATA` to temporary fixture directories. Put valid LeetCode profile, ledger, and session-state files only under `$HOME/.local/share/claude/`.
+- **Action:** Run `egg/scripts/learner-profile-load.sh` with a SessionStart JSON fixture.
+- **Expected:** All three files move to `${CLAUDE_PLUGIN_DATA}`; no legacy file remains; existing files in plugin data are never overwritten.
+
+### 33. Missing plugin data environment
+```bash
+env -u CLAUDE_PLUGIN_DATA bash egg/scripts/learner-profile-load.sh <<<'{}'
+```
+- **Expected:** Exit 0 without creating files under `$HOME`.

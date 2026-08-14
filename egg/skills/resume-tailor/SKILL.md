@@ -5,14 +5,24 @@ description: This skill should be used when the user has already run resume-anal
 
 # Resume Tailor
 
-Generate a tailored `resume.tex` from analysis notes. Reads `hojicha/<company>-<role>-resume/notes.md` (produced by `resume-analyzer`) and the master resume (`hojicha/resume.tex`).
+Generate a tailored `resume.tex` from analysis notes. Reads `<application-dir>/notes.md` (produced by `resume-analyzer`) and the user's master resume.
 
 **Prerequisite:** `notes.md` must exist in the output directory. If missing, tell the user to run `resume-analyzer` first.
+
+## Resume Workspace
+
+Resolve the inputs before tailoring:
+
+1. Use a resume workspace or application directory supplied by the user.
+2. Otherwise, default `<resume-root>` to `${CLAUDE_PROJECT_DIR}/resumes` and resolve `<application-dir>` as `<resume-root>/<company>-<role>-resume/`.
+3. If `${CLAUDE_PROJECT_DIR}` is unavailable or required inputs are absent, ask the user for the application directory and individual file paths. Never assume a machine-specific directory.
+
+By convention, the master resume is `<resume-root>/resume.tex`, candidate context is `<resume-root>/candidate-context.md`, and the document class is `<resume-root>/fed-res.cls`. Explicit user-provided paths override these conventions.
 
 ## Critical Rules
 
 1. **NEVER fabricate experiences, skills, or achievements.** Only use content from the master resume, `candidate-context.md`, and discoveries persisted during analysis.
-2. **Preserve the `fed-res.cls` document class.** Do not modify `\documentclass[letterpaper,12pt]{fed-res}` or add packages. Copy `hojicha/fed-res.cls` into the output directory.
+2. **Preserve the `fed-res.cls` document class.** Do not modify `\documentclass[letterpaper,12pt]{fed-res}` or add packages. Copy the resolved `fed-res.cls` into the output directory.
 3. **Maintain ATS compatibility.** No graphics, tables outside the cls structure, or custom fonts.
 4. **Keep to one page.** Highlight only your strongest 2-3 bullets per role. Fewer strong bullets beat many mediocre ones.
 5. **Never generate generic content -- ask instead.** If a bullet would be vague, ask for real specifics.
@@ -24,8 +34,9 @@ Generate a tailored `resume.tex` from analysis notes. Reads `hojicha/<company>-<
 ```
 Required:
 - notes.md from the output directory (keyword analysis, gap analysis, recommendations)
-- Master resume: hojicha/resume.tex
-- Candidate context: hojicha/candidate-context.md
+- Master resume: user-provided path or `<resume-root>/resume.tex`
+- Candidate context: user-provided path or `<resume-root>/candidate-context.md`
+- Document class: user-provided path or `<resume-root>/fed-res.cls`
 ```
 
 ### Step 2: Professional Summary (Optional)
@@ -76,11 +87,11 @@ Reorder skills categories and items to front-load the most relevant ones. First 
 
 ### Step 7: Output
 
-Create `hojicha/<company>-<role>-resume/resume.tex`:
+Create `<application-dir>/resume.tex`:
 
 - Copy master resume structure exactly, applying all modifications
 - Include `\documentclass[letterpaper,12pt]{fed-res}`
-- Copy `hojicha/fed-res.cls` into output directory
+- Copy the resolved `fed-res.cls` into the output directory
 
 **Verify:** All meaningful content is text (not layout-dependent), special characters render when LaTeX is stripped, acronyms expanded at least once.
 
