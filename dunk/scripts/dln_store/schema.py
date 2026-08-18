@@ -259,15 +259,13 @@ def load_profile(path: Path) -> tuple[dict[str, Any], bytes]:
 
 def validate_profile_patch(value: Any) -> dict[str, Any]:
     patch = _object(value, "request.profile_patch")
-    allowed = {"domain", "goal", "syllabus", "annotations", "review_preferences", "exam"}
+    allowed = {"goal", "syllabus", "annotations", "review_preferences", "exam"}
     unknown = patch.keys() - allowed
     if unknown:
         _fail(
             "request.profile_patch",
             "cannot modify system/unknown field(s): " + ", ".join(sorted(unknown)),
         )
-    if "domain" in patch:
-        _string(patch["domain"], "request.profile_patch.domain")
     if "goal" in patch:
         _string(patch["goal"], "request.profile_patch.goal")
     if "syllabus" in patch:

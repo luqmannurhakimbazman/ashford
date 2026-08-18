@@ -184,6 +184,25 @@ def test_prepared_crash_recovery_discards_candidate_and_preserves_profile_edit(
     assert json.loads(directory.joinpath("state.json").read_text())["revision"] == 0
 
 
+def test_lock_symlink_is_rejected_without_touching_target(tmp_path: Path) -> None:
+    domain_id, _ = init_domain(tmp_path)
+    target = tmp_path.parent / f"{tmp_path.name}-outside-lock-target"
+    target.write_text("preserve me", encoding="utf-8")
+    lock = tmp_path / ".locks" / f"{domain_id}.lock"
+    lock.parent.mkdir(exist_ok=True)
+    lock.symlink_to(target)
+
+    context = run_cli(tmp_path, "context", "--domain-id", domain_id)
+    assert context.returncode == 2
+    assert "lock file must not be a symlink" in error(context)["message"]
+    assert target.read_text(encoding="utf-8") == "preserve me"
+
+    doctor = run_cli(tmp_path, "doctor", "--domain-id", domain_id)
+    assert doctor.returncode == 2
+    assert "lock file must not be a symlink" in error(doctor)["message"]
+    assert target.read_text(encoding="utf-8") == "preserve me"
+
+
 def test_active_lock_contention_and_proven_stale_lock_break(tmp_path: Path) -> None:
     domain_id, _ = init_domain(tmp_path)
     lock = tmp_path / ".locks" / f"{domain_id}.lock"

@@ -9,7 +9,8 @@
 
 | Subject | Operation | Outcome | Novelty |
 |---|---|---|---|
-| Parity \| Bounds<br>&lt;!-- KS:start --&gt; | relate | pass (9/10) | variant |
+| Parity \| Bounds<br>&lt;!-- KS:start --&gt; | abstract | pass (9/10) | novel |
+| Parity \| Bounds<br>&lt;!-- KS:start --&gt; | predict | partial (6/10) | novel |
 
 ## Supported Performance
 
@@ -17,8 +18,8 @@ No supported assessment performance was recorded.
 
 ## Prediction Error and Model Revision
 
-Prediction error was not measured in this session.
-No model revision was recorded.
+- **Parity \| Bounds<br>&lt;!-- KS:start --&gt;:** partial (6/10) prediction
+- **revise:** Bounds \| parity<br>&lt;!-- KS:end --&gt; — Prediction missed financing costs
 
 ## Delayed Retrieval
 
@@ -27,8 +28,9 @@ No model revision was recorded.
 ## Calibration
 
 - **Parity \| Bounds<br>&lt;!-- KS:start --&gt;:** confidence 0.700, normalized score 0.900, gap -0.200.
+- **Parity \| Bounds<br>&lt;!-- KS:start --&gt;:** confidence 0.700, normalized score 0.600, gap 0.100.
 
 ## Next Action and Review
 
-- **Next action:** Abstract parity across instruments
+- **Next action:** Test the revised model on a new instrument
 - **Next review:** not scheduled

@@ -227,9 +227,8 @@ def render_receipt(
     lines.extend(["", "## Prediction Error and Model Revision", ""])
     if predictions:
         for event in predictions:
-            error = "no recorded error" if event["outcome"] == "pass" else f"{event['outcome']} prediction"
             lines.append(
-                f"- **{markdown_text(event['subject']['label'])}:** {markdown_text(error)}"
+                f"- **{markdown_text(event['subject']['label'])}:** {_outcome(event)} prediction"
             )
     else:
         lines.append("Prediction error was not measured in this session.")

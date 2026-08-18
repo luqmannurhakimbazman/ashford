@@ -1,10 +1,10 @@
 {
   "archived_exams": [],
   "calibration": {
-    "count": 2,
-    "mean_confidence": 0.75,
-    "mean_gap": 0.0,
-    "mean_normalized_score": 0.75,
+    "count": 3,
+    "mean_confidence": 0.733333,
+    "mean_gap": -0.033333,
+    "mean_normalized_score": 0.766667,
     "status": "measured"
   },
   "completed_sessions": [
@@ -27,7 +27,7 @@
     "decision": "revise",
     "event_id": "model-1",
     "model": "Bounds | parity\n<!-- KS:end -->",
-    "occurred_at": "2026-08-01T09:10:00Z",
+    "occurred_at": "2026-08-08T09:07:00Z",
     "rationale": "Prediction missed financing costs",
     "triggering_prediction_event_ids": [
       "predict-1"
@@ -41,42 +41,42 @@
   "generation": 0,
   "goal": "Explain parity | safely",
   "legacy_imports": [],
-  "next_action": "Abstract parity across instruments",
+  "next_action": "Test the revised model on a new instrument",
   "next_review_date": null,
   "revision": 1,
   "schema_version": 1,
   "source": {
-    "event_count": 7,
-    "events_sha256": "dde5f87e56756dadfb3e8a0a421b1cfd40251203066c9fd78b9290d4e615db9d",
+    "event_count": 10,
+    "events_sha256": "69cad46fe3b1c445ca4f6c78d1874799a79f8a36829dd27d757161f02b27841b",
     "profile_sha256": "3c7598486509ef08f25929d07a6606c26b4990377e1a7326a75ad85e6c884439"
   },
-  "stage": "relate",
+  "stage": "revise",
   "subjects": [
     {
-      "exposure_count": 3,
+      "exposure_count": 5,
       "id": "parity",
       "independent": {
-        "event_id": "retrieve-1",
+        "event_id": "predict-1",
         "max_score": 10,
-        "novelty": "variant",
-        "occurred_at": "2026-08-08T09:00:00Z",
-        "operation": "relate",
-        "outcome": "pass",
-        "score": 9
+        "novelty": "novel",
+        "occurred_at": "2026-08-08T09:05:00Z",
+        "operation": "predict",
+        "outcome": "partial",
+        "score": 6
       },
       "label": "Parity | Bounds\n<!-- KS:start -->",
-      "last_assessment_at": "2026-08-08T09:00:00Z",
+      "last_assessment_at": "2026-08-08T09:05:00Z",
       "retrieval": {
         "count": 1,
         "latest": {
           "delay_days": 7,
-          "event_id": "retrieve-1",
+          "event_id": "relate-1",
           "outcome": "pass",
           "scheduled_date": "2026-08-08"
         },
         "status": "measured"
       },
-      "status": "independent-pass",
+      "status": "needs-work",
       "supported": {
         "event_id": "supported-1",
         "novelty": "repeat",
@@ -85,7 +85,7 @@
         "outcome": "partial"
       },
       "transfer": {
-        "count": 1,
+        "count": 2,
         "latest_event_id": "predict-1"
       },
       "type": "concept"

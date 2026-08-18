@@ -1,7 +1,7 @@
 [project]
-name = "dunk-ks-merge"
+name = "dunk-local-store-tooling"
 version = "0.1.0"
-description = "Validation and test tooling for Dunk knowledge-state merges"
+description = "Zero-runtime-dependency local store and legacy knowledge-state validation tooling for Dunk"
 requires-python = ">=3.10"
 dependencies = []
 

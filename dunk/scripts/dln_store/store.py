@@ -9,6 +9,7 @@ import os
 import re
 import shutil
 import socket
+import stat
 import tempfile
 import uuid
 from contextlib import contextmanager
@@ -160,12 +161,11 @@ def _lock_metadata() -> dict[str, Any]:
     }
 
 
-def _read_lock(path: Path) -> tuple[dict[str, Any] | None, str | None]:
+def _read_lock(handle: Any) -> tuple[dict[str, Any] | None, str | None]:
     try:
-        raw = path.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        return None, None
-    except OSError as exc:
+        handle.seek(0)
+        raw = handle.read().decode("utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
         return None, f"cannot read lock: {exc}"
     if not raw.strip():
         return None, None
@@ -176,6 +176,30 @@ def _read_lock(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     if not isinstance(value, dict):
         return None, "invalid lock metadata: expected object"
     return value, None
+
+
+def _open_lock(path: Path) -> Any:
+    """Open a regular lock file without following a caller-supplied symlink."""
+    try:
+        if stat.S_ISLNK(os.lstat(path).st_mode):
+            raise ValidationError(f"lock file must not be a symlink: {path}")
+    except FileNotFoundError:
+        pass
+    flags = os.O_CREAT | os.O_RDWR
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags, 0o600)
+    except OSError as exc:
+        if exc.errno == errno.ELOOP:
+            raise ValidationError(f"lock file must not be a symlink: {path}") from exc
+        raise
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise ValidationError(f"lock path must be a regular file: {path}")
+        return os.fdopen(fd, "r+b", buffering=0)
+    except BaseException:
+        os.close(fd)
+        raise
 
 
 def _lock_directory(paths: DomainPaths) -> Path:
@@ -190,15 +214,14 @@ def _lock_directory(paths: DomainPaths) -> Path:
 def domain_lock(paths: DomainPaths) -> Iterator[None]:
     """Hold a kernel-owned advisory lock; the path is never unlinked."""
     lock_directory = _lock_directory(paths)
-    fd = os.open(paths.lock, os.O_CREAT | os.O_RDWR, 0o600)
-    handle = os.fdopen(fd, "r+b", buffering=0)
+    handle = _open_lock(paths.lock)
     acquired = False
     try:
         try:
             fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             acquired = True
         except BlockingIOError as exc:
-            existing, error = _read_lock(paths.lock)
+            existing, error = _read_lock(handle)
             detail = error or json.dumps(existing, sort_keys=True)
             raise LockError(
                 f"active writer lock at {paths.lock} (status=active, metadata={detail})"
@@ -226,7 +249,9 @@ def _failpoint(name: str) -> None:
 
 
 def _load_journal(paths: DomainPaths) -> dict[str, Any]:
+    _reject_symlink(paths.transaction, "transaction directory")
     journal_path = paths.transaction / "journal.json"
+    _reject_symlink(journal_path, "transaction journal")
     try:
         value = json.loads(journal_path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
@@ -267,7 +292,22 @@ def _journal_write(paths: DomainPaths, journal: dict[str, Any]) -> None:
 
 
 def _restore_transaction(paths: DomainPaths, journal: dict[str, Any]) -> None:
+    _reject_symlink(paths.transaction, "transaction directory")
     backups = paths.transaction / "backups"
+    _reject_symlink(backups, "transaction backups directory")
+
+    # Refuse a partial rollback before changing any target when another writer/editor
+    # has installed bytes that are neither the recorded original nor our candidate.
+    for entry in journal["targets"]:
+        relative = _safe_relative(entry["path"])
+        _reject_target_symlinks(paths.directory, relative)
+        target_hash = _hash_file(paths.directory / relative)
+        original_hash = entry.get("backup_sha256") if entry["had_original"] else None
+        if target_hash not in {original_hash, entry["candidate_sha256"]}:
+            raise RecoveryRequiredError(
+                f"cannot restore {relative}: target changed outside this transaction; preserve the journal for diagnosis"
+            )
+
     for entry in journal["targets"]:
         relative = _safe_relative(entry["path"])
         target = paths.directory / relative
@@ -292,12 +332,14 @@ def _restore_transaction(paths: DomainPaths, journal: dict[str, Any]) -> None:
 
 
 def _remove_transaction(paths: DomainPaths) -> None:
+    _reject_symlink(paths.transaction, "transaction directory")
     shutil.rmtree(paths.transaction)
     _fsync_directory(paths.directory)
 
 
 def recover_transaction(paths: DomainPaths) -> str:
     """Discard uncommitted preparation or finish a validated installing transaction."""
+    _reject_symlink(paths.transaction, "transaction directory")
     if not paths.transaction.exists():
         return "none"
     if not paths.transaction.joinpath("journal.json").is_file():
@@ -323,9 +365,12 @@ def recover_transaction(paths: DomainPaths) -> str:
                 "recovery refused to overwrite it"
             )
     stage = paths.transaction / "stage"
+    _reject_symlink(stage, "transaction stage directory")
     available = True
     for entry in journal["targets"]:
         relative = _safe_relative(entry["path"])
+        _reject_target_symlinks(paths.directory, relative)
+        _reject_target_symlinks(stage, relative)
         target = paths.directory / relative
         staged = stage / relative
         expected = entry["candidate_sha256"]
@@ -358,6 +403,7 @@ def _install_transaction(
     *,
     source_preconditions: dict[str, str],
 ) -> None:
+    _reject_symlink(paths.transaction, "transaction directory")
     if paths.transaction.exists():
         raise RecoveryRequiredError(
             f"interrupted transaction exists at {paths.transaction}; run doctor --recover"
@@ -440,6 +486,8 @@ def _load_sources(paths: DomainPaths) -> tuple[dict[str, Any], bytes, list[dict[
     _reject_symlink(paths.sessions, "sessions directory")
     _reject_symlink(paths.transaction, "transaction directory")
     profile, profile_bytes = load_profile(paths.profile)
+    if profile["domain_id"] != paths.domain_id:
+        raise ValidationError("profile domain_id does not match its directory")
     try:
         events_bytes = paths.events.read_bytes()
     except FileNotFoundError as exc:
@@ -521,6 +569,7 @@ class LocalStore:
         return paths
 
     def _recover_before_write(self, paths: DomainPaths) -> str:
+        _reject_symlink(paths.transaction, "transaction directory")
         if paths.transaction.exists():
             return recover_transaction(paths)
         return "none"
@@ -667,12 +716,27 @@ class LocalStore:
                 actual = paths.directory / relative
                 if not actual.is_file() or actual.read_bytes() != expected:
                     drift.append(relative)
+            expected_receipts = {
+                relative for relative in targets if relative.startswith("sessions/")
+            }
+            if paths.sessions.is_dir():
+                for receipt in paths.sessions.rglob("*"):
+                    if receipt.is_file() or receipt.is_symlink():
+                        relative = receipt.relative_to(paths.directory).as_posix()
+                        if relative not in expected_receipts:
+                            drift.append(relative)
+            if drift:
+                raise ValidationError(
+                    "derived projection drift: "
+                    + ", ".join(sorted(set(drift)))
+                    + "; restore generated files from canonical sources"
+                )
             return {
-                "derived_drift": sorted(drift),
+                "derived_drift": [],
                 "domain_id": domain_id,
                 "event_count": len(events),
                 "revision": profile["revision"],
-                "status": "valid" if not drift else "valid-sources-derived-drift",
+                "status": "valid",
             }
 
     def list_domains(self) -> dict[str, Any]:
@@ -687,6 +751,8 @@ class LocalStore:
                     if paths.transaction.exists():
                         raise RecoveryRequiredError("recovery required")
                     profile, _ = load_profile(paths.profile)
+                    if profile["domain_id"] != directory.name:
+                        raise ValidationError("profile domain_id does not match its directory")
                 results.append(
                     {
                         "domain": profile["domain"],
@@ -709,9 +775,8 @@ class LocalStore:
     ) -> dict[str, Any]:
         paths = self._require_domain(domain_id)
         lock_directory = _lock_directory(paths)
-        fd = os.open(paths.lock, os.O_CREAT | os.O_RDWR, 0o600)
-        handle = os.fdopen(fd, "r+b", buffering=0)
-        metadata, lock_error = _read_lock(paths.lock)
+        handle = _open_lock(paths.lock)
+        metadata, lock_error = _read_lock(handle)
         lock_broken = False
         try:
             try:

@@ -4,7 +4,7 @@
 
 - **Domain:** Projection Fixture
 - **Goal:** Explain parity \| safely
-- **Stage:** `relate`
+- **Stage:** `revise`
 - **Revision:** 1
 - **Generation:** 0
 - **Next review:** not scheduled
@@ -13,14 +13,14 @@
 
 | Subject | Status | Latest independent | Latest supported | Retrieval | Transfer |
 |---|---|---|---|---|---|
-| Parity \| Bounds<br>&lt;!-- KS:start --&gt; | independent-pass | pass / relate | partial / acquire | pass after 7 day(s) | 1 novel task(s) |
+| Parity \| Bounds<br>&lt;!-- KS:start --&gt; | needs-work | partial / predict | partial / acquire | pass after 7 day(s) | 2 novel task(s) |
 
 ## Calibration
 
-- Paired predictions: 2
-- Mean confidence: 0.750
-- Mean normalized score: 0.750
-- Mean confidence minus score: 0.000
+- Paired predictions: 3
+- Mean confidence: 0.733
+- Mean normalized score: 0.767
+- Mean confidence minus score: -0.033
 
 ## Current Model
 
@@ -39,4 +39,4 @@ No legacy snapshot imported.
 
 ## Next Action
 
-Abstract parity across instruments
+Test the revised model on a new instrument

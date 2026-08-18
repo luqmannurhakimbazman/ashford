@@ -9,7 +9,8 @@
 
 | Subject | Operation | Outcome | Novelty |
 |---|---|---|---|
-| Parity \| Bounds<br>&lt;!-- KS:start --&gt; | predict | partial (6/10) | novel |
+| Parity \| Bounds<br>&lt;!-- KS:start --&gt; | acquire | pass (8/10) | repeat |
+| Parity \| Bounds<br>&lt;!-- KS:start --&gt; | discriminate | pass | variant |
 
 ## Supported Performance
 
@@ -19,8 +20,8 @@
 
 ## Prediction Error and Model Revision
 
-- **Parity \| Bounds<br>&lt;!-- KS:start --&gt;:** partial prediction
-- **revise:** Bounds \| parity<br>&lt;!-- KS:end --&gt; — Prediction missed financing costs
+Prediction error was not measured in this session.
+No model revision was recorded.
 
 ## Delayed Retrieval
 
@@ -28,9 +29,9 @@ Delayed retrieval was not due or not measured in this session.
 
 ## Calibration
 
-- **Parity \| Bounds<br>&lt;!-- KS:start --&gt;:** confidence 0.800, normalized score 0.600, gap 0.200.
+- **Parity \| Bounds<br>&lt;!-- KS:start --&gt;:** confidence 0.800, normalized score 0.800, gap 0.000.
 
 ## Next Action and Review
 
-- **Next action:** Retrieve on a new market setup
+- **Next action:** Compare parity across a novel instrument
 - **Next review:** 2026-08-08

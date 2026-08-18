@@ -64,7 +64,14 @@ jobs:
           uv python install 3.10.20
           uv sync --project dunk/scripts --python 3.10.20 --frozen
 
-      - name: Run Python tests
+      - name: Run Dunk local-store, contract, recovery, projection, and legacy tests
+        run: uv run --project dunk/scripts --python 3.10.20 --frozen pytest dunk/scripts/tests
+
+      - name: Verify deterministic fixture rebuilds
         run: |
-          uv run --project dunk/scripts --python 3.10.20 --frozen pytest dunk/scripts/tests/test_ks_merge.py
-          uv run --project dunk/scripts --python 3.10.20 --frozen pytest tools/dunk-migrations/test_migrate_docker.py
+          uv run --project dunk/scripts --python 3.10.20 --frozen pytest \
+            dunk/scripts/tests/test_local_projections.py::test_fixture_projections_match_byte_for_byte_snapshots \
+            dunk/scripts/tests/test_local_projections.py::test_rebuild_from_fixture_recreates_only_derived_files
+
+      - name: Run repository migration tests
+        run: uv run --project dunk/scripts --python 3.10.20 --frozen pytest tools/dunk-migrations/test_migrate_docker.py

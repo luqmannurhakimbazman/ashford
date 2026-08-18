@@ -20,7 +20,7 @@ The vault root resolves in this order: `--root`, `DLN_VAULT_ROOT`, then `${CLAUD
 
 ## Ownership
 
-`profile.yaml` uses the JSON-compatible YAML subset accepted by the stdlib parser. User-owned fields are `domain`, `goal`, `syllabus`, `annotations`, `review_preferences`, and `exam`. Store-owned fields are `schema_version`, `domain_id`, and `revision`; never patch them.
+`profile.yaml` uses the JSON-compatible YAML subset accepted by the stdlib parser. The learner chooses `domain` at initialization; it is then immutable because it determines the directory identity. User-editable fields are `goal`, `syllabus`, `annotations`, `review_preferences`, and `exam`. Store-owned fields are `schema_version`, `domain_id`, and `revision`; never patch them. To rename a domain, initialize a new domain instead of renaming its directory or profile.
 
 `events.jsonl` is append-only. Each line is one canonical JSON event. Event IDs and session IDs are portable identifiers: letters, digits, dot, underscore, or hyphen, at most 128 characters. Timestamps are UTC RFC 3339 strings ending in `Z`.
 
@@ -48,7 +48,7 @@ Required fields:
 - `outcome`: `pass | partial | fail`
 - `assistance`: `{level: none | prompt | worked, hint_count}`
 
-Optional paired fields: `score` and `max_score`; `confidence_before` requires both and ranges from 0 to 1. `retrieval` is `{prior_event_id, scheduled_date, observed_delay_days}` and must cite an earlier assessment of the same subject. `response_time_ms` is allowed only when explicitly timed. Independent evidence requires `assistance: {"level":"none","hint_count":0}`.
+Optional paired fields: `score` and `max_score`; `confidence_before` requires both and ranges from 0 to 1. `retrieval` is `{prior_event_id, scheduled_date, observed_delay_days}` and must cite an assessment of the same subject in the current reset generation. The attempt must occur on a later UTC date, `observed_delay_days` must equal the UTC calendar-date difference, and the scheduled date must fall after the prior assessment and no later than the retrieval attempt. `response_time_ms` is allowed only when explicitly timed. Independent evidence requires `assistance: {"level":"none","hint_count":0}`.
 
 ### `model_revision`
 
@@ -56,7 +56,7 @@ Required: `triggering_prediction_event_ids`, `model`, `decision`, and `rationale
 
 ### `stage_transition`
 
-Required: `from`, `to`, `rubric_id`, non-empty `assessment_event_ids`, and `decision`. Stages are `acquire | relate | revise`. Every cited assessment must already exist and be independent.
+Required: `from`, `to`, `rubric_id`, non-empty `assessment_event_ids`, and `decision`. Stages are `acquire | relate | revise`. Every cited assessment must already exist, be independent, and belong to the current reset generation. Acquire → Relate requires passing `acquire`/`discriminate` evidence. Relate → Revise requires passing `relate`/`abstract` evidence including a novel task. Revise → Acquire/Relate requires partial or failed `predict` evidence.
 
 ### `session_completed`
 
@@ -72,4 +72,4 @@ Required: `next_action`, nullable `next_review_date`, `evidence_event_ids`, and 
 
 `state.json` exposes the current `revision`, `stage`, `subjects`, `current_model`, calibration aggregate, completed receipt index, review date/action, profile fields, source hashes, reset generation, exam archive, and legacy claims.
 
-Supported performance never overwrites the latest independent result. Transfer increments only for `novel` assessments. Delayed retrieval becomes measured only when `observed_delay_days > 0`. Calibration includes only paired pre-answer confidence and score. Imported claims never satisfy gates.
+Supported performance never overwrites the latest independent result. Transfer increments only for `novel` assessments. Delayed retrieval becomes measured only after a timestamp-consistent, positive calendar-day delay in the current generation. Calibration includes only paired pre-answer confidence and score. Imported claims never satisfy gates.

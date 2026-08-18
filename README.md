@@ -8,7 +8,7 @@ A Claude Code marketplace containing three separately installable plugins for de
 |---|---:|---|---|
 | `egg` | 1.1.0 | 5 commands, 2 agents, 12 skills, hooks | context7, git, chrome-devtools, Exa |
 | `aerion` | 1.0.0 | 1 command, 1 skill | Gmail, configurable Google Sheets |
-| `dunk` | 1.0.0 | 2 agents, 5 skills, hooks | context7, Exa, Notion |
+| `dunk` | 1.0.0 | 1 agent, 5 skills | context7, Exa |
 
 Installing one plugin does not install the other two.
 
@@ -31,7 +31,7 @@ Claude Code prompts for each manifest's `userConfig` values when the plugin is e
 - **dunk:** `exa_api_key` (sensitive; stored in secure storage).
 - **aerion:** required `sheets_mcp_url`, the HTTPS endpoint of your Google Sheets MCP deployment. Aerion is disabled by default until configured.
 
-The MCP definitions substitute these values as `${user_config.exa_api_key}` and `${user_config.sheets_mcp_url}`. Gmail and Notion use their hosted HTTP MCP endpoints and may request their own authentication when first used. The local MCP servers require `npx`; egg's git server also requires `uvx`.
+The MCP definitions substitute these values as `${user_config.exa_api_key}` and `${user_config.sheets_mcp_url}`. Gmail uses its hosted HTTP MCP endpoint and may request authentication when first used. Dunk does not require Notion or Obsidian authentication. The local MCP servers require `npx`; egg's git server also requires `uvx`.
 
 Plugin commands and directly invoked skills are namespaced, for example `/egg:commit`, `/egg:leetcode-teacher`, and `/aerion:check-apps`. Skills may also activate automatically from their descriptions.
 
@@ -76,11 +76,15 @@ Together they classify job-status email and synchronize application stages throu
 
 ### dunk
 
-**Agents:** `dln-sync`, `dln-syllabus`
+**Agent:** `dln-syllabus`
 
 **Skills:** `dln`, `dln-dot`, `dln-linear`, `dln-network`, `dln-compress`
 
-The `dln` skill orchestrates the Dot–Linear–Network learning phases; its internal agents handle curriculum research and Notion ledger synchronization.
+The `dln` skill is a DLN-inspired tutoring scaffold organized as acquire/discriminate, relate/abstract, and predict/revise/compress. Dunk records structured evidence in a local append-only event log and generates an Obsidian-readable dashboard plus one Session Receipt per completed session.
+
+Set `DLN_VAULT_ROOT` to the directory that should contain `domains/`, or pass `--root` to the store CLI. When Claude Code exposes `${CLAUDE_PLUGIN_DATA}` to the parent Bash environment, Dunk otherwise defaults to `${CLAUDE_PLUGIN_DATA}/dln-vault`; if it does not, the CLI stops with an actionable configuration error rather than choosing an implicit home directory.
+
+Open the configured root (or its `domains/` directory) directly as an Obsidian vault—no Obsidian plugin, MCP server, or database is required. See [`dunk/LOCAL_STORAGE.md`](dunk/LOCAL_STORAGE.md) for canonical files, backup/recovery, and legacy migration.
 
 ## Resume and interview workflow
 
@@ -102,9 +106,9 @@ Egg registers:
 - Two `PreCompact` hooks: snapshot active LeetCode and markets sessions.
 - Two `Stop` hooks: require profile/ledger write-back after substantive teaching sessions.
 
-Dunk registers a `PreToolUse` hook that validates knowledge-state markers before Notion page updates.
+Dunk has no persistence hook. Its canonical per-domain files are user-owned `profile.yaml` and append-only `events.jsonl`; generated `state.json`, `dashboard.md`, and `sessions/<session-id>.md` can be rebuilt at any time.
 
-Persistent learner files live under the plugin-scoped `${CLAUDE_PLUGIN_DATA}` directory, not the replaceable `${CLAUDE_PLUGIN_ROOT}` install cache. Egg performs a one-time, non-overwriting migration of its LeetCode and markets files from the legacy `~/.local/share/claude/` path.
+Persistent learner files must live outside the replaceable `${CLAUDE_PLUGIN_ROOT}` install cache. Dunk uses an explicit `DLN_VAULT_ROOT` when configured and can use `${CLAUDE_PLUGIN_DATA}/dln-vault` when that variable is available to the invoking Bash process. Egg performs a one-time, non-overwriting migration of its LeetCode and markets files from the legacy `~/.local/share/claude/` path.
 
 ## MCP templates
 
@@ -134,7 +138,7 @@ Each plugin keeps its manifest at `<plugin>/.claude-plugin/plugin.json`; discove
 
 ## Validation
 
-CI validates the marketplace and every plugin separately, checks JSON and shell files, runs ShellCheck, and executes both Python test suites. Useful local commands are:
+CI validates the marketplace and every plugin separately, checks JSON and shell files, runs ShellCheck, and executes Dunk's complete local-store/contract/recovery/projection/legacy suite plus the repository migration tests. Useful local commands are:
 
 ```bash
 claude plugin validate . --strict
@@ -142,7 +146,7 @@ claude plugin validate ./egg --strict
 claude plugin validate ./aerion --strict
 claude plugin validate ./dunk --strict
 
-uv run --project dunk/scripts --python 3.10 --frozen pytest dunk/scripts/tests/test_ks_merge.py
+uv run --project dunk/scripts --python 3.10 --frozen pytest dunk/scripts/tests
 uv run --project dunk/scripts --python 3.10 --frozen pytest tools/dunk-migrations/test_migrate_docker.py
 ```
 

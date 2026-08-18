@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from copy import deepcopy
 import subprocess
 import sys
 from pathlib import Path
@@ -73,27 +74,27 @@ def test_reducer_separates_evidence_retrieval_transfer_and_calibration() -> None
     )
     subject = state["subjects"][0]
     assert subject["supported"]["event_id"] == "supported-1"
-    assert subject["independent"]["event_id"] == "retrieve-1"
-    assert subject["status"] == "independent-pass"
+    assert subject["independent"]["event_id"] == "predict-1"
+    assert subject["status"] == "needs-work"
     assert subject["retrieval"] == {
         "count": 1,
         "latest": {
             "delay_days": 7,
-            "event_id": "retrieve-1",
+            "event_id": "relate-1",
             "outcome": "pass",
             "scheduled_date": "2026-08-08",
         },
         "status": "measured",
     }
-    assert subject["transfer"]["count"] == 1
+    assert subject["transfer"]["count"] == 2
     assert state["calibration"] == {
-        "count": 2,
-        "mean_confidence": 0.75,
-        "mean_gap": 0.0,
-        "mean_normalized_score": 0.75,
+        "count": 3,
+        "mean_confidence": 0.733333,
+        "mean_gap": -0.033333,
+        "mean_normalized_score": 0.766667,
         "status": "measured",
     }
-    assert state["stage"] == "relate"
+    assert state["stage"] == "revise"
 
 
 def test_receipts_have_canonical_sections_and_escape_markers() -> None:
@@ -107,12 +108,36 @@ def test_receipts_have_canonical_sections_and_escape_markers() -> None:
     assert "## Calibration" in first
     assert "## Next Action and Review" in first
     assert "Parity \\| Bounds<br>&lt;!-- KS:start --&gt;" in first
-    assert "Bounds \\| parity<br>&lt;!-- KS:end --&gt;" in first
     assert "Delayed retrieval was not due or not measured" in first
 
     second = receipts["sessions/session-2.md"].decode()
+    assert "Bounds \\| parity<br>&lt;!-- KS:end --&gt;" in second
+    assert "partial (6/10) prediction" in second
     assert "after 7 day(s)" in second
     assert "next review:** not scheduled" in second.casefold()
+
+
+def test_stage_operations_and_noninitial_revisions_are_enforced() -> None:
+    profile, profile_bytes, events, events_bytes = load_fixture()
+
+    wrong_operation = deepcopy(events)
+    wrong_operation[0]["operation"] = "predict"
+    with pytest.raises(ValidationError, match="not valid in stage 'acquire'"):
+        project_state(
+            profile,
+            wrong_operation,
+            profile_bytes=profile_bytes,
+            events_bytes=events_bytes,
+        )
+
+    early_revision = [deepcopy(events[0]), deepcopy(events[8])]
+    with pytest.raises(ValidationError, match="non-initial model revision requires stage 'revise'"):
+        project_state(
+            profile,
+            early_revision,
+            profile_bytes=profile_bytes,
+            events_bytes=b"{}\n{}\n",
+        )
 
 
 def test_all_remaining_event_variants_reduce_without_becoming_evidence() -> None:
@@ -188,7 +213,7 @@ def test_reference_integrity_rejects_non_prediction_and_supported_gate() -> None
         "rationale": "bad ref",
         "schema_version": 1,
         "session_id": "session-3",
-        "triggering_prediction_event_ids": ["retrieve-1"],
+        "triggering_prediction_event_ids": ["relate-1"],
     }
     with pytest.raises(ValidationError, match="not a prediction"):
         project_state(
@@ -202,13 +227,13 @@ def test_reference_integrity_rejects_non_prediction_and_supported_gate() -> None
         "assessment_event_ids": ["supported-1"],
         "decision": "unsupported",
         "event_id": "bad-transition",
-        "from": "relate",
+        "from": "revise",
         "kind": "stage_transition",
         "occurred_at": "2026-08-09T00:00:00Z",
         "rubric_id": "gate",
         "schema_version": 1,
         "session_id": "session-3",
-        "to": "revise",
+        "to": "acquire",
     }
     with pytest.raises(ValidationError, match="must be independent"):
         project_state(
@@ -216,6 +241,100 @@ def test_reference_integrity_rejects_non_prediction_and_supported_gate() -> None
             events + [transition],
             profile_bytes=profile_bytes,
             events_bytes=events_bytes + b"{}\n",
+        )
+
+
+def test_stage_gates_reject_failed_wrong_operation_and_prior_generation_evidence() -> None:
+    profile, profile_bytes, events, _ = load_fixture()
+
+    wrong_operation = [dict(event) for event in events[:4]]
+    wrong_operation[1] = {**wrong_operation[1], "operation": "predict"}
+    with pytest.raises(ValidationError, match="not valid in stage 'acquire'"):
+        project_state(
+            profile,
+            wrong_operation,
+            profile_bytes=profile_bytes,
+            events_bytes=b"wrong-operation",
+        )
+
+    failed = [dict(event) for event in events[:4]]
+    failed[1] = {**failed[1], "outcome": "fail"}
+    with pytest.raises(ValidationError, match="acquire-to-relate gate"):
+        project_state(
+            profile,
+            failed,
+            profile_bytes=profile_bytes,
+            events_bytes=b"failed-gate",
+        )
+
+    reset = {
+        "event_id": "reset-gate-test",
+        "kind": "domain_reset",
+        "occurred_at": "2026-08-02T00:00:00Z",
+        "reason": "new generation",
+        "schema_version": 1,
+        "session_id": "admin-gate-test",
+    }
+    stale_gate = {
+        **events[3],
+        "event_id": "stale-gate-test",
+        "occurred_at": "2026-08-02T00:01:00Z",
+        "session_id": "session-stale-gate",
+    }
+    with pytest.raises(ValidationError, match="earlier generation"):
+        project_state(
+            profile,
+            events[:4] + [reset, stale_gate],
+            profile_bytes=profile_bytes,
+            events_bytes=b"stale-generation",
+        )
+
+
+def test_retrieval_requires_coherent_calendar_delay_and_schedule() -> None:
+    profile, profile_bytes, events, _ = load_fixture()
+    prior = events[1]
+    gate = {
+        **events[3],
+        "assessment_event_ids": [prior["event_id"]],
+        "occurred_at": "2026-08-01T09:05:00Z",
+    }
+    retrieval = dict(events[5])
+
+    same_day = {
+        **retrieval,
+        "occurred_at": "2026-08-01T10:00:00Z",
+        "retrieval": {**retrieval["retrieval"], "observed_delay_days": 0},
+    }
+    with pytest.raises(ValidationError, match="later UTC date"):
+        project_state(
+            profile,
+            [prior, gate, same_day],
+            profile_bytes=profile_bytes,
+            events_bytes=b"same-day",
+        )
+
+    wrong_delay = {
+        **retrieval,
+        "retrieval": {**retrieval["retrieval"], "observed_delay_days": 6},
+    }
+    with pytest.raises(ValidationError, match="expected 7"):
+        project_state(
+            profile,
+            [prior, gate, wrong_delay],
+            profile_bytes=profile_bytes,
+            events_bytes=b"wrong-delay",
+        )
+
+    future_schedule = {
+        **retrieval,
+        "retrieval": {**retrieval["retrieval"], "scheduled_date": "2026-08-09"},
+    }
+    with pytest.raises(ValidationError, match="scheduled_date"):
+        project_state(
+            profile,
+            [prior, gate, future_schedule],
+            profile_bytes=profile_bytes,
+            events_bytes=b"future-schedule",
         )
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import date, datetime
 from typing import Any
 
 from .schema import ValidationError, sha256_bytes, validate_event, validate_profile
@@ -11,6 +12,18 @@ OUTCOME_LABEL = {
     "pass": "independent-pass",
     "partial": "needs-work",
     "fail": "needs-work",
+}
+
+STAGE_OPERATIONS = {
+    "acquire": {"acquire", "discriminate"},
+    "relate": {"relate", "abstract"},
+    "revise": {"predict"},
+}
+
+STAGE_TRANSITIONS = {
+    "acquire": {"relate"},
+    "relate": {"revise"},
+    "revise": {"acquire", "relate"},
 }
 
 
@@ -51,6 +64,7 @@ def project_state(
     """Validate references and reduce sources to a byte-stable state object."""
     validate_profile(profile)
     event_index: dict[str, dict[str, Any]] = {}
+    event_generation: dict[str, int] = {}
     completed_sessions: set[str] = set()
     completed_index: list[dict[str, Any]] = []
     archived_exams: list[dict[str, Any]] = []
@@ -76,6 +90,12 @@ def project_state(
         kind = event["kind"]
 
         if kind == "assessment":
+            if event["operation"] not in STAGE_OPERATIONS[stage]:
+                expected = ", ".join(sorted(STAGE_OPERATIONS[stage]))
+                raise ValidationError(
+                    f"events[{position}].operation: {event['operation']!r} is not valid in "
+                    f"stage {stage!r}; expected one of {expected}"
+                )
             if "retrieval" in event:
                 prior = _reference(
                     event_index,
@@ -83,9 +103,31 @@ def project_state(
                     "assessment",
                     f"events[{position}].retrieval",
                 )
+                prior_id = event["retrieval"]["prior_event_id"]
+                if event_generation[prior_id] != generation:
+                    raise ValidationError(
+                        f"events[{position}].retrieval: prior assessment belongs to an earlier generation"
+                    )
                 if prior["subject"]["id"] != event["subject"]["id"]:
                     raise ValidationError(
                         f"events[{position}].retrieval: prior assessment subject differs"
+                    )
+                prior_at = datetime.fromisoformat(prior["occurred_at"][:-1] + "+00:00")
+                current_at = datetime.fromisoformat(event["occurred_at"][:-1] + "+00:00")
+                calendar_delay = (current_at.date() - prior_at.date()).days
+                retrieval = event["retrieval"]
+                if calendar_delay <= 0:
+                    raise ValidationError(
+                        f"events[{position}].retrieval: assessment must occur on a later UTC date"
+                    )
+                if retrieval["observed_delay_days"] != calendar_delay:
+                    raise ValidationError(
+                        f"events[{position}].retrieval.observed_delay_days: expected {calendar_delay} from timestamps"
+                    )
+                scheduled = date.fromisoformat(retrieval["scheduled_date"])
+                if not (prior_at.date() < scheduled <= current_at.date()):
+                    raise ValidationError(
+                        f"events[{position}].retrieval.scheduled_date: must be after the prior assessment and no later than this assessment"
                     )
             subject_id = event["subject"]["id"]
             subject = subjects.setdefault(
@@ -134,10 +176,19 @@ def project_state(
                 calibration_pairs.append((float(event["confidence_before"]), normalized_score))
 
         elif kind == "model_revision":
+            if not event.get("initial_model", False) and stage != "revise":
+                raise ValidationError(
+                    f"events[{position}]: non-initial model revision requires stage 'revise', "
+                    f"current stage is {stage!r}"
+                )
             for trigger_id in event["triggering_prediction_event_ids"]:
                 trigger = _reference(
                     event_index, trigger_id, "assessment", f"events[{position}].triggering_prediction_event_ids"
                 )
+                if event_generation[trigger_id] != generation:
+                    raise ValidationError(
+                        f"events[{position}]: model revision trigger {trigger_id!r} belongs to an earlier generation"
+                    )
                 if trigger["operation"] != "predict":
                     raise ValidationError(
                         f"events[{position}]: model revision trigger {trigger_id!r} is not a prediction"
@@ -147,6 +198,10 @@ def project_state(
                 _reference(
                     event_index, prior_id, "model_revision", f"events[{position}].prior_model_revision_event_id"
                 )
+                if event_generation[prior_id] != generation:
+                    raise ValidationError(
+                        f"events[{position}].prior_model_revision_event_id: prior model belongs to an earlier generation"
+                    )
             current_model = {
                 "decision": event["decision"],
                 "event_id": event_id,
@@ -164,13 +219,50 @@ def project_state(
                 raise ValidationError(
                     f"events[{position}].from: expected current stage {stage!r}"
                 )
+            if event["to"] not in STAGE_TRANSITIONS[stage]:
+                expected = ", ".join(sorted(STAGE_TRANSITIONS[stage]))
+                raise ValidationError(
+                    f"events[{position}].to: transition from {stage!r} must target one of {expected}"
+                )
+            assessments: list[dict[str, Any]] = []
             for assessment_id in event["assessment_event_ids"]:
                 assessment = _reference(
                     event_index, assessment_id, "assessment", f"events[{position}].assessment_event_ids"
                 )
+                if event_generation[assessment_id] != generation:
+                    raise ValidationError(
+                        f"events[{position}]: stage transition evidence belongs to an earlier generation"
+                    )
                 if assessment["evidence_mode"] != "independent":
                     raise ValidationError(
                         f"events[{position}]: stage transition evidence must be independent"
+                    )
+                if assessment["operation"] not in STAGE_OPERATIONS[stage]:
+                    raise ValidationError(
+                        f"events[{position}]: transition evidence {assessment_id!r} uses "
+                        f"operation {assessment['operation']!r}, not stage {stage!r} evidence"
+                    )
+                assessments.append(assessment)
+
+            transition = (event["from"], event["to"])
+            if transition == ("acquire", "relate"):
+                if any(
+                    assessment["outcome"] != "pass" for assessment in assessments
+                ):
+                    raise ValidationError(
+                        f"events[{position}]: acquire-to-relate gate requires passing independent acquire/discriminate evidence"
+                    )
+            elif transition == ("relate", "revise"):
+                if any(assessment["outcome"] != "pass" for assessment in assessments) or not any(
+                    assessment["novelty"] == "novel" for assessment in assessments
+                ):
+                    raise ValidationError(
+                        f"events[{position}]: relate-to-revise gate requires passing independent relate/abstract evidence including a novel task"
+                    )
+            elif transition[0] == "revise":
+                if any(assessment["outcome"] == "pass" for assessment in assessments):
+                    raise ValidationError(
+                        f"events[{position}]: revise fallback requires independent partial/failed prediction evidence"
                     )
             stage = event["to"]
 
@@ -232,6 +324,7 @@ def project_state(
             )
 
         event_index[event_id] = event
+        event_generation[event_id] = generation
 
     subject_list: list[dict[str, Any]] = []
     for subject_id in sorted(subjects):

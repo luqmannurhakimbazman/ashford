@@ -201,6 +201,20 @@ def test_profile_patch_ownership_and_json_compatible_yaml_diagnostic(tmp_path: P
     assert result.returncode == 2
     assert "cannot modify system" in error(result)["message"]
 
+    rename = write_request(tmp_path, {"profile_patch": {"domain": "Renamed domain"}}, "rename.json")
+    result = run_cli(
+        tmp_path,
+        "commit",
+        "--domain-id",
+        domain_id,
+        "--expected-revision",
+        "0",
+        "--request",
+        str(rename),
+    )
+    assert result.returncode == 2
+    assert "cannot modify system" in error(result)["message"]
+
     patch = write_request(
         tmp_path,
         {"profile_patch": {"goal": "Use parity", "syllabus": ["Parity", "Greeks"]}},
@@ -354,6 +368,33 @@ def test_completed_session_is_terminal_and_failure_preserves_revision(tmp_path: 
     assert result.returncode == 2
     assert "already completed" in error(result)["message"]
     assert canonical_tree(directory) == snapshot
+
+
+def test_validate_fails_for_modified_missing_and_orphaned_projections(tmp_path: Path) -> None:
+    domain_id, directory = init_domain(tmp_path)
+    valid = run_cli(tmp_path, "validate", "--domain-id", domain_id)
+    assert valid.returncode == 0, valid.stderr
+    assert output(valid)["status"] == "valid"
+
+    directory.joinpath("dashboard.md").write_text("drift\n", encoding="utf-8")
+    modified = run_cli(tmp_path, "validate", "--domain-id", domain_id)
+    assert modified.returncode == 2
+    assert "dashboard.md" in error(modified)["message"]
+    assert run_cli(tmp_path, "rebuild", "--domain-id", domain_id).returncode == 0
+
+    directory.joinpath("state.json").unlink()
+    missing = run_cli(tmp_path, "validate", "--domain-id", domain_id)
+    assert missing.returncode == 2
+    assert "state.json" in error(missing)["message"]
+    assert run_cli(tmp_path, "rebuild", "--domain-id", domain_id).returncode == 0
+
+    orphan = directory / "sessions" / "orphan.md"
+    orphan.write_text("not canonical\n", encoding="utf-8")
+    unexpected = run_cli(tmp_path, "validate", "--domain-id", domain_id)
+    assert unexpected.returncode == 2
+    assert "sessions/orphan.md" in error(unexpected)["message"]
+    orphan.unlink()
+    assert run_cli(tmp_path, "validate", "--domain-id", domain_id).returncode == 0
 
 
 def test_malformed_and_truncated_jsonl_reports_line_and_offset(tmp_path: Path) -> None:
