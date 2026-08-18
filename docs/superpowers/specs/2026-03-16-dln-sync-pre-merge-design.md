@@ -1,5 +1,7 @@
 # Move KS merge out of dln-sync subagent
 
+> **Superseded by Dunk 2.0.0.** Historical record of the removed `dln-sync`/Notion remote path; the local-first filesystem store in `dunk/skills/dln/references/local-persistence-protocol.md` is now authoritative.
+
 **Date:** 2026-03-16
 **Status:** Approved
 **Scope:** dln-sync agent, phase skills (dln-dot, dln-linear, dln-network), shared references

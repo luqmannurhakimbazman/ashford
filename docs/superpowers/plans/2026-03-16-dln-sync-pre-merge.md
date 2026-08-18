@@ -1,5 +1,7 @@
 # DLN Sync Pre-Merge Implementation Plan
 
+> **Superseded by Dunk 2.0.0.** Historical record of the removed `dln-sync`/Notion remote path; the local-first filesystem store in `dunk/skills/dln/references/local-persistence-protocol.md` is now authoritative.
+
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Move KS normalize + merge steps out of the dln-sync subagent into the parent conversation so Bash/Write permissions are no longer needed inside the subagent sandbox.
