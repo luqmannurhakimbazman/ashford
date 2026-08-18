@@ -21,6 +21,7 @@ from dln_store.render import (  # noqa: E402
     markdown_text,
     render_all_receipts,
     render_dashboard,
+    render_receipt,
 )
 from dln_store.schema import (  # noqa: E402
     ValidationError,
@@ -386,6 +387,16 @@ def test_delayed_retrieval_is_satisfied_only_by_an_independent_pass() -> None:
     assert supported_subject["status"] == "needs-retrieval"
     assert "fail after 7 day(s) (supported)" in render_dashboard(supported_state).decode()
 
+    supported_completion = {
+        **events[4],
+        "evidence_event_ids": [prior["event_id"], supported_fail["event_id"]],
+        "session_id": supported_fail["session_id"],
+    }
+    supported_receipt = render_receipt(
+        profile, [prior, gate, supported_fail], supported_completion
+    ).decode()
+    assert "fail after 7 day(s) (supported) (scheduled 2026-08-08)." in supported_receipt
+
     independent_fail = {
         **template,
         "event_id": "independent-failed-retrieval",
@@ -411,6 +422,15 @@ def test_delayed_retrieval_is_satisfied_only_by_an_independent_pass() -> None:
     passed_subject = passed_state["subjects"][0]
     assert passed_subject["retrieval"]["satisfied_by"] == template["event_id"]
     assert passed_subject["status"] == "independent-pass"
+
+    passed_completion = {
+        **events[4],
+        "evidence_event_ids": [prior["event_id"], template["event_id"]],
+        "session_id": template["session_id"],
+    }
+    passed_receipt = render_receipt(profile, [prior, gate, template], passed_completion).decode()
+    assert "pass after 7 day(s) (scheduled 2026-08-08)." in passed_receipt
+    assert "(supported)" not in passed_receipt
 
     later_supported_fail = {
         **supported_fail,

@@ -15,7 +15,7 @@ Receipt schema version 1 contains:
 1. **Independent Evidence** — independently attempted assessments, with subject, operation, outcome, and novelty.
 2. **Supported Performance** — prompted/worked assessments, with assistance shown explicitly.
 3. **Prediction Error and Model Revision** — recorded prediction outcomes and any cited learner model revisions.
-4. **Delayed Retrieval** — only linked retrieval attempts with a positive observed delay; otherwise says it was not due or not measured.
+4. **Delayed Retrieval** — only linked retrieval attempts with a positive observed delay, marked `(supported)` when the attempt was not independent; otherwise says it was not due or not measured.
 5. **Calibration** — only pre-answer confidence paired with a numeric result; otherwise says it was not measured.
 6. **Next Action and Review** — the exact next action and nullable review date committed in `session_completed`.
 

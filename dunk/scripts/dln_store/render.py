@@ -24,6 +24,10 @@ def _outcome(event: dict[str, Any]) -> str:
     return markdown_text(result)
 
 
+def _retrieval_marker(evidence_mode: str) -> str:
+    return "" if evidence_mode == "independent" else " (supported)"
+
+
 def render_dashboard(state: dict[str, Any]) -> bytes:
     """Render the domain dashboard as Obsidian-readable Markdown."""
     lines = [
@@ -60,9 +64,8 @@ def render_dashboard(state: dict[str, Any]) -> bytes:
                 latest_retrieval = retrieval["latest"]
                 retrieval_text = (
                     f"{latest_retrieval['outcome']} after {latest_retrieval['delay_days']} day(s)"
+                    f"{_retrieval_marker(latest_retrieval['evidence_mode'])}"
                 )
-                if latest_retrieval["evidence_mode"] != "independent":
-                    retrieval_text += " (supported)"
             else:
                 retrieval_text = "not measured"
             transfer = subject["transfer"]
@@ -265,6 +268,7 @@ def render_receipt(
             lines.append(
                 f"- **{markdown_text(event['subject']['label'])}:** {_outcome(event)} after "
                 f"{markdown_text(retrieval['observed_delay_days'])} day(s)"
+                f"{_retrieval_marker(event['evidence_mode'])}"
                 f" (scheduled {markdown_text(retrieval['scheduled_date'])})."
             )
     else:

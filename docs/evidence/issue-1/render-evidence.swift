@@ -37,6 +37,20 @@ let accent = NSColor(calibratedRed: 0.66, green: 0.52, blue: 0.90, alpha: 1)
 let green = NSColor(calibratedRed: 0.43, green: 0.82, blue: 0.59, alpha: 1)
 let amber = NSColor(calibratedRed: 0.95, green: 0.72, blue: 0.38, alpha: 1)
 
+func beginCanvas() -> NSBitmapImageRep {
+    let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(width), pixelsHigh: Int(height), bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .calibratedRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+    rep.size = NSSize(width: width, height: height)
+    NSGraphicsContext.saveGraphicsState()
+    NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)!
+    return rep
+}
+
+func endCanvas(_ rep: NSBitmapImageRep, output: String) throws {
+    NSGraphicsContext.current?.flushGraphics()
+    NSGraphicsContext.restoreGraphicsState()
+    try rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: output))
+}
+
 func fill(_ color: NSColor, _ rect: NSRect) {
     color.setFill(); NSBezierPath(rect: rect).fill()
 }
@@ -77,8 +91,7 @@ func sidebar(selected: String) {
 }
 
 func drawMarkdown(_ markdown: String, selected: String, output: String) throws {
-    let image = NSImage(size: NSSize(width: width, height: height))
-    image.lockFocus()
+    let rep = beginCanvas()
     fill(bg, NSRect(x: 0, y: 0, width: width, height: height))
     sidebar(selected: selected)
     fill(editor, NSRect(x: sidebarWidth, y: 0, width: width - sidebarWidth, height: height))
@@ -120,14 +133,11 @@ func drawMarkdown(_ markdown: String, selected: String, output: String) throws {
         if y < 42 { break }
     }
     draw("Actual dln-store fixture output • rendered \(renderDate)", rect: NSRect(x: x, y: 14, width: contentWidth, height: 20), font: .systemFont(ofSize: 11), color: muted, alignment: .right)
-    image.unlockFocus()
-    let rep = NSBitmapImageRep(data: image.tiffRepresentation!)!
-    try rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: output))
+    try endCanvas(rep, output: output)
 }
 
 func drawTerminal(_ transcript: String, output: String) throws {
-    let image = NSImage(size: NSSize(width: width, height: height))
-    image.lockFocus()
+    let rep = beginCanvas()
     fill(NSColor(calibratedRed: 0.055, green: 0.065, blue: 0.080, alpha: 1), NSRect(x: 0, y: 0, width: width, height: height))
     fill(NSColor(calibratedRed: 0.12, green: 0.13, blue: 0.15, alpha: 1), NSRect(x: 0, y: 944, width: width, height: 56))
     let colors = [NSColor.systemRed, NSColor.systemYellow, NSColor.systemGreen]
@@ -144,9 +154,7 @@ func drawTerminal(_ transcript: String, output: String) throws {
         y -= 22
         if y < 24 { break }
     }
-    image.unlockFocus()
-    let rep = NSBitmapImageRep(data: image.tiffRepresentation!)!
-    try rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: output))
+    try endCanvas(rep, output: output)
 }
 
 try drawMarkdown(dashboard, selected: "dashboard.md", output: outputDir + "/obsidian-dashboard.png")

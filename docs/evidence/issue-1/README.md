@@ -107,4 +107,4 @@ swift docs/evidence/issue-1/render-evidence.swift \
   "$(date -u +%Y-%m-%d)"
 ```
 
-AppKit/font differences may change PNG bytes without changing the generated Markdown. On other platforms, open `$VAULT` or `$VAULT/domains` in Obsidian and capture the same generated files, or inspect them with any Markdown viewer.
+The renderer draws into a fixed 1600×1000-pixel bitmap, so image dimensions do not depend on the display, but AppKit/font differences may still change PNG bytes without changing the generated Markdown. On other platforms, open `$VAULT` or `$VAULT/domains` in Obsidian and capture the same generated files, or inspect them with any Markdown viewer.
