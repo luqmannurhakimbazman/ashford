@@ -2,7 +2,7 @@
 
 > **Legacy compatibility only.** Retained for `ks-merge.py` and manual KS migration. Active sessions use `local-store-schema.md` and structured local events.
 
-JSON contract between the phase skill normalizer (running in the parent conversation) and `ks-merge.py`. The phase skill produces this per the co-located merge protocol (`merge-protocol.md`); the script consumes it. All fields are optional — a dispatch only includes what changed.
+JSON contract consumed by `ks-merge.py`. The removed phase-skill normalizer produced it per the co-located merge protocol (`merge-protocol.md`); the script still accepts it for manual legacy migration. All fields are optional — a payload only includes what changed.
 
 ## Schema
 

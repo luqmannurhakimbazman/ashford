@@ -191,7 +191,10 @@ def project_state(
                 )
             for trigger_id in event["triggering_prediction_event_ids"]:
                 trigger = _reference(
-                    event_index, trigger_id, "assessment", f"events[{position}].triggering_prediction_event_ids"
+                    event_index,
+                    trigger_id,
+                    "assessment",
+                    f"events[{position}].triggering_prediction_event_ids",
                 )
                 if event_generation[trigger_id] != generation:
                     raise ValidationError(
@@ -204,7 +207,10 @@ def project_state(
             prior_id = event.get("prior_model_revision_event_id")
             if prior_id:
                 _reference(
-                    event_index, prior_id, "model_revision", f"events[{position}].prior_model_revision_event_id"
+                    event_index,
+                    prior_id,
+                    "model_revision",
+                    f"events[{position}].prior_model_revision_event_id",
                 )
                 if event_generation[prior_id] != generation:
                     raise ValidationError(
@@ -224,9 +230,7 @@ def project_state(
 
         elif kind == "stage_transition":
             if event["from"] != stage:
-                raise ValidationError(
-                    f"events[{position}].from: expected current stage {stage!r}"
-                )
+                raise ValidationError(f"events[{position}].from: expected current stage {stage!r}")
             if event["to"] not in STAGE_TRANSITIONS[stage]:
                 expected = ", ".join(sorted(STAGE_TRANSITIONS[stage]))
                 raise ValidationError(
@@ -235,7 +239,10 @@ def project_state(
             assessments: list[dict[str, Any]] = []
             for assessment_id in event["assessment_event_ids"]:
                 assessment = _reference(
-                    event_index, assessment_id, "assessment", f"events[{position}].assessment_event_ids"
+                    event_index,
+                    assessment_id,
+                    "assessment",
+                    f"events[{position}].assessment_event_ids",
                 )
                 if event_generation[assessment_id] != generation:
                     raise ValidationError(
@@ -254,9 +261,7 @@ def project_state(
 
             transition = (event["from"], event["to"])
             if transition == ("acquire", "relate"):
-                if any(
-                    assessment["outcome"] != "pass" for assessment in assessments
-                ):
+                if any(assessment["outcome"] != "pass" for assessment in assessments):
                     raise ValidationError(
                         f"events[{position}]: acquire-to-relate gate requires passing independent acquire/discriminate evidence"
                     )

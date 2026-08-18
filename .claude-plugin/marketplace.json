@@ -28,12 +28,12 @@
     {
       "name": "dunk",
       "source": "./dunk",
-      "description": "DLN (Dot-Linear-Network) domain-agnostic learning system",
+      "description": "Local-first, DLN-inspired tutoring with evidence-driven learning records and Obsidian-readable Markdown",
       "repository": "https://github.com/luqmannurhakimbazman/ashford",
       "license": "MIT",
-      "keywords": ["learning", "knowledge-management", "notion", "dln"],
+      "keywords": ["learning", "local-first", "obsidian", "evidence", "dln"],
       "category": "education",
-      "tags": ["education", "notion", "knowledge-management"]
+      "tags": ["education", "local-first", "obsidian"]
     }
   ]
 }

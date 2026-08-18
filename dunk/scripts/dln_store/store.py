@@ -268,8 +268,7 @@ def _load_journal(paths: DomainPaths) -> dict[str, Any]:
         raise RecoveryRequiredError("transaction journal has an unsupported schema")
     preconditions = value.get("source_preconditions")
     if not isinstance(preconditions, dict) or not all(
-        isinstance(path, str) and isinstance(digest, str)
-        for path, digest in preconditions.items()
+        isinstance(path, str) and isinstance(digest, str) for path, digest in preconditions.items()
     ):
         raise RecoveryRequiredError("transaction journal has invalid source preconditions")
     for source_path in preconditions:
@@ -541,7 +540,9 @@ class LocalStore:
         if not isinstance(domain_id, str) or not re.fullmatch(
             r"[a-z0-9][a-z0-9-]{0,48}-[0-9a-f]{8}", domain_id
         ):
-            raise ValidationError("domain-id must be a generated lowercase slug plus SHA-256 suffix")
+            raise ValidationError(
+                "domain-id must be a generated lowercase slug plus SHA-256 suffix"
+            )
         return DomainPaths(self.root, domain_id)
 
     def init(self, domain: str, goal: str) -> dict[str, Any]:
@@ -566,9 +567,7 @@ class LocalStore:
             _fsync_directory(stage / "sessions")
             _fsync_directory(stage)
             if os.path.lexists(final.directory):
-                raise ValidationError(
-                    f"domain {domain_id!r} already exists; use context or commit"
-                )
+                raise ValidationError(f"domain {domain_id!r} already exists; use context or commit")
             try:
                 os.rename(stage, final.directory)
             except OSError as exc:
@@ -619,7 +618,9 @@ class LocalStore:
                 event_id = event["event_id"]
                 prior_in_request = incoming_by_id.get(event_id)
                 if prior_in_request is not None:
-                    if canonical_json(prior_in_request, newline=False) != canonical_json(event, newline=False):
+                    if canonical_json(prior_in_request, newline=False) != canonical_json(
+                        event, newline=False
+                    ):
                         raise ValidationError(
                             f"request.events: duplicate ID {event_id!r} has conflicting bodies"
                         )
@@ -627,7 +628,9 @@ class LocalStore:
                 incoming_by_id[event_id] = event
                 existing = existing_by_id.get(event_id)
                 if existing is not None:
-                    if canonical_json(existing, newline=False) != canonical_json(event, newline=False):
+                    if canonical_json(existing, newline=False) != canonical_json(
+                        event, newline=False
+                    ):
                         raise ValidationError(
                             f"event ID {event_id!r} already exists with different content"
                         )
@@ -775,7 +778,11 @@ class LocalStore:
         results: list[dict[str, Any]] = []
         if not domains_directory.exists():
             return {"domains": []}
-        for directory in sorted(path for path in domains_directory.iterdir() if path.is_dir() and not path.name.startswith(".")):
+        for directory in sorted(
+            path
+            for path in domains_directory.iterdir()
+            if path.is_dir() and not path.name.startswith(".")
+        ):
             paths = DomainPaths(self.root, directory.name)
             try:
                 with domain_lock(paths):
@@ -794,7 +801,9 @@ class LocalStore:
                     }
                 )
             except StoreError as exc:
-                results.append({"domain_id": directory.name, "status": "unavailable", "diagnostic": str(exc)})
+                results.append(
+                    {"domain_id": directory.name, "status": "unavailable", "diagnostic": str(exc)}
+                )
         return {"domains": results}
 
     def doctor(

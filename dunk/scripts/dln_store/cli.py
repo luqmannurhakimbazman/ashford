@@ -38,7 +38,9 @@ def build_parser() -> argparse.ArgumentParser:
     _add_root(command)
     command.add_argument("--domain-id", required=True)
 
-    command = subparsers.add_parser("commit", help="append events and atomically publish projections")
+    command = subparsers.add_parser(
+        "commit", help="append events and atomically publish projections"
+    )
     _add_root(command)
     command.add_argument("--domain-id", required=True)
     command.add_argument("--expected-revision", required=True, type=int)
@@ -48,7 +50,9 @@ def build_parser() -> argparse.ArgumentParser:
     _add_root(command)
     command.add_argument("--domain-id", required=True)
 
-    command = subparsers.add_parser("validate", help="validate canonical sources and projection drift")
+    command = subparsers.add_parser(
+        "validate", help="validate canonical sources and projection drift"
+    )
     _add_root(command)
     command.add_argument("--domain-id", required=True)
 

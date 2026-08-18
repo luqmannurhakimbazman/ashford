@@ -47,7 +47,9 @@ def render_dashboard(state: dict[str, Any]) -> bytes:
             independent = subject["independent"]
             supported = subject["supported"]
             independent_text = (
-                f"{independent['outcome']} / {independent['operation']}" if independent else "not measured"
+                f"{independent['outcome']} / {independent['operation']}"
+                if independent
+                else "not measured"
             )
             supported_text = (
                 f"{supported['outcome']} / {supported['operation']}" if supported else "none"
@@ -61,7 +63,9 @@ def render_dashboard(state: dict[str, Any]) -> bytes:
             else:
                 retrieval_text = "not measured"
             transfer = subject["transfer"]
-            transfer_text = f"{transfer['count']} novel task(s)" if transfer["count"] else "not measured"
+            transfer_text = (
+                f"{transfer['count']} novel task(s)" if transfer["count"] else "not measured"
+            )
             lines.append(
                 "| "
                 + " | ".join(
@@ -78,7 +82,9 @@ def render_dashboard(state: dict[str, Any]) -> bytes:
                 + " |"
             )
     else:
-        lines.append("| _No structured assessment evidence yet_ | insufficient-evidence | — | — | — | — |")
+        lines.append(
+            "| _No structured assessment evidence yet_ | insufficient-evidence | — | — | — | — |"
+        )
 
     calibration = state["calibration"]
     lines.extend(["", "## Calibration", ""])
@@ -92,7 +98,9 @@ def render_dashboard(state: dict[str, Any]) -> bytes:
             ]
         )
     else:
-        lines.append("Calibration not measured (requires confidence recorded before a scored outcome).")
+        lines.append(
+            "Calibration not measured (requires confidence recorded before a scored outcome)."
+        )
 
     lines.extend(["", "## Current Model", ""])
     if state["current_model"]:
@@ -129,7 +137,9 @@ def render_dashboard(state: dict[str, Any]) -> bytes:
                 for key, value in sorted(claims.items())
                 if isinstance(value, list)
             )
-            lines.append(f"- `{item['source_sha256'][:12]}` — {markdown_text(counts or 'snapshot imported')}")
+            lines.append(
+                f"- `{item['source_sha256'][:12]}` — {markdown_text(counts or 'snapshot imported')}"
+            )
     else:
         lines.append("No legacy snapshot imported.")
 
@@ -216,7 +226,9 @@ def render_receipt(
                         markdown_text(event["subject"]["label"]),
                         markdown_text(event["operation"]),
                         _outcome(event),
-                        markdown_text(f"{assistance['level']} / {assistance['hint_count']} hint(s)"),
+                        markdown_text(
+                            f"{assistance['level']} / {assistance['hint_count']} hint(s)"
+                        ),
                     )
                 )
                 + " |"
@@ -277,9 +289,7 @@ def render_receipt(
     return ("\n".join(lines) + "\n").encode("utf-8")
 
 
-def render_all_receipts(
-    profile: dict[str, Any], events: list[dict[str, Any]]
-) -> dict[str, bytes]:
+def render_all_receipts(profile: dict[str, Any], events: list[dict[str, Any]]) -> dict[str, bytes]:
     receipts: dict[str, bytes] = {}
     for event in events:
         if event["kind"] == "session_completed":

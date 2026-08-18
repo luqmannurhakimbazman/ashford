@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 DUNK = Path(__file__).resolve().parents[2]
 SKILLS = DUNK / "skills"
 DLN_REFS = SKILLS / "dln" / "references"

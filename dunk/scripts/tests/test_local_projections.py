@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 import shutil
-from copy import deepcopy
 import subprocess
 import sys
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -52,30 +52,26 @@ def run_cli(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 def test_fixture_projections_match_byte_for_byte_snapshots() -> None:
     profile, profile_bytes, events, events_bytes = load_fixture()
-    first = project_state(
-        profile, events, profile_bytes=profile_bytes, events_bytes=events_bytes
+    first = project_state(profile, events, profile_bytes=profile_bytes, events_bytes=events_bytes)
+    second = project_state(profile, events, profile_bytes=profile_bytes, events_bytes=events_bytes)
+    assert (
+        pretty_json(first)
+        == pretty_json(second)
+        == FIXTURE.joinpath("expected-state.json").read_bytes()
     )
-    second = project_state(
-        profile, events, profile_bytes=profile_bytes, events_bytes=events_bytes
-    )
-    assert pretty_json(first) == pretty_json(second) == FIXTURE.joinpath(
-        "expected-state.json"
-    ).read_bytes()
     assert render_dashboard(first) == FIXTURE.joinpath("expected-dashboard.md").read_bytes()
     receipts = render_all_receipts(profile, events)
-    assert receipts["sessions/session-1.md"] == FIXTURE.joinpath(
-        "expected-session-1.md"
-    ).read_bytes()
-    assert receipts["sessions/session-2.md"] == FIXTURE.joinpath(
-        "expected-session-2.md"
-    ).read_bytes()
+    assert (
+        receipts["sessions/session-1.md"] == FIXTURE.joinpath("expected-session-1.md").read_bytes()
+    )
+    assert (
+        receipts["sessions/session-2.md"] == FIXTURE.joinpath("expected-session-2.md").read_bytes()
+    )
 
 
 def test_reducer_separates_evidence_retrieval_transfer_and_calibration() -> None:
     profile, profile_bytes, events, events_bytes = load_fixture()
-    state = project_state(
-        profile, events, profile_bytes=profile_bytes, events_bytes=events_bytes
-    )
+    state = project_state(profile, events, profile_bytes=profile_bytes, events_bytes=events_bytes)
     subject = state["subjects"][0]
     assert subject["supported"]["event_id"] == "supported-1"
     assert subject["independent"]["event_id"] == "predict-1"
@@ -359,15 +355,18 @@ def test_rebuild_from_fixture_recreates_only_derived_files(tmp_path: Path) -> No
         "events": directory.joinpath("events.jsonl").read_bytes(),
     }
     LocalStore(tmp_path).rebuild(profile["domain_id"])
-    assert directory.joinpath("state.json").read_bytes() == FIXTURE.joinpath(
-        "expected-state.json"
-    ).read_bytes()
-    assert directory.joinpath("dashboard.md").read_bytes() == FIXTURE.joinpath(
-        "expected-dashboard.md"
-    ).read_bytes()
-    assert directory.joinpath("sessions/session-1.md").read_bytes() == FIXTURE.joinpath(
-        "expected-session-1.md"
-    ).read_bytes()
+    assert (
+        directory.joinpath("state.json").read_bytes()
+        == FIXTURE.joinpath("expected-state.json").read_bytes()
+    )
+    assert (
+        directory.joinpath("dashboard.md").read_bytes()
+        == FIXTURE.joinpath("expected-dashboard.md").read_bytes()
+    )
+    assert (
+        directory.joinpath("sessions/session-1.md").read_bytes()
+        == FIXTURE.joinpath("expected-session-1.md").read_bytes()
+    )
     assert directory.joinpath("profile.yaml").read_bytes() == sources["profile"]
     assert directory.joinpath("events.jsonl").read_bytes() == sources["events"]
 
