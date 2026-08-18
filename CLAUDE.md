@@ -10,7 +10,7 @@ Ashford contains three independent plugins:
 |---|---:|---|
 | `egg/` | 1.1.0 | development, writing, interview, and teacher workflows |
 | `aerion/` | 1.0.0 | Gmail-to-Google-Sheets job application tracking |
-| `dunk/` | 1.0.0 | Dot–Linear–Network learning with Notion persistence |
+| `dunk/` | 2.0.0 | local-first, DLN-inspired tutoring with Obsidian-readable projections |
 
 The marketplace registry is `.claude-plugin/marketplace.json`. Each plugin has its own `<plugin>/.claude-plugin/plugin.json` and must be installed, configured, enabled, versioned, and validated separately.
 
@@ -23,7 +23,7 @@ There is no application compilation step. Plugin components are Markdown, JSON, 
 | Commands | `egg/commands/*.md`, `aerion/commands/*.md` | Markdown with YAML frontmatter |
 | Agents | `egg/agents/*.md`, `dunk/agents/*.md` | Markdown with YAML frontmatter |
 | Skills | `egg/skills/*/SKILL.md`, `aerion/skills/*/SKILL.md`, `dunk/skills/*/SKILL.md` | skill Markdown |
-| Hooks | `egg/hooks/hooks.json`, `dunk/hooks/hooks.json` | hook JSON |
+| Hooks | `egg/hooks/hooks.json` | hook JSON |
 | MCP | `egg/.mcp.json`, `aerion/.mcp.json`, `dunk/.mcp.json` | `mcpServers` JSON |
 | Executed helpers | `egg/scripts/`, `dunk/scripts/` | shell/Python |
 | Project MCP examples | `templates/mcp-personal.json`, `templates/mcp-all.json` | `mcpServers` JSON |
@@ -32,7 +32,7 @@ All discoverable component directories are siblings of `.claude-plugin/` at the 
 
 ## Current inventory
 
-There are 6 commands, 4 agents, and 18 skills across the marketplace.
+There are 6 commands, 3 agents, and 18 skills across the marketplace.
 
 ### Commands
 
@@ -44,7 +44,7 @@ Plugin commands are namespaced at runtime, such as `/egg:commit` and `/aerion:ch
 ### Agents
 
 - Egg: `code-reviewer`, `leetcode-profile-sync`
-- Dunk: `dln-sync`, `dln-syllabus`
+- Dunk: `dln-syllabus`
 
 Plugin agents use supported plugin-agent frontmatter only. In particular, do not add `color`, `permissionMode`, `hooks`, or `mcpServers` to plugin-shipped agents.
 
@@ -78,11 +78,11 @@ Sensitive values are stored by Claude Code in secure storage rather than reposit
 
 - `egg/.mcp.json`: context7 `@4.0.2`, git `mcp-server-git==2026.7.10`, chrome-devtools `@1.7.0`, and hosted Exa HTTP.
 - `aerion/.mcp.json`: hosted Gmail HTTP and user-configured Google Sheets HTTP.
-- `dunk/.mcp.json`: context7 `@4.0.2`, hosted Exa HTTP, and hosted Notion HTTP.
+- `dunk/.mcp.json`: context7 `@4.0.2` and hosted Exa HTTP. Local persistence uses the filesystem and does not require an MCP server.
 - `templates/mcp-personal.json`: git, context7, chrome-devtools, Exa.
 - `templates/mcp-all.json`: the personal set plus GitLab `@2025.4.25`.
 
-Plugin-scoped MCP tools use `mcp__plugin_<plugin>_<server>__<tool>`. Preserve exact server spelling, including Dunk's `Notion` key. The project templates are copied to `<project>/.mcp.json`; they are not installed or configured through plugin `userConfig`.
+Plugin-scoped MCP tools use `mcp__plugin_<plugin>_<server>__<tool>`. The project templates are copied to `<project>/.mcp.json`; they are not installed or configured through plugin `userConfig`.
 
 ## Hooks
 
@@ -95,7 +95,7 @@ Plugin-scoped MCP tools use `mcp__plugin_<plugin>_<server>__<tool>`. Preserve ex
 
 ### Dunk
 
-- `PreToolUse` for `mcp__plugin_dunk_Notion__notion-update-page` validates knowledge-state markers before the Notion write.
+Dunk registers no hooks. Its local CLI enforces persistence invariants directly; do not add a remote-write hook or make an MCP service authoritative.
 
 Hook commands use exec form with explicit `command`, `args`, and `timeout`. Reference scripts as `${CLAUDE_PLUGIN_ROOT}/scripts/<file>`; never assume the current working directory is the plugin root.
 
@@ -104,11 +104,13 @@ Hook commands use exec form with explicit `command`, `args`, and `timeout`. Refe
 Use paths according to purpose:
 
 - `${CLAUDE_PLUGIN_ROOT}`: read-only installed plugin content and executable helpers. It is replaced on update.
-- `${CLAUDE_PLUGIN_DATA}`: plugin-scoped persistent learner profiles, ledgers, session snapshots, and stop guards.
+- `${CLAUDE_PLUGIN_DATA}`: plugin-scoped persistent learner data when Claude Code exposes it to the invoking process. Dunk resolves `${CLAUDE_PLUGIN_DATA}/dln-vault` only when the variable is present.
 - `${CLAUDE_PROJECT_DIR}`: the user's project and default resume workspace.
 - Repository-relative paths such as `egg/skills/...`: maintainer documentation and validation run from the ashford repository root.
 
-Egg's loaders perform a one-time, non-overwriting migration from `~/.local/share/claude/` to `${CLAUDE_PLUGIN_DATA}` for LeetCode and markets profiles, ledgers, and session-state files. Do not add new runtime writes to the legacy directory or to the plugin cache.
+Dunk root precedence is explicit `--root`, then `DLN_VAULT_ROOT`, then `${CLAUDE_PLUGIN_DATA}/dln-vault`. Because strict plugin validation does not prove that parent Bash receives `${CLAUDE_PLUGIN_DATA}`, runtime instructions must preserve the explicit `DLN_VAULT_ROOT` fallback and must not invent an implicit home-directory path. Within each domain, users may edit `goal`, `syllabus`, `annotations`, `review_preferences`, and `exam` in JSON-compatible `profile.yaml`; `domain`, `domain_id`, `schema_version`, and `revision` are immutable store-owned identity/metadata. `events.jsonl` is append-only. `state.json`, `dashboard.md`, and Session Receipts are generated.
+
+`dunk/scripts/ks-merge.py` and its tests are legacy compatibility tooling for exported marker-delimited Knowledge State Markdown; active skills must not route through them. Egg's loaders perform a one-time, non-overwriting migration from `~/.local/share/claude/` to `${CLAUDE_PLUGIN_DATA}` for LeetCode and markets profiles, ledgers, and session-state files. Do not add new runtime writes to the legacy directory or to the plugin cache.
 
 ## Resume and interview chain
 
@@ -131,7 +133,7 @@ Use `$ARGUMENTS`, `$1`, and `$2` for command arguments. Use absolute plugin path
 
 ## Validation
 
-The CI workflow in `.github/workflows/validate.yml` validates JSON, shell syntax and ShellCheck, the marketplace, every plugin independently, and both Python suites.
+The CI workflow in `.github/workflows/validate.yml` validates JSON, shell syntax and ShellCheck, the marketplace, every plugin independently, Dunk's complete local-store/contract/recovery/projection/legacy suite, deterministic fixture rebuilds, and repository migration tests.
 
 Run relevant checks locally:
 
@@ -145,7 +147,7 @@ find . -type f -name '*.json' -not -path './.git/*' -print0 | xargs -0 -n1 jq em
 find . -type f -name '*.sh' -not -path './.git/*' -print0 | xargs -0 -n1 bash -n
 find . -type f -name '*.sh' -not -path './.git/*' -print0 | xargs -0 shellcheck --severity=warning
 
-uv run --project dunk/scripts --python 3.10 --frozen pytest dunk/scripts/tests/test_ks_merge.py
+uv run --project dunk/scripts --python 3.10 --frozen pytest dunk/scripts/tests
 uv run --project dunk/scripts --python 3.10 --frozen pytest tools/dunk-migrations/test_migrate_docker.py
 ```
 

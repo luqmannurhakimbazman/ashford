@@ -1,5 +1,7 @@
 # Deterministic KS Merge Script
 
+> **Superseded by Dunk 2.0.0.** Historical record of the removed `dln-sync`/Notion remote path; `ks-merge.py` is now legacy compatibility tooling only and the local-first filesystem store in `dunk/skills/dln/references/local-persistence-protocol.md` is authoritative.
+
 **Date:** 2026-03-16
 **Status:** Draft
 **Scope:** dunk plugin — dln-sync agent MERGE step, new merge script, payload schema

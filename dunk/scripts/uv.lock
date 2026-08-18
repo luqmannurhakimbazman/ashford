@@ -12,7 +12,7 @@ wheels = [
 ]
 
 [[package]]
-name = "dunk-ks-merge"
+name = "dunk-local-store-tooling"
 version = "0.1.0"
 source = { virtual = "." }
 

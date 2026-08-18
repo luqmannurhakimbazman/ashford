@@ -1,6 +1,10 @@
-# Merge Protocol
+# Legacy KS Merge Protocol
 
-This reference is shared across all DLN phase skills (dln-dot, dln-linear, dln-network). It defines how to construct a merge payload, run the merge script, and dispatch dln-sync for Notion writes.
+> **Legacy compatibility only.** Retained for `ks-merge.py` and manual KS migration. Active skills must use `local-persistence-protocol.md`; this remote write flow is not active.
+>
+> The `dln-sync` agent and the Notion MCP server this document dispatches to no longer ship with Dunk. Every step below that dispatches `dln-sync` is a historical record of the removed remote path; only the payload construction and `ks-merge.py` invocation still describe shipped tooling.
+
+The DLN phase skills no longer load this reference. It documents how the removed remote path constructed a merge payload, ran the merge script, and dispatched dln-sync for Notion writes.
 
 ---
 

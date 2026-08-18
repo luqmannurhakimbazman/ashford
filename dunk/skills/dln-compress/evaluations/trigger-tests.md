@@ -2,24 +2,34 @@
 
 ## SHOULD Trigger
 
-### T1: Agent preload
-**Context:** The `dln-sync` agent preloads `dln-compress` while returning a Notion page read-back.
-**Expected:** Applies the exact re-anchor compression format without adding teaching content.
+### T1: Optional internal preload
+**Context:** A phase caller explicitly supplies validated `dln-store context` output and needs a smaller machine-readable subset.
+**Expected:** Returns a compact state object while preserving revision, stage, event IDs, independent/supported separation, and `not-measured` statuses.
 
-### T2: Knowledge-state compression
-**Context:** A preloaded dln-sync task asks to compress Concepts, Chains, Factors, weaknesses, and engagement signals.
-**Expected:** Produces the documented `## Re-anchor` structure concisely.
+### T2: Missing field
+**Context:** The supplied state lacks revision or stage.
+**Expected:** Returns a missing-field diagnostic and asks the caller to reload local context; it does not fill gaps from dialogue.
 
 ## SHOULD NOT Trigger
 
-### T3: User asks to compress prose
+### T3: User prose compression
 **Input:** "Compress this essay to 200 words."
-**Expected:** Does not activate `dln-compress`; this is not a DLN sync read-back.
+**Expected:** Does not activate `dln-compress`.
 
-### T4: User names the internal skill
+### T4: Direct name
 **Input:** "Run dln-compress for me."
-**Expected:** Does not expose or activate the internal skill directly; routes through `dln` if the user wants DLN learning.
+**Expected:** Does not expose the internal formatter; routes through `dln` only if structured learning is intended.
 
-### T5: Teaching request
-**Input:** "Teach me the basics of immunology."
-**Expected:** Activates `dln` or `dln-dot`, not `dln-compress`.
+### T5: Learner model compression
+**Input:** "Help me revise and compress my model after testing its predictions."
+**Expected:** Routes to `dln-network`; internal context formatting never changes a learner model.
+
+### T6: Raw dialogue
+**Context:** A caller supplies session dialogue and asks for evidence/mastery extraction.
+**Expected:** Refuses; dialogue and notes are not evidence.
+
+## CONTRACT
+
+### T7: No side effects
+**Context:** Valid projected state is compacted.
+**Expected:** Creates no event, profile patch, persistence write, receipt, dashboard, or learner-facing artifact and makes no readiness decision.

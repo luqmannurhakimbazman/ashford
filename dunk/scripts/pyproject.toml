@@ -1,7 +1,7 @@
 [project]
-name = "dunk-ks-merge"
+name = "dunk-local-store-tooling"
 version = "0.1.0"
-description = "Validation and test tooling for Dunk knowledge-state merges"
+description = "Zero-runtime-dependency local store and legacy knowledge-state validation tooling for Dunk"
 requires-python = ">=3.10"
 dependencies = []
 
@@ -9,3 +9,12 @@ dependencies = []
 dev = [
     "pytest>=9.0.2",
 ]
+
+[tool.ruff]
+# Matches the repository lint standard enforced by egg/scripts/python-lint.sh.
+line-length = 100
+
+[tool.ruff.lint.per-file-ignores]
+# Test functions document themselves through descriptive test names; a docstring
+# on each one would only restate the name. Production code is not exempt.
+"tests/*.py" = ["D103"]

@@ -1,5 +1,7 @@
 # Deterministic KS Merge Implementation Plan
 
+> **Superseded by Dunk 2.0.0.** Historical record of the removed `dln-sync`/Notion remote path; `ks-merge.py` is now legacy compatibility tooling only and the local-first filesystem store in `dunk/skills/dln/references/local-persistence-protocol.md` is authoritative.
+
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the LLM-driven merge in dln-sync's Step 2 with a deterministic Python script, reducing Sonnet turns per sync boundary by 2-4 and eliminating string-manipulation errors.

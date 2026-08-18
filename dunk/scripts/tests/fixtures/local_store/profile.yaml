@@ -1,0 +1,14 @@
+{
+  "annotations": [],
+  "domain": "Projection Fixture",
+  "domain_id": "projection-fixture-6d864320",
+  "exam": {},
+  "goal": "Explain parity | safely",
+  "review_preferences": {},
+  "revision": 1,
+  "schema_version": 1,
+  "syllabus": [
+    "Parity",
+    "Transfer"
+  ]
+}

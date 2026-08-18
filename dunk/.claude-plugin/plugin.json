@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dunk",
-  "version": "1.0.0",
-  "description": "DLN (Dot-Linear-Network) domain-agnostic learning system",
+  "version": "2.0.0",
+  "description": "Local-first, DLN-inspired tutoring with evidence-driven learning records and Obsidian-readable Markdown",
   "author": {
     "name": "Luqman Nurhakim"
   },
@@ -10,8 +10,9 @@
   "license": "MIT",
   "keywords": [
     "learning",
-    "knowledge-management",
-    "notion",
+    "local-first",
+    "obsidian",
+    "evidence",
     "dln"
   ],
   "userConfig": {
