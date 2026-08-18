@@ -51,7 +51,7 @@ Return a compact machine-readable object with only fields needed for immediate r
 
 Preserve event IDs and measurement status exactly when present. Omit verbose labels only if stable subject IDs remain sufficient for the immediate task.
 
-Carry `state.grounding` through under the same field names the phase skills read. Keep `status`, `active_approval.event_id`, every `planning_topics` entry with its `label`, `assertion_ids`, and `citable` flag, the `assertion_id` of each unresolved assertion, and each pending source's `receipt` path. Drop only the verbose `effective_assertions` citation bodies; a phase skill that needs a quote reloads `dln-store context`.
+Carry `state.grounding` through under the same field names the phase skills read. Keep `status`, `active_approval.event_id`, every `planning_topics` entry with its `label`, `assertion_ids`, and `citable` flag, the `assertion_id` of each unresolved assertion, and each pending source's `receipt` path. Beyond that list, drop only the verbose `effective_assertions` citation bodies and optionally the redundant `legacy_fallback` flag, which the example above omits because every planning topic already carries `citable`. A phase skill that needs a quote reloads `dln-store context`.
 
 ## Prohibitions
 

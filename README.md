@@ -131,14 +131,14 @@ ashford/
 ├── dunk/      # DLN learning system
 ├── templates/ # project-level MCP examples
 ├── tools/     # repository-only migration tooling
-└── docs/      # plans, reviews, and maintainer guides
+└── docs/      # maintainer guides plus plans, specs, investigations, reviews, and evidence
 ```
 
 Each plugin keeps its manifest at `<plugin>/.claude-plugin/plugin.json`; discoverable `commands/`, `agents/`, `skills/`, `hooks/`, scripts, and `.mcp.json` live at the plugin root.
 
 ## Validation
 
-CI validates the marketplace and every plugin separately, checks JSON and shell files, runs ShellCheck, and executes Dunk's complete local-store/contract/recovery/projection/legacy suite plus the repository migration tests. Useful local commands are:
+CI validates the marketplace and every plugin separately, checks JSON and shell files, runs ShellCheck, and executes Dunk's complete Python test suite plus the repository migration tests. Useful local commands are:
 
 ```bash
 claude plugin validate . --strict

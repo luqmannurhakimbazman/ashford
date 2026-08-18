@@ -355,6 +355,9 @@ def project_state(
             archived_exams.append(archive)
 
         elif kind in {"syllabus_source_ingested", "syllabus_approval_recorded"}:
+            # Syllabus authority is reduced separately by reduce_grounding_timeline over the
+            # whole log, so it is deliberately not generation-scoped: a later domain_reset
+            # restarts learning evidence without clearing registered sources or approvals.
             pass
 
         elif kind == "legacy_snapshot_imported":
