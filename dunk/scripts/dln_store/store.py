@@ -414,6 +414,7 @@ def _install_transaction(
     stage.mkdir()
     backups.mkdir()
     journal_targets: list[dict[str, Any]] = []
+    written_directories: set[Path] = {stage, backups}
     try:
         for relative_text in sorted(targets):
             relative = _safe_relative(relative_text)
@@ -421,6 +422,7 @@ def _install_transaction(
             target = paths.directory / relative
             staged = stage / relative
             _write_fsynced(staged, targets[relative_text])
+            written_directories.add(staged.parent)
             _failpoint(f"stage:{relative.as_posix()}")
             entry: dict[str, Any] = {
                 "candidate_sha256": sha256_bytes(targets[relative_text]),
@@ -432,10 +434,13 @@ def _install_transaction(
                 backup.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(target, backup)
                 _fsync_file(backup)
+                written_directories.add(backup.parent)
                 entry["backup_sha256"] = _hash_file(backup)
             journal_targets.append(entry)
-        _fsync_directory(stage)
-        _fsync_directory(backups)
+        for directory in sorted(
+            written_directories, key=lambda item: (-len(item.parts), item.as_posix())
+        ):
+            _fsync_directory(directory)
         journal = {
             "phase": "prepared",
             "schema_version": 1,
@@ -548,12 +553,18 @@ class LocalStore:
             _write_fsynced(stage / "dashboard.md", render_dashboard(state))
             _fsync_directory(stage / "sessions")
             _fsync_directory(stage)
-            try:
-                os.rename(stage, final.directory)
-            except FileExistsError as exc:
+            if os.path.lexists(final.directory):
                 raise ValidationError(
                     f"domain {domain_id!r} already exists; use context or commit"
-                ) from exc
+                )
+            try:
+                os.rename(stage, final.directory)
+            except OSError as exc:
+                if exc.errno in {errno.EEXIST, errno.ENOTEMPTY, errno.ENOTDIR}:
+                    raise ValidationError(
+                        f"domain {domain_id!r} already exists; use context or commit"
+                    ) from exc
+                raise
             _fsync_directory(domains)
         finally:
             if stage.exists():

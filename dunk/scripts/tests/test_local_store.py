@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -417,3 +418,85 @@ def test_profile_revision_type_is_strict(tmp_path: Path, bad_revision: object) -
     directory.joinpath("profile.yaml").write_text(json.dumps(profile), encoding="utf-8")
     result = run_cli(tmp_path, "context", "--domain-id", domain_id)
     assert result.returncode == 2
+
+
+def test_init_refuses_to_overwrite_an_existing_domain_directory(tmp_path: Path) -> None:
+    domain_id, directory = init_domain(tmp_path)
+    populated = canonical_tree(directory)
+
+    duplicate = run_cli(
+        tmp_path, "init", "--domain", "Options Pricing", "--goal", "A different goal"
+    )
+    assert duplicate.returncode == 2
+    assert "already exists" in error(duplicate)["message"]
+    assert canonical_tree(directory) == populated
+
+    shutil.rmtree(directory)
+    directory.mkdir()
+    empty = run_cli(
+        tmp_path, "init", "--domain", "Options Pricing", "--goal", "A different goal"
+    )
+    assert empty.returncode == 2
+    assert "already exists" in error(empty)["message"]
+    assert list(directory.iterdir()) == []
+    assert [path.name for path in (tmp_path / "domains").iterdir()] == [domain_id]
+
+
+def test_session_ids_differing_only_by_case_are_rejected(tmp_path: Path) -> None:
+    domain_id, directory = init_domain(tmp_path)
+    request = write_request(
+        tmp_path,
+        {"events": [assessment("assess-1", "session-1"), assessment("assess-2", "Session-1")]},
+    )
+    snapshot = canonical_tree(directory)
+    result = run_cli(
+        tmp_path,
+        "commit",
+        "--domain-id",
+        domain_id,
+        "--expected-revision",
+        "0",
+        "--request",
+        str(request),
+    )
+    assert result.returncode == 2
+    message = error(result)["message"]
+    assert "differs only by case" in message
+    assert "case-insensitive filesystems" in message
+    assert canonical_tree(directory) == snapshot
+
+    accepted = write_request(
+        tmp_path,
+        {"events": [assessment("assess-1", "session-1")]},
+        "accepted.json",
+    )
+    first = run_cli(
+        tmp_path,
+        "commit",
+        "--domain-id",
+        domain_id,
+        "--expected-revision",
+        "0",
+        "--request",
+        str(accepted),
+    )
+    assert first.returncode == 0, first.stderr
+    committed = canonical_tree(directory)
+    colliding = write_request(
+        tmp_path,
+        {"events": [assessment("assess-2", "SESSION-1")]},
+        "colliding.json",
+    )
+    later = run_cli(
+        tmp_path,
+        "commit",
+        "--domain-id",
+        domain_id,
+        "--expected-revision",
+        "1",
+        "--request",
+        str(colliding),
+    )
+    assert later.returncode == 2
+    assert "differs only by case" in error(later)["message"]
+    assert canonical_tree(directory) == committed

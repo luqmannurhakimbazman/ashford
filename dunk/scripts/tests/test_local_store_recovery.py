@@ -5,6 +5,7 @@ from __future__ import annotations
 import fcntl
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -372,3 +373,85 @@ def test_rebuild_never_changes_sources_and_is_byte_deterministic(tmp_path: Path)
     assert files(directory) == first_tree
     assert directory.joinpath("profile.yaml").read_bytes() == sources["profile"]
     assert directory.joinpath("events.jsonl").read_bytes() == sources["events"]
+
+
+def test_transaction_fsyncs_nested_stage_and_backup_directories(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    domain_id, directory = init_domain(tmp_path)
+    store = LocalStore(tmp_path)
+    session = {
+        "event_id": "complete-1",
+        "evidence_event_ids": [],
+        "kind": "session_completed",
+        "next_action": "Retrieve on a new setup",
+        "next_review_date": None,
+        "occurred_at": "2026-08-18T01:00:00Z",
+        "receipt_schema_version": 1,
+        "schema_version": 1,
+        "session_id": "session-1",
+    }
+    store.commit(domain_id, 0, {"events": [session]})
+    receipt = directory / "sessions" / "session-1.md"
+    assert receipt.is_file()
+
+    fsynced: list[Path] = []
+    original = store_module._fsync_directory
+
+    def record(path: Path) -> None:
+        fsynced.append(Path(path))
+        original(path)
+
+    monkeypatch.setattr(store_module, "_fsync_directory", record)
+    store.commit(domain_id, 1, {"profile_patch": {"goal": "A revised goal"}})
+
+    transaction = directory / store_module.TXN_NAME
+    assert transaction / "stage" / "sessions" in fsynced
+    assert transaction / "backups" / "sessions" in fsynced
+    assert transaction / "stage" in fsynced
+    assert transaction / "backups" in fsynced
+    assert not transaction.exists()
+
+
+def test_concurrent_commits_admit_exactly_one_winner(tmp_path: Path) -> None:
+    domain_id, directory = init_domain(tmp_path)
+    writers = 5
+    requests = []
+    for index in range(writers):
+        path = tmp_path / f"race-{index}.json"
+        path.write_text(
+            json.dumps({"profile_patch": {"goal": f"writer {index} won"}}), encoding="utf-8"
+        )
+        requests.append(path)
+
+    command = [sys.executable, str(SCRIPT), "commit", "--root", str(tmp_path), "--domain-id", domain_id]
+    processes = [
+        subprocess.Popen(
+            [*command, "--expected-revision", "0", "--request", str(path)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        for path in requests
+    ]
+    results = [(process, *process.communicate()) for process in processes]
+    codes = [process.returncode for process, _, _ in results]
+
+    assert codes.count(0) == 1, codes
+    # Losers either never got the single-writer lock or saw the winner's revision.
+    assert all(code in {3, 4} for code in codes if code != 0), codes
+    winner = next(out for process, out, _ in results if process.returncode == 0)
+    assert json.loads(winner)["revision"] == 1
+
+    validated = run_cli(tmp_path, "validate", "--domain-id", domain_id)
+    assert validated.returncode == 0, validated.stderr
+    assert output(validated) == {
+        "derived_drift": [],
+        "domain_id": domain_id,
+        "event_count": 0,
+        "revision": 1,
+        "status": "valid",
+    }
+    profile = json.loads(directory.joinpath("profile.yaml").read_text())
+    assert profile["revision"] == 1
+    assert re.fullmatch(r"writer [0-4] won", profile["goal"])
