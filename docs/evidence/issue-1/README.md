@@ -40,7 +40,7 @@ python3 "$STORE" commit \
 python3 "$STORE" validate --root "$VAULT" --domain-id "$DOMAIN_ID"
 ```
 
-The request contains eight fixed, synthetic, stage-valid events and produces:
+The request contains nine fixed, synthetic, stage-valid events and produces:
 
 ```text
 vault/domains/bayesian-forecasting-0b6072a9/
@@ -56,7 +56,7 @@ The generated learner-facing files have these SHA-256 values:
 
 ```text
 f64b02a94c08740b9633a623bc8f60a0194298b574f6caa7308b5077c4b16b03  dashboard.md
-37f41471a1b54679283adb84db17bca7b50cdfe861b00551af5b008619b1f1ec  sessions/session-demo-001.md
+dd5e956460b9d213fbf2298540f1b96f92221620f2b3f7f0ada2a4d0cd371d47  sessions/session-demo-001.md
 ```
 
 ## Reproduce the storage checks

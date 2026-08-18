@@ -204,6 +204,62 @@ def test_lock_symlink_is_rejected_without_touching_target(tmp_path: Path) -> Non
     assert target.read_text(encoding="utf-8") == "preserve me"
 
 
+def test_transaction_symlink_is_rejected_without_touching_target(tmp_path: Path) -> None:
+    domain_id, directory = init_domain(tmp_path)
+    outside = tmp_path.parent / f"{tmp_path.name}-outside-transaction"
+    outside.mkdir()
+    outside.joinpath("sentinel.txt").write_text("preserve me", encoding="utf-8")
+    directory.joinpath(".dln-transaction").symlink_to(outside, target_is_directory=True)
+
+    request = request_file(tmp_path)
+    commit = run_cli(
+        tmp_path,
+        "commit",
+        "--domain-id",
+        domain_id,
+        "--expected-revision",
+        "0",
+        "--request",
+        str(request),
+    )
+    assert commit.returncode == 2
+    assert "transaction directory must not be a symlink" in error(commit)["message"]
+
+    doctor = run_cli(tmp_path, "doctor", "--domain-id", domain_id, "--recover")
+    assert doctor.returncode == 2
+    assert "transaction directory must not be a symlink" in error(doctor)["message"]
+    assert outside.joinpath("sentinel.txt").read_text(encoding="utf-8") == "preserve me"
+
+
+def test_install_failure_preserves_third_party_profile_edit_and_journal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    domain_id, directory = init_domain(tmp_path)
+    profile_path = directory / "profile.yaml"
+    external = json.loads(profile_path.read_text(encoding="utf-8"))
+    external["annotations"] = ["edited after installation began"]
+    external_bytes = (json.dumps(external, indent=2, sort_keys=True) + "\n").encode()
+
+    def edit_after_install_begins(name: str) -> None:
+        if name == "install:dashboard.md":
+            profile_path.write_bytes(external_bytes)
+            raise OSError("injected post-install edit")
+
+    monkeypatch.setattr(store_module, "_failpoint", edit_after_install_begins)
+    with pytest.raises(OSError, match="post-install edit"):
+        LocalStore(tmp_path).commit(
+            domain_id, 0, {"profile_patch": {"goal": "writer goal"}}
+        )
+
+    assert profile_path.read_bytes() == external_bytes
+    assert directory.joinpath(".dln-transaction", "journal.json").is_file()
+    recovered = run_cli(tmp_path, "doctor", "--domain-id", domain_id, "--recover")
+    assert recovered.returncode == 5
+    assert "changed after the crash" in error(recovered)["message"]
+    assert profile_path.read_bytes() == external_bytes
+    assert directory.joinpath(".dln-transaction", "journal.json").is_file()
+
+
 def test_active_lock_contention_and_proven_stale_lock_break(tmp_path: Path) -> None:
     domain_id, _ = init_domain(tmp_path)
     lock = tmp_path / ".locks" / f"{domain_id}.lock"

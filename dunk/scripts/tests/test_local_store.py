@@ -102,6 +102,24 @@ def test_init_exact_layout_and_context_list(tmp_path: Path) -> None:
     assert output(listed)["domains"][0]["domain_id"] == domain_id
 
 
+def test_profile_identity_must_match_containing_domain_directory(tmp_path: Path) -> None:
+    first_id, first_directory = init_domain(tmp_path, "First Domain")
+    _, second_directory = init_domain(tmp_path, "Second Domain")
+    first_directory.joinpath("profile.yaml").write_bytes(
+        second_directory.joinpath("profile.yaml").read_bytes()
+    )
+
+    context = run_cli(tmp_path, "context", "--domain-id", first_id)
+    assert context.returncode == 2
+    assert "domain_id does not match its directory" in error(context)["message"]
+
+    listed = run_cli(tmp_path, "list")
+    assert listed.returncode == 0
+    first = next(item for item in output(listed)["domains"] if item["domain_id"] == first_id)
+    assert first["status"] == "unavailable"
+    assert "domain_id does not match its directory" in first["diagnostic"]
+
+
 def test_root_discovery_requires_explicit_configuration(tmp_path: Path) -> None:
     env = {key: value for key, value in os.environ.items() if key not in {"DLN_VAULT_ROOT", "CLAUDE_PLUGIN_DATA"}}
     missing = subprocess.run(
