@@ -57,7 +57,7 @@ def files(directory: Path) -> dict[str, bytes]:
 
 
 @pytest.mark.parametrize(
-    "fail_at", ["stage:dashboard.md", "before_install", "install:events.jsonl"]
+    "fail_at", ["stage:dashboard.md", "before_install", "install:state.json"]
 )
 def test_caught_failure_restores_prior_revision_and_removes_transaction(
     tmp_path: Path, fail_at: str
@@ -450,6 +450,8 @@ def test_transaction_fsyncs_nested_stage_and_backup_directories(
     store.commit(domain_id, 0, {"events": [session]})
     receipt = directory / "sessions" / "session-1.md"
     assert receipt.is_file()
+    rendered = receipt.read_bytes()
+    receipt.write_bytes(b"externally drifted receipt\n")
 
     fsynced: list[Path] = []
     original = store_module._fsync_directory
@@ -467,6 +469,41 @@ def test_transaction_fsyncs_nested_stage_and_backup_directories(
     assert transaction / "stage" in fsynced
     assert transaction / "backups" in fsynced
     assert not transaction.exists()
+    assert receipt.read_bytes() == rendered
+
+
+def test_unchanged_receipts_are_not_restaged_or_reinstalled(tmp_path: Path) -> None:
+    domain_id, directory = init_domain(tmp_path)
+    store = LocalStore(tmp_path)
+    session = {
+        "event_id": "complete-1",
+        "evidence_event_ids": [],
+        "kind": "session_completed",
+        "next_action": "Retrieve tomorrow",
+        "next_review_date": None,
+        "occurred_at": "2026-08-18T01:00:00Z",
+        "receipt_schema_version": 1,
+        "schema_version": 1,
+        "session_id": "session-1",
+    }
+    store.commit(domain_id, 0, {"events": [session]})
+    receipt = directory / "sessions" / "session-1.md"
+    dashboard = directory / "dashboard.md"
+    rendered = receipt.read_bytes()
+    receipt_inode = receipt.stat().st_ino
+    dashboard_inode = dashboard.stat().st_ino
+
+    store.commit(domain_id, 1, {"profile_patch": {"goal": "A revised goal"}})
+    assert receipt.read_bytes() == rendered
+    assert receipt.stat().st_ino == receipt_inode
+    assert dashboard.stat().st_ino != dashboard_inode
+    assert not directory.joinpath(store_module.TXN_NAME).exists()
+
+    assert store.rebuild(domain_id)["status"] == "rebuilt"
+    assert receipt.stat().st_ino == receipt_inode
+    assert not directory.joinpath(store_module.TXN_NAME).exists()
+    validated = run_cli(tmp_path, "validate", "--domain-id", domain_id)
+    assert validated.returncode == 0, validated.stderr
 
 
 def test_concurrent_commits_admit_exactly_one_winner(tmp_path: Path) -> None:

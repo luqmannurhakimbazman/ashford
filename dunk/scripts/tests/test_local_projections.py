@@ -17,7 +17,11 @@ FIXTURE = Path(__file__).resolve().parent / "fixtures" / "local_store"
 sys.path.insert(0, str(SCRIPTS))
 
 from dln_store.projector import project_state  # noqa: E402
-from dln_store.render import render_all_receipts, render_dashboard  # noqa: E402
+from dln_store.render import (  # noqa: E402
+    markdown_text,
+    render_all_receipts,
+    render_dashboard,
+)
 from dln_store.schema import (  # noqa: E402
     ValidationError,
     parse_events_bytes,
@@ -115,6 +119,12 @@ def test_receipts_have_canonical_sections_and_escape_markers() -> None:
     assert "partial (6/10) prediction" in second
     assert "after 7 day(s)" in second
     assert "next review:** not scheduled" in second.casefold()
+
+
+def test_markdown_escaping_neutralizes_backslash_before_pipe() -> None:
+    assert markdown_text(r"C:\|next") == r"C:\\\|next"
+    assert markdown_text(r"drive\path|next") == r"drive\\path\|next"
+    assert markdown_text("<!-- KS:start -->\n|") == "&lt;!-- KS:start --&gt;<br>\\|"
 
 
 def test_stage_operations_and_noninitial_revisions_are_enforced() -> None:

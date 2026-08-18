@@ -77,7 +77,7 @@ Obsidian or filesystem sync is external to Dunk. It is not a writer lock or conf
 
 Back up `profile.yaml` and `events.jsonl`; every other domain artifact is reproducible. Preserve the directory structure and file bytes. A backup is only complete when both canonical files are from the same committed revision.
 
-Use `validate` to check canonical sources and projection drift. It exits nonzero when a generated projection is modified, missing, or an unexpected receipt is present. Run `rebuild` for modified or missing projections; remove an unexpected receipt only after confirming it is absent from canonical events. If a process was interrupted, inspect before changing files:
+Use `validate` to check canonical sources and projection drift. It exits nonzero when a generated projection is modified, missing, or an unexpected receipt is present. Run `rebuild` for modified or missing projections; remove an unexpected receipt only after confirming it is absent from canonical events. Leading-dot editor or operating-system metadata under `sessions/`, such as `.DS_Store` or `.obsidian/`, is ignored. If a process was interrupted, inspect before changing files:
 
 ```bash
 python3 "$STORE" doctor --domain-id probability-<id>

@@ -416,6 +416,32 @@ def test_validate_fails_for_modified_missing_and_orphaned_projections(tmp_path: 
     assert run_cli(tmp_path, "validate", "--domain-id", domain_id).returncode == 0
 
 
+def test_validate_ignores_editor_metadata_but_still_flags_orphan_receipts(tmp_path: Path) -> None:
+    domain_id, directory = init_domain(tmp_path)
+    sessions = directory / "sessions"
+    sessions.joinpath(".DS_Store").write_bytes(b"\x00\x01finder metadata")
+    sessions.joinpath(".obsidian").mkdir()
+    sessions.joinpath(".obsidian", "workspace.json").write_text("{}\n", encoding="utf-8")
+
+    ignored = run_cli(tmp_path, "validate", "--domain-id", domain_id)
+    assert ignored.returncode == 0, ignored.stderr
+    assert output(ignored)["status"] == "valid"
+
+    orphan = sessions / "orphan.md"
+    orphan.write_text("not canonical\n", encoding="utf-8")
+    flagged = run_cli(tmp_path, "validate", "--domain-id", domain_id)
+    assert flagged.returncode == 2
+    message = error(flagged)["message"]
+    assert "unexpected files under sessions/: sessions/orphan.md" in message
+    assert "derived projection drift" not in message
+    assert ".DS_Store" not in message
+    assert "workspace.json" not in message
+
+    orphan.unlink()
+    assert run_cli(tmp_path, "validate", "--domain-id", domain_id).returncode == 0
+    assert sessions.joinpath(".DS_Store").is_file()
+
+
 def test_malformed_and_truncated_jsonl_reports_line_and_offset(tmp_path: Path) -> None:
     domain_id, directory = init_domain(tmp_path)
     first = json.dumps(assessment(), separators=(",", ":")) + "\n"

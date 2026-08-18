@@ -146,6 +146,10 @@ def _reject_target_symlinks(base: Path, relative: Path) -> None:
             raise ValidationError(f"generated target path must not contain symlinks: {current}")
 
 
+def _is_editor_metadata(base: Path, path: Path) -> bool:
+    return any(part.startswith(".") for part in path.relative_to(base).parts)
+
+
 def _hash_file(path: Path) -> str | None:
     try:
         return sha256_bytes(path.read_bytes())
@@ -408,6 +412,15 @@ def _install_transaction(
         raise RecoveryRequiredError(
             f"interrupted transaction exists at {paths.transaction}; run doctor --recover"
         )
+    pending: dict[str, bytes] = {}
+    for relative_text in sorted(targets):
+        relative = _safe_relative(relative_text)
+        _reject_target_symlinks(paths.directory, relative)
+        candidate = targets[relative_text]
+        if _hash_file(paths.directory / relative) != sha256_bytes(candidate):
+            pending[relative_text] = candidate
+    if not pending:
+        return
     paths.transaction.mkdir(mode=0o700)
     stage = paths.transaction / "stage"
     backups = paths.transaction / "backups"
@@ -416,16 +429,15 @@ def _install_transaction(
     journal_targets: list[dict[str, Any]] = []
     written_directories: set[Path] = {stage, backups}
     try:
-        for relative_text in sorted(targets):
+        for relative_text in sorted(pending):
             relative = _safe_relative(relative_text)
-            _reject_target_symlinks(paths.directory, relative)
             target = paths.directory / relative
             staged = stage / relative
-            _write_fsynced(staged, targets[relative_text])
+            _write_fsynced(staged, pending[relative_text])
             written_directories.add(staged.parent)
             _failpoint(f"stage:{relative.as_posix()}")
             entry: dict[str, Any] = {
-                "candidate_sha256": sha256_bytes(targets[relative_text]),
+                "candidate_sha256": sha256_bytes(pending[relative_text]),
                 "had_original": target.is_file(),
                 "path": relative.as_posix(),
             }
@@ -626,11 +638,6 @@ class LocalStore:
             patch = request.get("profile_patch", {})
             for key, value in patch.items():
                 candidate_profile[key] = value
-            if candidate_profile.get("domain") != profile["domain"]:
-                if make_domain_id(candidate_profile["domain"]) != domain_id:
-                    raise ValidationError(
-                        "profile_patch.domain would change immutable domain_id; initialize a new domain instead"
-                    )
             profile_changed = any(profile.get(key) != value for key, value in patch.items())
             if not new_events and not profile_changed:
                 return {
@@ -730,18 +737,31 @@ class LocalStore:
             expected_receipts = {
                 relative for relative in targets if relative.startswith("sessions/")
             }
+            orphans: list[str] = []
             if paths.sessions.is_dir():
-                for receipt in paths.sessions.rglob("*"):
-                    if receipt.is_file() or receipt.is_symlink():
-                        relative = receipt.relative_to(paths.directory).as_posix()
-                        if relative not in expected_receipts:
-                            drift.append(relative)
+                for entry in paths.sessions.rglob("*"):
+                    if not (entry.is_file() or entry.is_symlink()):
+                        continue
+                    if not entry.is_symlink() and _is_editor_metadata(paths.sessions, entry):
+                        continue
+                    relative = entry.relative_to(paths.directory).as_posix()
+                    if relative not in expected_receipts:
+                        orphans.append(relative)
+            problems: list[str] = []
             if drift:
-                raise ValidationError(
+                problems.append(
                     "derived projection drift: "
                     + ", ".join(sorted(set(drift)))
-                    + "; restore generated files from canonical sources"
+                    + "; restore generated files from canonical sources with rebuild"
                 )
+            if orphans:
+                problems.append(
+                    "unexpected files under sessions/: "
+                    + ", ".join(sorted(set(orphans)))
+                    + "; every receipt must correspond to a session_completed event"
+                )
+            if problems:
+                raise ValidationError("; ".join(problems))
             return {
                 "derived_drift": [],
                 "domain_id": domain_id,

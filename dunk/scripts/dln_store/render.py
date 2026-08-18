@@ -13,8 +13,8 @@ GENERATED_WARNING = (
 def markdown_text(value: Any) -> str:
     """Escape untrusted text for table cells and block marker safety."""
     text = str(value).replace("\r\n", "\n").replace("\r", "\n")
-    text = html.escape(text, quote=False).replace("|", "\\|").replace("\n", "<br>")
-    return text
+    text = html.escape(text, quote=False).replace("\\", "\\\\").replace("|", "\\|")
+    return text.replace("\n", "<br>")
 
 
 def _outcome(event: dict[str, Any]) -> str:
