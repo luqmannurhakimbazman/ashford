@@ -5,6 +5,7 @@ from __future__ import annotations
 import fcntl
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -407,3 +408,47 @@ def test_transaction_fsyncs_nested_stage_and_backup_directories(
     assert transaction / "stage" in fsynced
     assert transaction / "backups" in fsynced
     assert not transaction.exists()
+
+
+def test_concurrent_commits_admit_exactly_one_winner(tmp_path: Path) -> None:
+    domain_id, directory = init_domain(tmp_path)
+    writers = 5
+    requests = []
+    for index in range(writers):
+        path = tmp_path / f"race-{index}.json"
+        path.write_text(
+            json.dumps({"profile_patch": {"goal": f"writer {index} won"}}), encoding="utf-8"
+        )
+        requests.append(path)
+
+    command = [sys.executable, str(SCRIPT), "commit", "--root", str(tmp_path), "--domain-id", domain_id]
+    processes = [
+        subprocess.Popen(
+            [*command, "--expected-revision", "0", "--request", str(path)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        for path in requests
+    ]
+    results = [(process, *process.communicate()) for process in processes]
+    codes = [process.returncode for process, _, _ in results]
+
+    assert codes.count(0) == 1, codes
+    # Losers either never got the single-writer lock or saw the winner's revision.
+    assert all(code in {3, 4} for code in codes if code != 0), codes
+    winner = next(out for process, out, _ in results if process.returncode == 0)
+    assert json.loads(winner)["revision"] == 1
+
+    validated = run_cli(tmp_path, "validate", "--domain-id", domain_id)
+    assert validated.returncode == 0, validated.stderr
+    assert output(validated) == {
+        "derived_drift": [],
+        "domain_id": domain_id,
+        "event_count": 0,
+        "revision": 1,
+        "status": "valid",
+    }
+    profile = json.loads(directory.joinpath("profile.yaml").read_text())
+    assert profile["revision"] == 1
+    assert re.fullmatch(r"writer [0-4] won", profile["goal"])
