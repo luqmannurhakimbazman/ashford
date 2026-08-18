@@ -1,3 +1,5 @@
+"""Digest-bound ST5201X syllabus intake, approval, grounding, and receipt tests."""
+
 from __future__ import annotations
 
 import hashlib
@@ -745,9 +747,7 @@ def test_grounding_projection_legacy_pending_approved_and_correction() -> None:
         )
     )
     updated_receipts = render_all_syllabus_receipts([source, first, update, update_approval])
-    old_receipt = updated_receipts[
-        f"syllabus/{source['source']['source_version_id']}.md"
-    ].decode()
+    old_receipt = updated_receipts[f"syllabus/{source['source']['source_version_id']}.md"].decode()
     assert "Historically Approved — Superseded" in old_receipt
     assert "Superseded by approval:** `approval-update`" in old_receipt
     assert update["source"]["source_version_id"] in old_receipt
@@ -959,9 +959,7 @@ def test_validation_rejects_later_learning_reuse_of_syllabus_admin_session(
             occurred_at="2026-08-19T00:10:00Z",
         )
     )
-    admin_session_id = (
-        source["session_id"] if admin_kind == "intake" else approval["session_id"]
-    )
+    admin_session_id = source["session_id"] if admin_kind == "intake" else approval["session_id"]
     if learning_kind == "assessment":
         learning = grounded_assessment(
             "approval-admin-session",
@@ -1130,9 +1128,7 @@ def test_markdown_grounding_receipts_neutralize_active_syntax_and_page_fences() 
     )
     source["source"]["original_filename"] = "![[note]] [link](target) `tick`"
     source["pages"][0]["text"] += "\n````\n![[page-note]]\n![image](target)"
-    source["pages"][0]["text_sha256"] = sha256_bytes(
-        source["pages"][0]["text"].encode("utf-8")
-    )
+    source["pages"][0]["text_sha256"] = sha256_bytes(source["pages"][0]["text"].encode("utf-8"))
     relative = f"syllabus/{source['source']['source_version_id']}.md"
     pending = render_all_syllabus_receipts([source])[relative].decode()
     header, appendix = pending.split("## Canonical Page Text", maxsplit=1)

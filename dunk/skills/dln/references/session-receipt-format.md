@@ -35,7 +35,7 @@ If the completion commit fails, no receipt exists. Say the session is not durabl
 
 ## Dashboard boundary
 
-`dashboard.md` is the generated longitudinal view: current stage, subject evidence, retrieval/transfer/calibration status, current model, completed-session links, and next action. It is not a per-session receipt and is not canonical measurement input.
+`dashboard.md` is the generated longitudinal view: current stage, subject evidence, retrieval/transfer/calibration status, current model, course grounding status with its active source and Syllabus Intake Receipt link, completed-session links, and next action. It is not a per-session receipt and is not canonical measurement input.
 
 - Use the dashboard to orient the learner across sessions.
 - Use the receipt to close and share one completed session.

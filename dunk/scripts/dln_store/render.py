@@ -115,8 +115,7 @@ def render_syllabus_receipt(timeline: GroundingTimeline, source_event: dict[str,
     current_view = timeline.current_view()
     is_active = bool(
         current_view
-        and current_view["source"]["source"]["source_version_id"]
-        == source["source_version_id"]
+        and current_view["source"]["source"]["source_version_id"] == source["source_version_id"]
     )
     if not approvals:
         status = "Approval Required"

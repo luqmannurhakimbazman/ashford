@@ -116,6 +116,7 @@ class GroundingTimeline:
     current_approval_event_id: str | None = None
 
     def current_view(self) -> dict[str, Any] | None:
+        """Return the currently authoritative approval view, or None when ungrounded."""
         if self.current_approval_event_id is None:
             return None
         return self.approval_views[self.current_approval_event_id]

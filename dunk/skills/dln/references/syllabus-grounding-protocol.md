@@ -15,6 +15,8 @@ The adapter accepts only:
 
 Any other adapter, media type, size, or digest is rejected without a canonical write. Raw PDF bytes are not retained. Re-verification requires the learner to resupply the document; canonical extracted page text, located assertions, provenance, and digest remain replayable.
 
+Because this adapter is bound to one digest, a domain can hold only one source version: resupplying the same bytes replays as `noop`, and no revised syllabus can be registered until an adapter accepts different bytes. Say that plainly instead of offering a syllabus update. The supersession and `approved_update_pending` rules below stay in force for a later adapter.
+
 ## Intake and approval lifecycle
 
 1. Initialize or load the domain and retain the current revision.
@@ -30,14 +32,15 @@ Both commands use the stale-revision, recovery, and idempotent-replay rules in `
 
 A source version is identified by `sha256-<full-digest>`. The source ingestion event preserves source identity, digest, original filename, extraction tool/version, canonical page text, located assertions, and assertion-set digest. A syllabus approval event is an immutable complete snapshot containing:
 
+- `event_id`, `occurred_at`, and a `session_id` using the reserved `syllabus-approval-` prefix;
 - `source_version_id` and `source_assertion_set_sha256`;
-- learner actor;
+- `actor`, exactly `{"type":"learner","id":"learner"}`;
 - `accepted_assertion_ids`;
 - `deferred_assertion_ids`;
-- learner `corrections` with stable correction assertion IDs and target document assertion IDs;
+- learner `corrections`, each with a stable unique `correction_assertion_id`, one `target_assertion_id`, its `field`, a `specified | not_specified | unresolved` status, a `normalized_value` valid for that field, a `rationale`, and `origin: learner_correction`;
 - nullable `supersedes_approval_event_id`.
 
-A correction changes the effective tutoring value but never erases the document-derived value or citation. History remains append-only.
+The `approve-syllabus` request carries exactly those fields and no others; the store adds `schema_version`, `kind`, canonical ID ordering, and `approval_set_sha256`. A correction changes the effective tutoring value but never erases the document-derived value or citation. History remains append-only.
 
 ## Bounded grounding bundle
 
@@ -48,7 +51,8 @@ A correction changes the effective tutoring value but never erases the document-
 - compact effective assertions and citations;
 - unresolved assertions;
 - pending source summaries and receipt paths;
-- `planning_topics`, each with backing assertion IDs and `citable`.
+- `planning_topics`, each with backing assertion IDs and `citable`;
+- `legacy_fallback`, true only when ungrounded flat `profile.syllabus` topics supplied the planning projection.
 
 Do not pass raw PDF bytes, canonical page text, full event history, or prior chat to a phase skill. When approved grounding exists, select course tasks from `state.grounding.planning_topics`; `state.syllabus` is the derived flat projection. When only `profile.syllabus` exists, it is a legacy ungrounded planning fallback and its topics are not citable; once an approval is active the store rejects a `profile_patch.syllabus` edit.
 

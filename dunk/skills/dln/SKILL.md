@@ -124,7 +124,7 @@ After naming exactly what will reset, require confirmation. Then:
 2. Commit one `domain_reset` event with a new session ID, timestamp, and optional reason.
 3. Re-run `context` and report the new generation/stage.
 
-Reset never deletes events, profile ownership fields, or historic receipts. If the learner wants a different domain identity, initialize a new domain instead.
+Reset never deletes events, profile ownership fields, or historic receipts, and it never clears registered syllabus authority: `state.grounding` survives a reset because course sources and approvals are not learning state. If the learner wants a different domain identity, initialize a new domain instead.
 
 ## Goal and syllabus edits
 

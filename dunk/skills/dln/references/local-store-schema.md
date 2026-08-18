@@ -66,7 +66,7 @@ Required: `next_action`, nullable `next_review_date`, `evidence_event_ids`, and 
 ### Syllabus authority events
 
 - `syllabus_source_ingested`: reserved for `ingest-syllabus`; preserves immutable source identity/version, SHA-256, original filename, extraction provenance, canonical page text, located assertions, assertion-set digest, and optional source supersession. Raw PDF bytes are not retained.
-- `syllabus_approval_recorded`: reserved for `approve-syllabus`; a complete learner snapshot of accepted, deferred, and corrected assertions with optional approval supersession. Corrections retain their target document value and citation.
+- `syllabus_approval_recorded`: reserved for `approve-syllabus`; a complete learner snapshot of accepted, deferred, and corrected assertions with optional approval supersession. Corrections retain their target document value and citation. `syllabus-grounding-protocol.md` defines the exact approval request fields.
 
 These events cannot be submitted through generic `commit`. They configure course authority and never count as learning evidence.
 
@@ -80,6 +80,6 @@ These events cannot be submitted through generic `commit`. They configure course
 
 `state.json` exposes the current `revision`, `stage`, `subjects`, `current_model`, calibration aggregate, completed receipt index, review date/action, profile fields, source hashes, reset generation, exam archive, legacy claims, derived `syllabus`, and bounded `grounding`.
 
-`state.grounding.status` is `ungrounded`, `approval_required`, `approved`, or `approved_update_pending`. It contains only active source/approval summaries, compact effective assertions/citations, unresolved assertions, pending source summaries/receipt paths, and planning topics. Approved coverage assertions derive `state.syllabus`; otherwise flat `profile.syllabus` remains a legacy ungrounded, non-citable fallback. Full page text and authority history remain outside the bounded phase bundle.
+`state.grounding` is the bounded grounding bundle; `syllabus-grounding-protocol.md` defines its exact status values and fields. Approved coverage assertions derive `state.syllabus`; otherwise flat `profile.syllabus` remains a legacy ungrounded, non-citable fallback. Full page text and authority history remain outside the bounded phase bundle.
 
 Supported performance never overwrites the latest independent result. Transfer increments only for `novel` assessments. Delayed retrieval becomes measured only after a timestamp-consistent, positive calendar-day delay in the current generation, and each subject's `retrieval` block records `count`, the `latest` attempt including its `evidence_mode`, and `satisfied_by`. Only an independent passing retrieval sets `satisfied_by`; supported or non-passing attempts stay measured evidence and leave a passing subject at `needs-retrieval`. Calibration includes only paired pre-answer confidence and score. Imported claims never satisfy gates.
