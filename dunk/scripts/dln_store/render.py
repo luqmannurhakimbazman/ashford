@@ -25,6 +25,7 @@ def _outcome(event: dict[str, Any]) -> str:
 
 
 def render_dashboard(state: dict[str, Any]) -> bytes:
+    """Render the domain dashboard as Obsidian-readable Markdown."""
     lines = [
         "# Dunk Learning Dashboard",
         "",
@@ -128,7 +129,8 @@ def render_dashboard(state: dict[str, Any]) -> bytes:
     lines.extend(["", "## Imported Legacy Claims", ""])
     if state["legacy_imports"]:
         lines.append(
-            "Legacy claims are unverified prior context only and are never counted as evidence, mastery, retrieval, or calibration."
+            "Legacy claims are unverified prior context only and are never counted "
+            "as evidence, mastery, retrieval, or calibration."
         )
         for item in state["legacy_imports"]:
             claims = item["claims"]
@@ -160,6 +162,7 @@ def render_receipt(
     events: list[dict[str, Any]],
     completion: dict[str, Any],
 ) -> bytes:
+    """Render one Session Receipt from a completion event and its cited evidence."""
     session_events = _session_events(events, completion)
     independent = [
         event
@@ -272,7 +275,8 @@ def render_receipt(
             gap = float(event["confidence_before"]) - normalized
             lines.append(
                 f"- **{markdown_text(event['subject']['label'])}:** confidence "
-                f"{event['confidence_before']:.3f}, normalized score {normalized:.3f}, gap {gap:.3f}."
+                f"{event['confidence_before']:.3f}, normalized score {normalized:.3f}, "
+                f"gap {gap:.3f}."
             )
     else:
         lines.append("Calibration was not measured before an answer in this session.")
@@ -283,13 +287,15 @@ def render_receipt(
             "## Next Action and Review",
             "",
             f"- **Next action:** {markdown_text(completion['next_action'])}",
-            f"- **Next review:** {markdown_text(completion['next_review_date'] or 'not scheduled')}",
+            f"- **Next review:** "
+            f"{markdown_text(completion['next_review_date'] or 'not scheduled')}",
         ]
     )
     return ("\n".join(lines) + "\n").encode("utf-8")
 
 
 def render_all_receipts(profile: dict[str, Any], events: list[dict[str, Any]]) -> dict[str, bytes]:
+    """Render every Session Receipt, keyed by its path under sessions/."""
     receipts: dict[str, bytes] = {}
     for event in events:
         if event["kind"] == "session_completed":

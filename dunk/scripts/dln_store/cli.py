@@ -20,6 +20,7 @@ def _add_root(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the argument parser covering every dln-store subcommand."""
     parser = argparse.ArgumentParser(
         prog="dln-store",
         description="Authoritative stdlib-only local learning event store",
@@ -105,6 +106,7 @@ def _emit(value: Any, stream: Any) -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run one CLI invocation and return its process exit code."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

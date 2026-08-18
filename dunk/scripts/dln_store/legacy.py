@@ -84,6 +84,7 @@ def _plain_items(section: str) -> list[str]:
 
 
 def parse_legacy_ks(data: bytes) -> tuple[str, dict[str, Any]]:
+    """Parse one marker-delimited legacy KS block into its digest and claims."""
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError as exc:
@@ -143,6 +144,7 @@ def parse_legacy_ks(data: bytes) -> tuple[str, dict[str, Any]]:
 
 
 def legacy_event(data: bytes) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Build the non-evidence import event for a legacy KS export."""
     source_hash, claims = parse_legacy_ks(data)
     event = {
         "claims": claims,

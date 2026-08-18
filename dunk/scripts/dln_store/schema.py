@@ -32,18 +32,26 @@ class StoreError(Exception):
 
 
 class ValidationError(StoreError):
+    """Raised when input violates the documented local-store schema."""
+
     exit_code = 2
 
 
 class StaleRevisionError(StoreError):
+    """Raised when a commit targets a revision other than the stored one."""
+
     exit_code = 3
 
 
 class LockError(StoreError):
+    """Raised when a domain write lock cannot be acquired or safely broken."""
+
     exit_code = 4
 
 
 class RecoveryRequiredError(StoreError):
+    """Raised when an interrupted transaction must be recovered before writing."""
+
     exit_code = 5
 
 
@@ -174,6 +182,7 @@ def canonical_json(value: Any, *, newline: bool = True) -> bytes:
 
 
 def pretty_json(value: Any) -> bytes:
+    """Encode JSON as sorted, indented text for human-editable files."""
     try:
         text = json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False)
     except (TypeError, ValueError) as exc:
@@ -182,15 +191,18 @@ def pretty_json(value: Any) -> bytes:
 
 
 def sha256_bytes(data: bytes) -> str:
+    """Return the lowercase SHA-256 hex digest of ``data``."""
     return hashlib.sha256(data).hexdigest()
 
 
 def normalized_domain_name(name: str) -> str:
+    """Normalize a domain name to NFKC, casefolded, whitespace-collapsed form."""
     normalized = unicodedata.normalize("NFKC", _string(name, "domain")).strip().casefold()
     return " ".join(normalized.split())
 
 
 def make_domain_id(name: str) -> str:
+    """Derive the stable store-owned domain id (slug plus digest) for a domain name."""
     normalized = normalized_domain_name(name)
     slug = re.sub(r"[^a-z0-9]+", "-", normalized).strip("-") or "domain"
     slug = slug[:48].rstrip("-") or "domain"
@@ -198,6 +210,7 @@ def make_domain_id(name: str) -> str:
 
 
 def initial_profile(domain: str, goal: str) -> dict[str, Any]:
+    """Build the profile that a freshly initialized domain starts from."""
     return {
         "annotations": [],
         "domain": _string(domain, "domain"),
@@ -212,6 +225,7 @@ def initial_profile(domain: str, goal: str) -> dict[str, Any]:
 
 
 def validate_profile(value: Any) -> dict[str, Any]:
+    """Validate a decoded profile, returning it unchanged when it is well formed."""
     profile = _object(value, "profile")
     required = {"schema_version", "domain_id", "revision", "domain", "goal", "syllabus"}
     optional = {"annotations", "review_preferences", "exam"}
@@ -245,12 +259,14 @@ def parse_profile_bytes(data: bytes, source: str = "profile.yaml") -> dict[str, 
         value = json.loads(text)
     except json.JSONDecodeError as exc:
         raise ValidationError(
-            f"{source}:{exc.lineno}:{exc.colno}: unsupported YAML; use the JSON-compatible YAML subset ({exc.msg})"
+            f"{source}:{exc.lineno}:{exc.colno}: unsupported YAML; "
+            f"use the JSON-compatible YAML subset ({exc.msg})"
         ) from exc
     return validate_profile(value)
 
 
 def load_profile(path: Path) -> tuple[dict[str, Any], bytes]:
+    """Read and validate a profile file, returning the profile and its exact bytes."""
     try:
         data = path.read_bytes()
     except FileNotFoundError as exc:
@@ -259,6 +275,7 @@ def load_profile(path: Path) -> tuple[dict[str, Any], bytes]:
 
 
 def validate_profile_patch(value: Any) -> dict[str, Any]:
+    """Validate a user profile patch, rejecting store-owned identity fields."""
     patch = _object(value, "request.profile_patch")
     allowed = {"goal", "syllabus", "annotations", "review_preferences", "exam"}
     unknown = patch.keys() - allowed
@@ -311,6 +328,7 @@ def _validate_retrieval(value: Any, path: str) -> None:
 
 
 def validate_event(value: Any, path: str = "event") -> dict[str, Any]:
+    """Validate one event of any supported kind against its per-kind field contract."""
     event = _object(value, path)
     common = {"schema_version", "event_id", "session_id", "occurred_at", "kind"}
     missing = common - event.keys()
@@ -458,6 +476,7 @@ def validate_event(value: Any, path: str = "event") -> dict[str, Any]:
 
 
 def validate_commit_request(value: Any) -> dict[str, Any]:
+    """Validate a commit request's events and profile patch."""
     request = _object(value, "request")
     _keys(request, set(), {"events", "profile_patch"}, "request")
     if not request:
@@ -472,6 +491,7 @@ def validate_commit_request(value: Any) -> dict[str, Any]:
 
 
 def parse_json_file(path: Path, label: str = "JSON") -> Any:
+    """Read a UTF-8 JSON file, reporting the failing line and column on error."""
     try:
         data = path.read_bytes()
     except FileNotFoundError as exc:
@@ -489,6 +509,7 @@ def parse_json_file(path: Path, label: str = "JSON") -> Any:
 
 
 def parse_events_bytes(data: bytes, source: str = "events.jsonl") -> list[dict[str, Any]]:
+    """Parse and validate an append-only event log, reporting byte offsets on error."""
     events: list[dict[str, Any]] = []
     offset = 0
     for line_number, raw_line in enumerate(data.splitlines(keepends=True), 1):
@@ -501,22 +522,27 @@ def parse_events_bytes(data: bytes, source: str = "events.jsonl") -> list[dict[s
             text = content.decode("utf-8")
         except UnicodeDecodeError as exc:
             raise ValidationError(
-                f"{source}: line {line_number}, byte offset {line_offset + exc.start}: invalid UTF-8"
+                f"{source}: line {line_number}, "
+                f"byte offset {line_offset + exc.start}: invalid UTF-8"
             ) from exc
         try:
             value = json.loads(text)
         except json.JSONDecodeError as exc:
             byte_column = len(text[: exc.pos].encode("utf-8"))
             raise ValidationError(
-                f"{source}: line {line_number}, byte offset {line_offset + byte_column}: malformed or truncated JSON ({exc.msg})"
+                f"{source}: line {line_number}, "
+                f"byte offset {line_offset + byte_column}: "
+                f"malformed or truncated JSON ({exc.msg})"
             ) from exc
         events.append(validate_event(value, f"{source} line {line_number}"))
     if data and not data.endswith((b"\n", b"\r")):
         raise ValidationError(
-            f"{source}: line {len(data.splitlines())}, byte offset {len(data)}: truncated JSONL (missing newline terminator)"
+            f"{source}: line {len(data.splitlines())}, byte offset {len(data)}: "
+            "truncated JSONL (missing newline terminator)"
         )
     return events
 
 
 def encode_event_lines(events: Iterable[dict[str, Any]]) -> bytes:
+    """Encode events as canonical JSONL, revalidating each one."""
     return b"".join(canonical_json(validate_event(event)) for event in events)

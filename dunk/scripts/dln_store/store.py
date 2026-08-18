@@ -44,43 +44,54 @@ TXN_NAME = ".dln-transaction"
 
 @dataclass(frozen=True)
 class DomainPaths:
+    """Canonical filesystem locations for one domain inside a vault root."""
+
     root: Path
     domain_id: str
 
     @property
     def directory(self) -> Path:
+        """Return the domain directory holding canonical and derived files."""
         return self.root / "domains" / self.domain_id
 
     @property
     def profile(self) -> Path:
+        """Return the user-editable profile path."""
         return self.directory / "profile.yaml"
 
     @property
     def events(self) -> Path:
+        """Return the append-only event log path."""
         return self.directory / "events.jsonl"
 
     @property
     def state(self) -> Path:
+        """Return the generated state projection path."""
         return self.directory / "state.json"
 
     @property
     def dashboard(self) -> Path:
+        """Return the generated dashboard path."""
         return self.directory / "dashboard.md"
 
     @property
     def sessions(self) -> Path:
+        """Return the directory holding generated Session Receipts."""
         return self.directory / "sessions"
 
     @property
     def lock(self) -> Path:
+        """Return the advisory lock file guarding writes to this domain."""
         return self.root / ".locks" / f"{self.domain_id}.lock"
 
     @property
     def transaction(self) -> Path:
+        """Return the in-progress transaction directory path."""
         return self.directory / TXN_NAME
 
 
 def resolve_root(explicit: str | None = None) -> Path:
+    """Resolve the vault root from --root, DLN_VAULT_ROOT, then CLAUDE_PLUGIN_DATA."""
     if explicit:
         return Path(explicit).expanduser().resolve()
     configured = os.environ.get("DLN_VAULT_ROOT")
@@ -260,7 +271,8 @@ def _load_journal(paths: DomainPaths) -> dict[str, Any]:
         value = json.loads(journal_path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
         raise RecoveryRequiredError(
-            f"interrupted transaction at {paths.transaction} has no journal; preserve it for diagnosis"
+            f"interrupted transaction at {paths.transaction} has no journal; "
+            "preserve it for diagnosis"
         ) from exc
     except (OSError, json.JSONDecodeError) as exc:
         raise RecoveryRequiredError(f"cannot read transaction journal: {exc}") from exc
@@ -308,7 +320,8 @@ def _restore_transaction(paths: DomainPaths, journal: dict[str, Any]) -> None:
         original_hash = entry.get("backup_sha256") if entry["had_original"] else None
         if target_hash not in {original_hash, entry["candidate_sha256"]}:
             raise RecoveryRequiredError(
-                f"cannot restore {relative}: target changed outside this transaction; preserve the journal for diagnosis"
+                f"cannot restore {relative}: target changed outside this transaction; "
+                "preserve the journal for diagnosis"
             )
 
     for entry in journal["targets"]:
@@ -533,10 +546,14 @@ def _projection_targets(
 
 
 class LocalStore:
+    """Authoritative local store that owns every write beneath a vault root."""
+
     def __init__(self, root: Path):
+        """Bind the store to a vault root."""
         self.root = root.resolve()
 
     def paths(self, domain_id: str) -> DomainPaths:
+        """Return the paths for a domain id, rejecting ids the store did not generate."""
         if not isinstance(domain_id, str) or not re.fullmatch(
             r"[a-z0-9][a-z0-9-]{0,48}-[0-9a-f]{8}", domain_id
         ):
@@ -546,6 +563,7 @@ class LocalStore:
         return DomainPaths(self.root, domain_id)
 
     def init(self, domain: str, goal: str) -> dict[str, Any]:
+        """Create a new domain directory atomically and return its identity."""
         profile = initial_profile(domain, goal)
         domain_id = profile["domain_id"]
         final = self.paths(domain_id)
@@ -599,6 +617,7 @@ class LocalStore:
     def commit(
         self, domain_id: str, expected_revision: int, request: dict[str, Any]
     ) -> dict[str, Any]:
+        """Append validated events and profile edits at the expected revision."""
         paths = self._require_domain(domain_id)
         validate_commit_request(request)
         with domain_lock(paths):
@@ -688,6 +707,7 @@ class LocalStore:
             }
 
     def rebuild(self, domain_id: str) -> dict[str, Any]:
+        """Regenerate every derived projection from the canonical sources."""
         paths = self._require_domain(domain_id)
         with domain_lock(paths):
             recovery = self._recover_before_write(paths)
@@ -711,6 +731,7 @@ class LocalStore:
             }
 
     def context(self, domain_id: str) -> dict[str, Any]:
+        """Return the profile and a freshly projected state for a domain."""
         paths = self._require_domain(domain_id)
         with domain_lock(paths):
             if paths.transaction.exists():
@@ -724,6 +745,7 @@ class LocalStore:
             return {"profile": profile, "state": state}
 
     def validate(self, domain_id: str) -> dict[str, Any]:
+        """Check derived projections and sessions/ for drift against the sources."""
         paths = self._require_domain(domain_id)
         with domain_lock(paths):
             if paths.transaction.exists():
@@ -774,6 +796,7 @@ class LocalStore:
             }
 
     def list_domains(self) -> dict[str, Any]:
+        """Summarize every domain in the vault, reporting unavailable ones."""
         domains_directory = self.root / "domains"
         results: list[dict[str, Any]] = []
         if not domains_directory.exists():
@@ -813,6 +836,7 @@ class LocalStore:
         recover: bool = False,
         break_stale_lock: bool = False,
     ) -> dict[str, Any]:
+        """Report lock and transaction health, optionally recovering or unlocking."""
         paths = self._require_domain(domain_id)
         lock_directory = _lock_directory(paths)
         handle = _open_lock(paths.lock)
@@ -857,6 +881,7 @@ class LocalStore:
         }
 
     def import_legacy(self, domain: str, input_path: Path) -> dict[str, Any]:
+        """Import an exported legacy Knowledge State as non-evidence prior context."""
         try:
             source = input_path.read_bytes()
         except FileNotFoundError as exc:

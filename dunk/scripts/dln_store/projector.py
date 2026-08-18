@@ -114,7 +114,8 @@ def project_state(
                 prior_id = event["retrieval"]["prior_event_id"]
                 if event_generation[prior_id] != generation:
                     raise ValidationError(
-                        f"events[{position}].retrieval: prior assessment belongs to an earlier generation"
+                        f"events[{position}].retrieval: "
+                        "prior assessment belongs to an earlier generation"
                     )
                 if prior["subject"]["id"] != event["subject"]["id"]:
                     raise ValidationError(
@@ -130,12 +131,14 @@ def project_state(
                     )
                 if retrieval["observed_delay_days"] != calendar_delay:
                     raise ValidationError(
-                        f"events[{position}].retrieval.observed_delay_days: expected {calendar_delay} from timestamps"
+                        f"events[{position}].retrieval.observed_delay_days: "
+                        f"expected {calendar_delay} from timestamps"
                     )
                 scheduled = date.fromisoformat(retrieval["scheduled_date"])
                 if not (prior_at.date() < scheduled <= current_at.date()):
                     raise ValidationError(
-                        f"events[{position}].retrieval.scheduled_date: must be after the prior assessment and no later than this assessment"
+                        f"events[{position}].retrieval.scheduled_date: "
+                        "must be after the prior assessment and no later than this assessment"
                     )
             subject_id = event["subject"]["id"]
             subject = subjects.setdefault(
@@ -198,11 +201,13 @@ def project_state(
                 )
                 if event_generation[trigger_id] != generation:
                     raise ValidationError(
-                        f"events[{position}]: model revision trigger {trigger_id!r} belongs to an earlier generation"
+                        f"events[{position}]: model revision trigger {trigger_id!r} "
+                        "belongs to an earlier generation"
                     )
                 if trigger["operation"] != "predict":
                     raise ValidationError(
-                        f"events[{position}]: model revision trigger {trigger_id!r} is not a prediction"
+                        f"events[{position}]: model revision trigger "
+                        f"{trigger_id!r} is not a prediction"
                     )
             prior_id = event.get("prior_model_revision_event_id")
             if prior_id:
@@ -214,7 +219,8 @@ def project_state(
                 )
                 if event_generation[prior_id] != generation:
                     raise ValidationError(
-                        f"events[{position}].prior_model_revision_event_id: prior model belongs to an earlier generation"
+                        f"events[{position}].prior_model_revision_event_id: "
+                        "prior model belongs to an earlier generation"
                     )
             current_model = {
                 "decision": event["decision"],
@@ -234,7 +240,8 @@ def project_state(
             if event["to"] not in STAGE_TRANSITIONS[stage]:
                 expected = ", ".join(sorted(STAGE_TRANSITIONS[stage]))
                 raise ValidationError(
-                    f"events[{position}].to: transition from {stage!r} must target one of {expected}"
+                    f"events[{position}].to: transition from {stage!r} "
+                    f"must target one of {expected}"
                 )
             assessments: list[dict[str, Any]] = []
             for assessment_id in event["assessment_event_ids"]:
@@ -246,7 +253,8 @@ def project_state(
                 )
                 if event_generation[assessment_id] != generation:
                     raise ValidationError(
-                        f"events[{position}]: stage transition evidence belongs to an earlier generation"
+                        f"events[{position}]: stage transition evidence "
+                        "belongs to an earlier generation"
                     )
                 if assessment["evidence_mode"] != "independent":
                     raise ValidationError(
@@ -263,19 +271,22 @@ def project_state(
             if transition == ("acquire", "relate"):
                 if any(assessment["outcome"] != "pass" for assessment in assessments):
                     raise ValidationError(
-                        f"events[{position}]: acquire-to-relate gate requires passing independent acquire/discriminate evidence"
+                        f"events[{position}]: acquire-to-relate gate requires "
+                        "passing independent acquire/discriminate evidence"
                     )
             elif transition == ("relate", "revise"):
                 if any(assessment["outcome"] != "pass" for assessment in assessments) or not any(
                     assessment["novelty"] == "novel" for assessment in assessments
                 ):
                     raise ValidationError(
-                        f"events[{position}]: relate-to-revise gate requires passing independent relate/abstract evidence including a novel task"
+                        f"events[{position}]: relate-to-revise gate requires passing "
+                        "independent relate/abstract evidence including a novel task"
                     )
             elif transition[0] == "revise":
                 if any(assessment["outcome"] == "pass" for assessment in assessments):
                     raise ValidationError(
-                        f"events[{position}]: revise fallback requires independent partial/failed prediction evidence"
+                        f"events[{position}]: revise fallback requires "
+                        "independent partial/failed prediction evidence"
                     )
             stage = event["to"]
 
@@ -284,11 +295,13 @@ def project_state(
                 evidence = event_index.get(evidence_id)
                 if evidence is None:
                     raise ValidationError(
-                        f"events[{position}].evidence_event_ids: unknown prior event {evidence_id!r}"
+                        f"events[{position}].evidence_event_ids: "
+                        f"unknown prior event {evidence_id!r}"
                     )
                 if evidence["session_id"] != session_id:
                     raise ValidationError(
-                        f"events[{position}].evidence_event_ids: event {evidence_id!r} belongs to another session"
+                        f"events[{position}].evidence_event_ids: event {evidence_id!r} "
+                        "belongs to another session"
                     )
                 if evidence["kind"] not in {"assessment", "model_revision", "stage_transition"}:
                     raise ValidationError(
