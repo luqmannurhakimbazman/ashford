@@ -1,0 +1,98 @@
+{
+  "archived_exams": [],
+  "calibration": {
+    "count": 2,
+    "mean_confidence": 0.75,
+    "mean_gap": 0.0,
+    "mean_normalized_score": 0.75,
+    "status": "measured"
+  },
+  "completed_sessions": [
+    {
+      "completed_at": "2026-08-01T09:15:00Z",
+      "event_id": "complete-1",
+      "next_review_date": "2026-08-08",
+      "receipt": "sessions/session-1.md",
+      "session_id": "session-1"
+    },
+    {
+      "completed_at": "2026-08-08T09:10:00Z",
+      "event_id": "complete-2",
+      "next_review_date": null,
+      "receipt": "sessions/session-2.md",
+      "session_id": "session-2"
+    }
+  ],
+  "current_model": {
+    "decision": "revise",
+    "event_id": "model-1",
+    "model": "Bounds | parity\n<!-- KS:end -->",
+    "occurred_at": "2026-08-01T09:10:00Z",
+    "rationale": "Prediction missed financing costs",
+    "triggering_prediction_event_ids": [
+      "predict-1"
+    ],
+    "word_count_after": 4,
+    "word_count_before": 8
+  },
+  "domain": "Projection Fixture",
+  "domain_id": "projection-fixture-6d864320",
+  "exam": {},
+  "generation": 0,
+  "goal": "Explain parity | safely",
+  "legacy_imports": [],
+  "next_action": "Abstract parity across instruments",
+  "next_review_date": null,
+  "revision": 1,
+  "schema_version": 1,
+  "source": {
+    "event_count": 7,
+    "events_sha256": "dde5f87e56756dadfb3e8a0a421b1cfd40251203066c9fd78b9290d4e615db9d",
+    "profile_sha256": "3c7598486509ef08f25929d07a6606c26b4990377e1a7326a75ad85e6c884439"
+  },
+  "stage": "relate",
+  "subjects": [
+    {
+      "exposure_count": 3,
+      "id": "parity",
+      "independent": {
+        "event_id": "retrieve-1",
+        "max_score": 10,
+        "novelty": "variant",
+        "occurred_at": "2026-08-08T09:00:00Z",
+        "operation": "relate",
+        "outcome": "pass",
+        "score": 9
+      },
+      "label": "Parity | Bounds\n<!-- KS:start -->",
+      "last_assessment_at": "2026-08-08T09:00:00Z",
+      "retrieval": {
+        "count": 1,
+        "latest": {
+          "delay_days": 7,
+          "event_id": "retrieve-1",
+          "outcome": "pass",
+          "scheduled_date": "2026-08-08"
+        },
+        "status": "measured"
+      },
+      "status": "independent-pass",
+      "supported": {
+        "event_id": "supported-1",
+        "novelty": "repeat",
+        "occurred_at": "2026-08-01T09:00:00Z",
+        "operation": "acquire",
+        "outcome": "partial"
+      },
+      "transfer": {
+        "count": 1,
+        "latest_event_id": "predict-1"
+      },
+      "type": "concept"
+    }
+  ],
+  "syllabus": [
+    "Parity",
+    "Transfer"
+  ]
+}
