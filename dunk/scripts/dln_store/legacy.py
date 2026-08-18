@@ -13,9 +13,7 @@ END_MARKER = "<!-- KS:end -->"
 
 
 def _section(block: str, heading: str) -> str:
-    pattern = re.compile(
-        rf"(?ms)^## {re.escape(heading)}\s*\n(.*?)(?=^## |\Z)"
-    )
+    pattern = re.compile(rf"(?ms)^## {re.escape(heading)}\s*\n(.*?)(?=^## |\Z)")
     match = pattern.search(block)
     return match.group(1).strip() if match else ""
 
@@ -70,7 +68,9 @@ def _syllabus(section: str) -> tuple[str | None, list[dict[str, Any]]]:
             continue
         match = re.match(r"^-\s*\[([ xX])\]\s*(.+?)\s*$", line)
         if match:
-            topics.append({"completed_claim": match.group(1).casefold() == "x", "topic": match.group(2)})
+            topics.append(
+                {"completed_claim": match.group(1).casefold() == "x", "topic": match.group(2)}
+            )
     return goal, topics
 
 
@@ -89,7 +89,9 @@ def parse_legacy_ks(data: bytes) -> tuple[str, dict[str, Any]]:
     except UnicodeDecodeError as exc:
         raise ValidationError("legacy KS input must be UTF-8") from exc
     if text.count(START_MARKER) != 1 or text.count(END_MARKER) != 1:
-        raise ValidationError("legacy KS input must contain exactly one KS:start and one KS:end marker")
+        raise ValidationError(
+            "legacy KS input must contain exactly one KS:start and one KS:end marker"
+        )
     start = text.index(START_MARKER)
     end = text.index(END_MARKER, start)
     if end <= start:

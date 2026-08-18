@@ -68,7 +68,10 @@ def _string(value: Any, path: str, *, allow_empty: bool = False) -> str:
 def _identifier(value: Any, path: str) -> str:
     value = _string(value, path)
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", value):
-        _fail(path, "must be a portable identifier (letters, digits, dot, underscore, hyphen; max 128)")
+        _fail(
+            path,
+            "must be a portable identifier (letters, digits, dot, underscore, hyphen; max 128)",
+        )
     return value
 
 
@@ -110,9 +113,7 @@ def _enum(value: Any, allowed: set[str], path: str) -> str:
     return value
 
 
-def _keys(
-    obj: dict[str, Any], required: set[str], optional: set[str], path: str
-) -> None:
+def _keys(obj: dict[str, Any], required: set[str], optional: set[str], path: str) -> None:
     missing = required - obj.keys()
     if missing:
         _fail(path, f"missing required field(s): {', '.join(sorted(missing))}")
@@ -326,8 +327,15 @@ def validate_event(value: Any, path: str = "event") -> dict[str, Any]:
 
     if kind == "assessment":
         required = common | {
-            "operation", "task_id", "subject", "context_id", "novelty",
-            "evidence_mode", "outcome", "rubric_id", "assistance",
+            "operation",
+            "task_id",
+            "subject",
+            "context_id",
+            "novelty",
+            "evidence_mode",
+            "outcome",
+            "rubric_id",
+            "assistance",
         }
         optional = {"score", "max_score", "confidence_before", "retrieval", "response_time_ms"}
         _keys(event, required, optional, path)
@@ -366,7 +374,10 @@ def validate_event(value: Any, path: str = "event") -> dict[str, Any]:
     elif kind == "model_revision":
         required = common | {"triggering_prediction_event_ids", "model", "decision", "rationale"}
         optional = {
-            "prior_model_revision_event_id", "word_count_before", "word_count_after", "initial_model"
+            "prior_model_revision_event_id",
+            "word_count_before",
+            "word_count_after",
+            "initial_model",
         }
         _keys(event, required, optional, path)
         triggers = _string_list(
@@ -384,7 +395,11 @@ def validate_event(value: Any, path: str = "event") -> dict[str, Any]:
         if "prior_model_revision_event_id" in event:
             _string(event["prior_model_revision_event_id"], f"{path}.prior_model_revision_event_id")
         _string(event["model"], f"{path}.model")
-        _enum(event["decision"], {"exploit", "revise", "expand", "fallback-independent"}, f"{path}.decision")
+        _enum(
+            event["decision"],
+            {"exploit", "revise", "expand", "fallback-independent"},
+            f"{path}.decision",
+        )
         _string(event["rationale"], f"{path}.rationale")
         for field in ("word_count_before", "word_count_after"):
             if field in event:
@@ -398,11 +413,21 @@ def validate_event(value: Any, path: str = "event") -> dict[str, Any]:
         if start == end:
             _fail(path, "from and to must differ")
         _string(event["rubric_id"], f"{path}.rubric_id")
-        _string_list(event["assessment_event_ids"], f"{path}.assessment_event_ids", unique=True, nonempty=True)
+        _string_list(
+            event["assessment_event_ids"],
+            f"{path}.assessment_event_ids",
+            unique=True,
+            nonempty=True,
+        )
         _string(event["decision"], f"{path}.decision")
 
     elif kind == "session_completed":
-        required = common | {"next_action", "next_review_date", "evidence_event_ids", "receipt_schema_version"}
+        required = common | {
+            "next_action",
+            "next_review_date",
+            "evidence_event_ids",
+            "receipt_schema_version",
+        }
         _keys(event, required, set(), path)
         _string(event["next_action"], f"{path}.next_action")
         _date(event["next_review_date"], f"{path}.next_review_date", allow_null=True)
@@ -460,7 +485,9 @@ def parse_json_file(path: Path, label: str = "JSON") -> Any:
     try:
         return json.loads(text)
     except json.JSONDecodeError as exc:
-        raise ValidationError(f"{path}:{exc.lineno}:{exc.colno}: invalid {label}: {exc.msg}") from exc
+        raise ValidationError(
+            f"{path}:{exc.lineno}:{exc.colno}: invalid {label}: {exc.msg}"
+        ) from exc
 
 
 def parse_events_bytes(data: bytes, source: str = "events.jsonl") -> list[dict[str, Any]]:

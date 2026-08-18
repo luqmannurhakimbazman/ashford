@@ -17,12 +17,14 @@ SCRIPTS = Path(__file__).resolve().parent.parent
 SCRIPT = SCRIPTS / "dln-store.py"
 sys.path.insert(0, str(SCRIPTS))
 
+import dln_store.store as store_module  # noqa: E402
 from dln_store.schema import StaleRevisionError  # noqa: E402
 from dln_store.store import LocalStore  # noqa: E402
-import dln_store.store as store_module  # noqa: E402
 
 
-def run_cli(root: Path, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def run_cli(
+    root: Path, *args: str, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     command = [sys.executable, str(SCRIPT), args[0], "--root", str(root), *args[1:]]
     return subprocess.run(command, capture_output=True, text=True, env=env)
 
@@ -137,9 +139,7 @@ def test_events_edit_during_commit_is_preserved_and_rejected(
 
     monkeypatch.setattr(store_module, "_failpoint", edit_at_failpoint)
     with pytest.raises(StaleRevisionError, match="events.jsonl changed"):
-        LocalStore(tmp_path).commit(
-            domain_id, 0, {"profile_patch": {"goal": "writer goal"}}
-        )
+        LocalStore(tmp_path).commit(domain_id, 0, {"profile_patch": {"goal": "writer goal"}})
     assert events_path.read_bytes() == external_bytes
     assert json.loads(directory.joinpath("profile.yaml").read_text())["revision"] == 0
     assert not directory.joinpath(".dln-transaction").exists()
@@ -301,7 +301,9 @@ def test_symlinked_domain_and_sessions_are_rejected(tmp_path: Path) -> None:
     assert result.returncode == 2
     assert "domain directory must not be a symlink" in error(result)["message"]
 
-    domain_id, directory = init_domain(tmp_path, )
+    domain_id, directory = init_domain(
+        tmp_path,
+    )
     sessions = directory / "sessions"
     sessions.rmdir()
     sessions.symlink_to(outside, target_is_directory=True)
@@ -421,7 +423,15 @@ def test_concurrent_commits_admit_exactly_one_winner(tmp_path: Path) -> None:
         )
         requests.append(path)
 
-    command = [sys.executable, str(SCRIPT), "commit", "--root", str(tmp_path), "--domain-id", domain_id]
+    command = [
+        sys.executable,
+        str(SCRIPT),
+        "commit",
+        "--root",
+        str(tmp_path),
+        "--domain-id",
+        domain_id,
+    ]
     processes = [
         subprocess.Popen(
             [*command, "--expected-revision", "0", "--request", str(path)],

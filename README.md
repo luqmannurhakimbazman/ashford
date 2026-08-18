@@ -134,7 +134,17 @@ Each plugin keeps its manifest at `<plugin>/.claude-plugin/plugin.json`; discove
 
 ## Validation
 
-CI validates the marketplace and every plugin separately, checks JSON and shell files, runs ShellCheck, and runs the Python tests. The local validation commands are in [CLAUDE.md](CLAUDE.md#validation).
+CI validates the marketplace and every plugin separately, checks JSON and shell files, runs ShellCheck, and executes both Python test suites. Useful local commands are:
+
+```bash
+claude plugin validate . --strict
+claude plugin validate ./egg --strict
+claude plugin validate ./aerion --strict
+claude plugin validate ./dunk --strict
+
+uv run --project dunk/scripts --python 3.10 --frozen pytest dunk/scripts/tests/test_ks_merge.py
+uv run --project dunk/scripts --python 3.10 --frozen pytest tools/dunk-migrations/test_migrate_docker.py
+```
 
 ## License
 

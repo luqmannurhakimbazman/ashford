@@ -14,7 +14,7 @@ Ashford contains three independent plugins:
 
 The marketplace registry is `.claude-plugin/marketplace.json`. Each plugin has its own `<plugin>/.claude-plugin/plugin.json` and must be installed, configured, enabled, versioned, and validated separately.
 
-There is no application compilation step. Plugin components are Markdown, JSON, and shell files discovered by Claude Code. Dunk's Python tooling is managed with `uv` from `dunk/scripts/pyproject.toml` and `dunk/scripts/uv.lock`.
+There is no application compilation step. Plugin components are Markdown, JSON, and shell files discovered by Claude Code. Dunk's Python validation tooling is managed with `uv` from `dunk/scripts/pyproject.toml` and `dunk/scripts/uv.lock`.
 
 ## Plugin layout
 
@@ -131,7 +131,7 @@ Use `$ARGUMENTS`, `$1`, and `$2` for command arguments. Use absolute plugin path
 
 ## Validation
 
-The CI workflow in `.github/workflows/validate.yml` validates JSON, shell syntax and ShellCheck, the marketplace, every plugin independently, and the knowledge-state merge and migration Python suites.
+The CI workflow in `.github/workflows/validate.yml` validates JSON, shell syntax and ShellCheck, the marketplace, every plugin independently, and both Python suites.
 
 Run relevant checks locally:
 
@@ -145,7 +145,7 @@ find . -type f -name '*.json' -not -path './.git/*' -print0 | xargs -0 -n1 jq em
 find . -type f -name '*.sh' -not -path './.git/*' -print0 | xargs -0 -n1 bash -n
 find . -type f -name '*.sh' -not -path './.git/*' -print0 | xargs -0 shellcheck --severity=warning
 
-uv run --project dunk/scripts --python 3.10 --frozen pytest dunk/scripts/tests
+uv run --project dunk/scripts --python 3.10 --frozen pytest dunk/scripts/tests/test_ks_merge.py
 uv run --project dunk/scripts --python 3.10 --frozen pytest tools/dunk-migrations/test_migrate_docker.py
 ```
 

@@ -144,7 +144,10 @@ def project_state(
         elif kind == "model_revision":
             for trigger_id in event["triggering_prediction_event_ids"]:
                 trigger = _reference(
-                    event_index, trigger_id, "assessment", f"events[{position}].triggering_prediction_event_ids"
+                    event_index,
+                    trigger_id,
+                    "assessment",
+                    f"events[{position}].triggering_prediction_event_ids",
                 )
                 if trigger["operation"] != "predict":
                     raise ValidationError(
@@ -153,7 +156,10 @@ def project_state(
             prior_id = event.get("prior_model_revision_event_id")
             if prior_id:
                 _reference(
-                    event_index, prior_id, "model_revision", f"events[{position}].prior_model_revision_event_id"
+                    event_index,
+                    prior_id,
+                    "model_revision",
+                    f"events[{position}].prior_model_revision_event_id",
                 )
             current_model = {
                 "decision": event["decision"],
@@ -169,12 +175,13 @@ def project_state(
 
         elif kind == "stage_transition":
             if event["from"] != stage:
-                raise ValidationError(
-                    f"events[{position}].from: expected current stage {stage!r}"
-                )
+                raise ValidationError(f"events[{position}].from: expected current stage {stage!r}")
             for assessment_id in event["assessment_event_ids"]:
                 assessment = _reference(
-                    event_index, assessment_id, "assessment", f"events[{position}].assessment_event_ids"
+                    event_index,
+                    assessment_id,
+                    "assessment",
+                    f"events[{position}].assessment_event_ids",
                 )
                 if assessment["evidence_mode"] != "independent":
                     raise ValidationError(

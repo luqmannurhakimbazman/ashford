@@ -14,7 +14,9 @@ import pytest
 SCRIPT = Path(__file__).resolve().parent.parent / "dln-store.py"
 
 
-def run_cli(root: Path, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def run_cli(
+    root: Path, *args: str, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     command = [sys.executable, str(SCRIPT), args[0], "--root", str(root), *args[1:]]
     return subprocess.run(command, capture_output=True, text=True, env=env)
 
@@ -103,7 +105,11 @@ def test_init_exact_layout_and_context_list(tmp_path: Path) -> None:
 
 
 def test_root_discovery_requires_explicit_configuration(tmp_path: Path) -> None:
-    env = {key: value for key, value in os.environ.items() if key not in {"DLN_VAULT_ROOT", "CLAUDE_PLUGIN_DATA"}}
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if key not in {"DLN_VAULT_ROOT", "CLAUDE_PLUGIN_DATA"}
+    }
     missing = subprocess.run(
         [sys.executable, str(SCRIPT), "list"], capture_output=True, text=True, env=env
     )
@@ -392,9 +398,7 @@ def test_init_refuses_to_overwrite_an_existing_domain_directory(tmp_path: Path) 
 
     shutil.rmtree(directory)
     directory.mkdir()
-    empty = run_cli(
-        tmp_path, "init", "--domain", "Options Pricing", "--goal", "A different goal"
-    )
+    empty = run_cli(tmp_path, "init", "--domain", "Options Pricing", "--goal", "A different goal")
     assert empty.returncode == 2
     assert "already exists" in error(empty)["message"]
     assert list(directory.iterdir()) == []
