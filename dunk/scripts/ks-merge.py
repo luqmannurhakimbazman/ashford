@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Deterministic KS merge script.
+"""Legacy deterministic KS merge script.
+
+Legacy compatibility only: active Dunk sessions use dln-store.py and structured local events.
 
 Takes a typed JSON payload and a raw KS block (markdown between markers),
 applies updates deterministically, and outputs the merged KS block to stdout.

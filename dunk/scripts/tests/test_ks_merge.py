@@ -1,4 +1,4 @@
-"""Tests for ks-merge.py."""
+"""Legacy compatibility tests for ks-merge.py; active sessions use dln-store.py."""
 
 import json
 import subprocess

@@ -10,10 +10,6 @@
       "headers": {
         "x-api-key": "${user_config.exa_api_key}"
       }
-    },
-    "Notion": {
-      "type": "http",
-      "url": "https://mcp.notion.com/mcp"
     }
   }
 }

@@ -1,3 +1,4 @@
+<!-- LEGACY COMPATIBILITY: retained for ks-merge.py and manual KS import; active sessions use the local event store. -->
 <!-- KS:start -->
 # Knowledge State
 

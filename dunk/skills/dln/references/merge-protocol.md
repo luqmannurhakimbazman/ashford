@@ -1,4 +1,6 @@
-# Merge Protocol
+# Legacy KS Merge Protocol
+
+> **Legacy compatibility only.** Retained for `ks-merge.py` and manual KS migration. Active skills must use `local-persistence-protocol.md`; this remote write flow is not active.
 
 This reference is shared across all DLN phase skills (dln-dot, dln-linear, dln-network). It defines how to construct a merge payload, run the merge script, and dispatch dln-sync for Notion writes.
 
