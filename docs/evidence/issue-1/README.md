@@ -10,7 +10,7 @@ These images demonstrate Dunk's local-first store using a disposable, synthetic 
 | [`session-receipt.png`](session-receipt.png) | The generated canonical Session Receipt, including independent versus supported evidence, model revision, delayed-retrieval status, calibration, and next review. |
 | [`terminal-validation.png`](terminal-validation.png) | Actual test/plugin-validation output plus duplicate replay, stale-revision rejection, and deterministic rebuild results. The checkout root is normalized to `.` before rendering. |
 
-The first two PNGs are deterministic local AppKit renderings of the generated Markdown, not captures of a personal Obsidian workspace or a claim that Obsidian itself is required. [`render-evidence.swift`](render-evidence.swift) reads the generated files verbatim and draws the disposable vault tree; the image footer labels this as rendered fixture output. Open the same disposable vault in Obsidian to inspect the ordinary Markdown directly.
+The first two PNGs are deterministic local AppKit renderings of the generated Markdown, not captures of a personal Obsidian workspace or a claim that Obsidian itself is required. [`render-evidence.swift`](render-evidence.swift) reads the generated files verbatim and draws the disposable vault tree; the image footer labels this as rendered fixture output and dates it from the renderer's optional trailing `render-date` argument, defaulting to the current UTC date. The committed PNGs were rendered with `2026-08-18`; pass that date (or export `DUNK_EVIDENCE_RENDER_DATE=2026-08-18` before `reproduce.sh`) to reproduce their footer, and omit it to date a fresh run honestly. Open the same disposable vault in Obsidian to inspect the ordinary Markdown directly.
 
 ## Reproduce the fixture
 
@@ -103,7 +103,8 @@ swift docs/evidence/issue-1/render-evidence.swift \
   "$VAULT/domains/$DOMAIN_ID/dashboard.md" \
   "$VAULT/domains/$DOMAIN_ID/sessions/session-demo-001.md" \
   "$EVIDENCE_ROOT/terminal-validation.txt" \
-  docs/evidence/issue-1
+  docs/evidence/issue-1 \
+  "$(date -u +%Y-%m-%d)"
 ```
 
 AppKit/font differences may change PNG bytes without changing the generated Markdown. On other platforms, open `$VAULT` or `$VAULT/domains` in Obsidian and capture the same generated files, or inspect them with any Markdown viewer.

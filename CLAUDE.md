@@ -10,7 +10,7 @@ Ashford contains three independent plugins:
 |---|---:|---|
 | `egg/` | 1.1.0 | development, writing, interview, and teacher workflows |
 | `aerion/` | 1.0.0 | Gmail-to-Google-Sheets job application tracking |
-| `dunk/` | 1.0.0 | local-first, DLN-inspired tutoring with Obsidian-readable projections |
+| `dunk/` | 2.0.0 | local-first, DLN-inspired tutoring with Obsidian-readable projections |
 
 The marketplace registry is `.claude-plugin/marketplace.json`. Each plugin has its own `<plugin>/.claude-plugin/plugin.json` and must be installed, configured, enabled, versioned, and validated separately.
 

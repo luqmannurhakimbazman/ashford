@@ -8,7 +8,7 @@ A Claude Code marketplace containing three separately installable plugins for de
 |---|---:|---|---|
 | `egg` | 1.1.0 | 5 commands, 2 agents, 12 skills, hooks | context7, git, chrome-devtools, Exa |
 | `aerion` | 1.0.0 | 1 command, 1 skill | Gmail, configurable Google Sheets |
-| `dunk` | 1.0.0 | 1 agent, 5 skills | context7, Exa |
+| `dunk` | 2.0.0 | 1 agent, 5 skills | context7, Exa |
 
 Installing one plugin does not install the other two.
 

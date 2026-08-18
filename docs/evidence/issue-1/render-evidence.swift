@@ -2,14 +2,24 @@ import AppKit
 import Foundation
 
 let args = CommandLine.arguments
-if args.count != 5 {
-    fputs("usage: render dashboard receipt terminal output-dir\n", stderr)
+if args.count < 5 || args.count > 6 {
+    fputs("usage: render dashboard receipt terminal output-dir [render-date]\n", stderr)
     exit(2)
 }
 let dashboardPath = args[1]
 let receiptPath = args[2]
 let terminalPath = args[3]
 let outputDir = args[4]
+let renderDate: String
+if args.count == 6 {
+    renderDate = args[5]
+} else {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = TimeZone(identifier: "UTC")
+    formatter.dateFormat = "yyyy-MM-dd"
+    renderDate = formatter.string(from: Date())
+}
 let dashboard = try String(contentsOfFile: dashboardPath, encoding: .utf8)
 let receipt = try String(contentsOfFile: receiptPath, encoding: .utf8)
 let terminal = try String(contentsOfFile: terminalPath, encoding: .utf8)
@@ -109,7 +119,7 @@ func drawMarkdown(_ markdown: String, selected: String, output: String) throws {
         }
         if y < 42 { break }
     }
-    draw("Actual dln-store fixture output • rendered 2026-08-18", rect: NSRect(x: x, y: 14, width: contentWidth, height: 20), font: .systemFont(ofSize: 11), color: muted, alignment: .right)
+    draw("Actual dln-store fixture output • rendered \(renderDate)", rect: NSRect(x: x, y: 14, width: contentWidth, height: 20), font: .systemFont(ofSize: 11), color: muted, alignment: .right)
     image.unlockFocus()
     let rep = NSBitmapImageRep(data: image.tiffRepresentation!)!
     try rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: output))

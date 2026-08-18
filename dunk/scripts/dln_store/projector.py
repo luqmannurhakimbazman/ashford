@@ -149,7 +149,12 @@ def project_state(
                     "independent": None,
                     "label": event["subject"]["label"],
                     "last_assessment_at": None,
-                    "retrieval": {"count": 0, "latest": None, "status": "not-measured"},
+                    "retrieval": {
+                        "count": 0,
+                        "latest": None,
+                        "satisfied_by": None,
+                        "status": "not-measured",
+                    },
                     "supported": None,
                     "transfer": {"count": 0, "latest_event_id": None},
                     "type": event["subject"]["type"],
@@ -172,14 +177,21 @@ def project_state(
                 }
             retrieval = event.get("retrieval")
             if retrieval and retrieval["observed_delay_days"] > 0:
+                satisfies_gate = (
+                    event["evidence_mode"] == "independent" and event["outcome"] == "pass"
+                )
                 subject["retrieval"] = {
                     "count": subject["retrieval"]["count"] + 1,
                     "latest": {
                         "delay_days": retrieval["observed_delay_days"],
                         "event_id": event_id,
+                        "evidence_mode": event["evidence_mode"],
                         "outcome": event["outcome"],
                         "scheduled_date": retrieval["scheduled_date"],
                     },
+                    "satisfied_by": (
+                        event_id if satisfies_gate else subject["retrieval"]["satisfied_by"]
+                    ),
                     "status": "measured",
                 }
             if "confidence_before" in event:
@@ -358,7 +370,7 @@ def project_state(
         independent = subject["independent"]
         if independent is not None:
             status = OUTCOME_LABEL[independent["outcome"]]
-            if independent["outcome"] == "pass" and subject["retrieval"]["status"] != "measured":
+            if independent["outcome"] == "pass" and subject["retrieval"]["satisfied_by"] is None:
                 status = "needs-retrieval"
         elif subject["supported"] is not None:
             status = "supported-only"

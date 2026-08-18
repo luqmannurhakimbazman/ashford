@@ -57,10 +57,12 @@ def render_dashboard(state: dict[str, Any]) -> bytes:
             )
             retrieval = subject["retrieval"]
             if retrieval["status"] == "measured":
+                latest_retrieval = retrieval["latest"]
                 retrieval_text = (
-                    f"{retrieval['latest']['outcome']} after "
-                    f"{retrieval['latest']['delay_days']} day(s)"
+                    f"{latest_retrieval['outcome']} after {latest_retrieval['delay_days']} day(s)"
                 )
+                if latest_retrieval["evidence_mode"] != "independent":
+                    retrieval_text += " (supported)"
             else:
                 retrieval_text = "not measured"
             transfer = subject["transfer"]

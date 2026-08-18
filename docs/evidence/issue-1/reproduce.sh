@@ -11,6 +11,7 @@ VAULT="$EVIDENCE_ROOT/vault"
 STORE="dunk/scripts/dln-store.py"
 REQUEST="$EVIDENCE_DIR/session-request.json"
 LOG="$EVIDENCE_ROOT/terminal-validation.txt"
+RENDER_DATE="${DUNK_EVIDENCE_RENDER_DATE:-$(date -u +%Y-%m-%d)}"
 export UV_CACHE_DIR="${UV_CACHE_DIR:-$EVIDENCE_ROOT/uv-cache}"
 
 INIT="$(python3 "$STORE" init --root "$VAULT" \
@@ -77,7 +78,8 @@ CLANG_MODULE_CACHE_PATH=/tmp/dunk-swift-cache \
     "$DOMAIN/dashboard.md" \
     "$DOMAIN/sessions/session-demo-001.md" \
     "$LOG" \
-    "$EVIDENCE_DIR"
+    "$EVIDENCE_DIR" \
+    "$RENDER_DATE"
 
 printf 'Evidence regenerated from disposable vault %s\n' "$DOMAIN_ID"
 cat "$EVIDENCE_ROOT/hashes-after.txt"

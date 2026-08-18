@@ -102,7 +102,7 @@ A phase skill owns teaching and structured event construction. The parent owns C
 A due review begins with an independent retrieval/application task before cues or new teaching. A valid delayed retrieval assessment must link a prior same-subject assessment and record the scheduled date and positive observed delay.
 
 - If a delayed independent retrieval passes, the next review may be expanded according to `profile.review_preferences`.
-- If it is partial/fail, shorten the next review and route remediation from the evidence.
+- If it is partial/fail, shorten the next review and route remediation from the evidence. Supported or non-passing retrievals stay measured evidence and keep the subject at `needs-retrieval`.
 - If no linked delayed retrieval occurred, say **spacing was not measured**. Do not advance or reset from schedule passage alone.
 
 Review schedules are future intentions. Only completed structured assessment events affect subject evidence.

@@ -45,7 +45,7 @@ A retrieval event is an assessment linked to a prior assessment of the same stab
 {"prior_event_id":"...","scheduled_date":"YYYY-MM-DD","observed_delay_days":7}
 ```
 
-Only a retrieval on a later UTC calendar date in the current reset generation counts. `observed_delay_days` must equal the calendar-date difference from the cited assessment, and `scheduled_date` must be after the prior assessment and no later than the attempt. A scheduled review that was not attempted is not evidence. If no valid delayed retrieval occurred, say **spacing was not measured** rather than inferring retention.
+Only a retrieval on a later UTC calendar date in the current reset generation counts. `observed_delay_days` must equal the calendar-date difference from the cited assessment, and `scheduled_date` must be after the prior assessment and no later than the attempt. A scheduled review that was not attempted is not evidence. Only an independent passing retrieval satisfies the delayed-retrieval gate; supported or non-passing retrievals are recorded as measured evidence but never promote a subject's projected status. If no valid delayed retrieval occurred, say **spacing was not measured** rather than inferring retention.
 
 Prefer independent free recall or application before cues. If cues are later supplied, record a separate supported assessment rather than altering the independent attempt.
 

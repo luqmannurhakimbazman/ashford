@@ -71,9 +71,11 @@
         "latest": {
           "delay_days": 7,
           "event_id": "relate-1",
+          "evidence_mode": "independent",
           "outcome": "pass",
           "scheduled_date": "2026-08-08"
         },
+        "satisfied_by": "relate-1",
         "status": "measured"
       },
       "status": "needs-work",

@@ -81,9 +81,11 @@ def test_reducer_separates_evidence_retrieval_transfer_and_calibration() -> None
         "latest": {
             "delay_days": 7,
             "event_id": "relate-1",
+            "evidence_mode": "independent",
             "outcome": "pass",
             "scheduled_date": "2026-08-08",
         },
+        "satisfied_by": "relate-1",
         "status": "measured",
     }
     assert subject["transfer"]["count"] == 2
@@ -342,6 +344,93 @@ def test_retrieval_requires_coherent_calendar_delay_and_schedule() -> None:
             profile_bytes=profile_bytes,
             events_bytes=b"future-schedule",
         )
+
+
+def test_delayed_retrieval_is_satisfied_only_by_an_independent_pass() -> None:
+    profile, profile_bytes, events, _ = load_fixture()
+    prior = events[1]
+    gate = {
+        **events[3],
+        "assessment_event_ids": [prior["event_id"]],
+        "occurred_at": "2026-08-01T09:05:00Z",
+    }
+    template = {
+        key: value
+        for key, value in events[5].items()
+        if key not in {"score", "max_score", "confidence_before"}
+    }
+
+    unmeasured = project_state(
+        profile, [prior], profile_bytes=profile_bytes, events_bytes=b"prior-only"
+    )
+    assert unmeasured["subjects"][0]["status"] == "needs-retrieval"
+
+    supported_fail = {
+        **template,
+        "assistance": {"hint_count": 3, "level": "worked"},
+        "event_id": "supported-retrieval",
+        "evidence_mode": "supported",
+        "outcome": "fail",
+    }
+    supported_state = project_state(
+        profile,
+        [prior, gate, supported_fail],
+        profile_bytes=profile_bytes,
+        events_bytes=b"supported-retrieval",
+    )
+    supported_subject = supported_state["subjects"][0]
+    assert supported_subject["retrieval"]["status"] == "measured"
+    assert supported_subject["retrieval"]["count"] == 1
+    assert supported_subject["retrieval"]["satisfied_by"] is None
+    assert supported_subject["independent"]["event_id"] == prior["event_id"]
+    assert supported_subject["status"] == "needs-retrieval"
+    assert "fail after 7 day(s) (supported)" in render_dashboard(supported_state).decode()
+
+    independent_fail = {
+        **template,
+        "event_id": "independent-failed-retrieval",
+        "outcome": "fail",
+    }
+    failed_state = project_state(
+        profile,
+        [prior, gate, independent_fail],
+        profile_bytes=profile_bytes,
+        events_bytes=b"failed-retrieval",
+    )
+    failed_subject = failed_state["subjects"][0]
+    assert failed_subject["retrieval"]["status"] == "measured"
+    assert failed_subject["retrieval"]["satisfied_by"] is None
+    assert failed_subject["status"] == "needs-work"
+
+    passed_state = project_state(
+        profile,
+        [prior, gate, template],
+        profile_bytes=profile_bytes,
+        events_bytes=b"passed-retrieval",
+    )
+    passed_subject = passed_state["subjects"][0]
+    assert passed_subject["retrieval"]["satisfied_by"] == template["event_id"]
+    assert passed_subject["status"] == "independent-pass"
+
+    later_supported_fail = {
+        **supported_fail,
+        "occurred_at": "2026-08-15T09:00:00Z",
+        "retrieval": {
+            "observed_delay_days": 14,
+            "prior_event_id": prior["event_id"],
+            "scheduled_date": "2026-08-15",
+        },
+    }
+    retained_state = project_state(
+        profile,
+        [prior, gate, template, later_supported_fail],
+        profile_bytes=profile_bytes,
+        events_bytes=b"retained-satisfaction",
+    )
+    retained_subject = retained_state["subjects"][0]
+    assert retained_subject["retrieval"]["count"] == 2
+    assert retained_subject["retrieval"]["satisfied_by"] == template["event_id"]
+    assert retained_subject["status"] == "independent-pass"
 
 
 def test_rebuild_from_fixture_recreates_only_derived_files(tmp_path: Path) -> None:
