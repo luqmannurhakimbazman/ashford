@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterator
 
+from .grounding import reduce_grounding_timeline
 from .legacy import legacy_event
 from .projector import project_state
 from .render import render_all_receipts, render_all_syllabus_receipts, render_dashboard
@@ -542,18 +543,20 @@ def _projection_targets(
     events: list[dict[str, Any]],
     events_bytes: bytes,
 ) -> tuple[dict[str, bytes], dict[str, Any]]:
+    timeline = reduce_grounding_timeline(events)
     state = project_state(
         profile,
         events,
         profile_bytes=profile_bytes,
         events_bytes=events_bytes,
+        timeline=timeline,
     )
     targets = {
         "dashboard.md": render_dashboard(state),
         "state.json": pretty_json(state),
     }
-    targets.update(render_all_receipts(profile, events))
-    targets.update(render_all_syllabus_receipts(events))
+    targets.update(render_all_receipts(profile, events, timeline))
+    targets.update(render_all_syllabus_receipts(events, timeline))
     return targets, state
 
 
@@ -684,12 +687,22 @@ class LocalStore:
                 raise StaleRevisionError(
                     f"stale revision: expected {expected_revision}, current {profile['revision']}"
                 )
-            project_state(
+            current_state = project_state(
                 profile,
                 events,
                 profile_bytes=profile_bytes,
                 events_bytes=events_bytes,
             )
+            grounded = current_state["grounding"]["status"] in {
+                "approved",
+                "approved_update_pending",
+            }
+            if grounded and "syllabus" in request.get("profile_patch", {}):
+                raise ValidationError(
+                    "request.profile_patch.syllabus: flat topics are a legacy ungrounded "
+                    "fallback and cannot change approved course coverage; record a superseding "
+                    "snapshot with approve-syllabus instead"
+                )
 
             if digest_idempotence:
                 incoming_sources = [

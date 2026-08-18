@@ -6,7 +6,7 @@ from copy import deepcopy
 from datetime import date, datetime
 from typing import Any
 
-from .grounding import reduce_grounding_timeline
+from .grounding import GroundingTimeline, reduce_grounding_timeline
 from .schema import ValidationError, sha256_bytes, validate_event, validate_profile
 
 OUTCOME_LABEL = {
@@ -61,10 +61,11 @@ def project_state(
     *,
     profile_bytes: bytes,
     events_bytes: bytes,
+    timeline: GroundingTimeline | None = None,
 ) -> dict[str, Any]:
     """Validate references and reduce sources to a byte-stable state object."""
     validate_profile(profile)
-    grounding_timeline = reduce_grounding_timeline(events)
+    grounding_timeline = timeline if timeline is not None else reduce_grounding_timeline(events)
     event_index: dict[str, dict[str, Any]] = {}
     event_generation: dict[str, int] = {}
     session_identities: dict[str, str] = {}

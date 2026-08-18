@@ -265,9 +265,12 @@ def render_syllabus_receipt(timeline: GroundingTimeline, source_event: dict[str,
     return ("\n".join(lines).rstrip() + "\n").encode("utf-8")
 
 
-def render_all_syllabus_receipts(events: list[dict[str, Any]]) -> dict[str, bytes]:
+def render_all_syllabus_receipts(
+    events: list[dict[str, Any]], timeline: GroundingTimeline | None = None
+) -> dict[str, bytes]:
     """Render every source-version receipt after validating the shared timeline."""
-    timeline = reduce_grounding_timeline(events)
+    if timeline is None:
+        timeline = reduce_grounding_timeline(events)
     return {
         f"syllabus/{version_id}.md": render_syllabus_receipt(
             timeline, timeline.sources_by_version[version_id]
@@ -626,10 +629,15 @@ def render_receipt(
     return ("\n".join(lines) + "\n").encode("utf-8")
 
 
-def render_all_receipts(profile: dict[str, Any], events: list[dict[str, Any]]) -> dict[str, bytes]:
+def render_all_receipts(
+    profile: dict[str, Any],
+    events: list[dict[str, Any]],
+    timeline: GroundingTimeline | None = None,
+) -> dict[str, bytes]:
     """Render every Session Receipt, keyed by its path under sessions/."""
     receipts: dict[str, bytes] = {}
-    timeline = reduce_grounding_timeline(events)
+    if timeline is None:
+        timeline = reduce_grounding_timeline(events)
     for event in events:
         if event["kind"] == "session_completed":
             receipts[f"sessions/{event['session_id']}.md"] = render_receipt(

@@ -12,12 +12,12 @@ The local store generates this receipt only after accepting a terminal `session_
 
 Receipt schema version 1 contains:
 
-1. **Course Grounding** — cited approval/source version and each stable approved assertion with page/span/quote; learner corrections retain the target document citation. If no approved assertion was cited, says so explicitly.
-2. **Independent Evidence** — independently attempted assessments, with subject, operation, outcome, and novelty.
-3. **Supported Performance** — prompted/worked assessments, with assistance shown explicitly.
-4. **Prediction Error and Model Revision** — recorded prediction outcomes and any cited learner model revisions.
-5. **Delayed Retrieval** — only linked retrieval attempts with a positive observed delay, marked `(supported)` when the attempt was not independent; otherwise says it was not due or not measured.
-6. **Calibration** — only pre-answer confidence paired with a numeric result; otherwise says it was not measured.
+1. **Independent Evidence** — independently attempted assessments, with subject, operation, outcome, and novelty.
+2. **Supported Performance** — prompted/worked assessments, with assistance shown explicitly.
+3. **Prediction Error and Model Revision** — recorded prediction outcomes and any cited learner model revisions.
+4. **Delayed Retrieval** — only linked retrieval attempts with a positive observed delay, marked `(supported)` when the attempt was not independent; otherwise says it was not due or not measured.
+5. **Calibration** — only pre-answer confidence paired with a numeric result; otherwise says it was not measured.
+6. **Course Grounding** — cited approval/source version and each stable approved assertion with page/span/quote; learner corrections retain the target document citation. If no approved assertion was cited, says so explicitly.
 7. **Next Action and Review** — the exact next action and nullable review date committed in `session_completed`.
 
 The receipt is generated from `session_completed.evidence_event_ids` plus the optional grounding references pinned on `assessment` and `session_completed`. Grounding is provenance, never evidence. Before closing the session, ensure the evidence list includes every same-session assessment, model revision, and stage transition the learner should see. It must not cite plan text, dialogue, profile patches, or events from another session.

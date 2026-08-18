@@ -7,7 +7,12 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from .schema import ValidationError, canonical_json, validate_event
+from .schema import (
+    RESERVED_SYLLABUS_EVENT_KINDS,
+    ValidationError,
+    canonical_json,
+    validate_event,
+)
 
 
 def _instant(timestamp: str) -> datetime:
@@ -108,9 +113,7 @@ class GroundingTimeline:
     sources_by_digest: dict[str, dict[str, Any]] = field(default_factory=dict)
     approvals_by_id: dict[str, dict[str, Any]] = field(default_factory=dict)
     approval_views: dict[str, dict[str, Any]] = field(default_factory=dict)
-    active_approval_before_event: dict[str, str | None] = field(default_factory=dict)
     current_approval_event_id: str | None = None
-    latest_source_version_id: str | None = None
 
     def current_view(self) -> dict[str, Any] | None:
         if self.current_approval_event_id is None:
@@ -241,17 +244,23 @@ def reduce_grounding_timeline(events: list[dict[str, Any]]) -> GroundingTimeline
     corrections_by_id: dict[str, dict[str, Any]] = {}
     latest_grounded_use: dict[str, datetime] = {}
     syllabus_admin_session_ids: set[str] = set()
-    prior_events: dict[str, dict[str, Any]] = {}
+    seen_event_ids: set[str] = set()
+    seen_session_ids: set[str] = set()
 
     for position, raw_event in enumerate(events):
         event = validate_event(raw_event, f"events[{position}]")
         event_id = event["event_id"]
-        if event_id in prior_events:
+        if event_id in seen_event_ids:
             raise ValidationError(f"events[{position}].event_id: duplicate event ID {event_id!r}")
-        timeline.active_approval_before_event[event_id] = (
-            latest_approval["event_id"] if latest_approval else None
-        )
         kind = event["kind"]
+
+        if kind in RESERVED_SYLLABUS_EVENT_KINDS:
+            if event["session_id"] in seen_session_ids:
+                raise ValidationError(
+                    f"events[{position}].session_id: syllabus administrative sessions "
+                    "must not reuse a prior event session"
+                )
+            syllabus_admin_session_ids.add(event["session_id"])
 
         if kind in {"assessment", "session_completed"}:
             if event["session_id"] in syllabus_admin_session_ids:
@@ -270,7 +279,6 @@ def reduce_grounding_timeline(events: list[dict[str, Any]]) -> GroundingTimeline
                 )
 
         if kind == "syllabus_source_ingested":
-            syllabus_admin_session_ids.add(event["session_id"])
             source = event["source"]
             version_id = source["source_version_id"]
             digest = source["sha256"]
@@ -320,16 +328,9 @@ def reduce_grounding_timeline(events: list[dict[str, Any]]) -> GroundingTimeline
             timeline.sources_by_version[version_id] = event
             timeline.sources_by_digest[digest] = event
             timeline.source_order.append(version_id)
-            timeline.latest_source_version_id = version_id
             latest_source = event
 
         elif kind == "syllabus_approval_recorded":
-            if any(prior["session_id"] == event["session_id"] for prior in prior_events.values()):
-                raise ValidationError(
-                    f"events[{position}].session_id: approval administrative sessions "
-                    "must not reuse a prior event session"
-                )
-            syllabus_admin_session_ids.add(event["session_id"])
             source = timeline.sources_by_version.get(event["source_version_id"])
             if source is None:
                 raise ValidationError(
@@ -432,6 +433,7 @@ def reduce_grounding_timeline(events: list[dict[str, Any]]) -> GroundingTimeline
             timeline.current_approval_event_id = event_id
             latest_approval = event
 
-        prior_events[event_id] = event
+        seen_event_ids.add(event_id)
+        seen_session_ids.add(event["session_id"])
 
     return timeline

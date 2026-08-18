@@ -159,9 +159,13 @@ def test_internal_compressor_cannot_create_learning_claims_or_artifacts() -> Non
         "do not infer or decide proficiency",
         "do not alter, summarize, or compress the learner's pedagogical model",
         "do not produce a learner-facing summary or artifact",
+        "do not drop, rename, or flatten `state.grounding`",
+        "do not present legacy ungrounded topics as citable",
     ):
         assert phrase in text
     assert "dln-store context" in text
+    for token in ("planning_topics", "assertion_ids", "citable", "approved_update_pending"):
+        assert token in text
 
 
 def test_shared_contracts_cover_storage_evidence_and_receipt_boundaries() -> None:

@@ -50,4 +50,4 @@ The script:
 8. deletes all generated projections, rebuilds them from `profile.yaml` plus `events.jsonl`, and compares SHA-256 hashes;
 9. validates in a fresh CLI process and renders all four PNGs from the real generated Markdown/transcript.
 
-The script normalizes checkout and temporary paths and fails if evidence output contains a personal or disposable-vault path. The vault is deleted on exit.
+The script normalizes checkout and temporary paths, and before rendering it fails if any of the four rendered text inputs — the pending receipt, `dashboard.md`, the Session Receipt, or the transcript — contains a personal or disposable-vault path. Because every pixel of the PNGs is drawn from those inputs, that guard covers the screenshots. Everything the script creates, including the Swift module cache, lives under the disposable evidence root and is deleted on exit.

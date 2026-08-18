@@ -990,6 +990,136 @@ def test_validation_rejects_later_learning_reuse_of_syllabus_admin_session(
         )
 
 
+@pytest.mark.parametrize("admin_kind", ["intake", "approval"])
+def test_validation_rejects_syllabus_admin_reuse_of_an_earlier_event_session(
+    admin_kind: str,
+) -> None:
+    source = build_ingestion_event(
+        FIXTURE,
+        original_filename="syllabus2026.pdf",
+        media_type="application/pdf",
+        adapter_id="st5201x-2026-v1",
+        occurred_at="2026-08-19T00:00:00Z",
+    )
+    approval = build_syllabus_approval_event(
+        approval_request(
+            source,
+            event_id="approval-claimed-session",
+            occurred_at="2026-08-19T00:10:00Z",
+        )
+    )
+    admin_event = source if admin_kind == "intake" else approval
+    claimed = {
+        "assistance": {"hint_count": 0, "level": "none"},
+        "context_id": "claimed-session",
+        "evidence_mode": "independent",
+        "event_id": f"assessment-claiming-{admin_kind}-session",
+        "kind": "assessment",
+        "novelty": "repeat",
+        "occurred_at": "2026-08-18T23:00:00Z",
+        "operation": "acquire",
+        "outcome": "pass",
+        "rubric_id": "claimed-session",
+        "schema_version": 1,
+        "session_id": admin_event["session_id"],
+        "subject": {"id": "probability", "label": "Probability", "type": "concept"},
+        "task_id": "claimed-session",
+    }
+    history = [claimed, source] if admin_kind == "intake" else [claimed, source, approval]
+    with pytest.raises(ValidationError, match="must not reuse a prior event session"):
+        projected(initial_profile("ST5201X", "Learn statistics"), history)
+
+
+def test_commit_rejects_legacy_syllabus_patch_once_grounding_is_approved(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "vault"
+    domain_id, directory = init_domain(root)
+    output(ingest(root, domain_id, 0))
+    source = source_event(directory)
+    approval = write_json(
+        tmp_path / "approval.json",
+        approval_request(
+            source,
+            event_id="syllabus-approval-legacy-patch",
+            occurred_at="2026-08-19T00:10:00Z",
+        ),
+    )
+    output(
+        run_cli(
+            root,
+            "approve-syllabus",
+            "--domain-id",
+            domain_id,
+            "--expected-revision",
+            "1",
+            "--request",
+            str(approval),
+        )
+    )
+    baseline = tree(directory)
+    grounded_topics = json.loads(directory.joinpath("state.json").read_text(encoding="utf-8"))[
+        "syllabus"
+    ]
+    assert grounded_topics
+
+    patch = write_json(tmp_path / "patch.json", {"profile_patch": {"syllabus": ["Bayes rule"]}})
+    rejected = error(
+        run_cli(
+            root,
+            "commit",
+            "--domain-id",
+            domain_id,
+            "--expected-revision",
+            "2",
+            "--request",
+            str(patch),
+        )
+    )
+    assert "profile_patch.syllabus" in rejected["message"]
+    assert "approve-syllabus" in rejected["message"]
+    assert tree(directory) == baseline
+
+    goal_only = write_json(tmp_path / "goal.json", {"profile_patch": {"goal": "Pass ST5201X"}})
+    accepted = output(
+        run_cli(
+            root,
+            "commit",
+            "--domain-id",
+            domain_id,
+            "--expected-revision",
+            "2",
+            "--request",
+            str(goal_only),
+        )
+    )
+    assert accepted["revision"] == 3
+    updated = json.loads(directory.joinpath("state.json").read_text(encoding="utf-8"))
+    assert updated["syllabus"] == grounded_topics
+
+
+def test_commit_allows_legacy_syllabus_patch_while_ungrounded(tmp_path: Path) -> None:
+    root = tmp_path / "vault"
+    domain_id, directory = init_domain(root)
+    patch = write_json(tmp_path / "patch.json", {"profile_patch": {"syllabus": ["Bayes rule"]}})
+    accepted = output(
+        run_cli(
+            root,
+            "commit",
+            "--domain-id",
+            domain_id,
+            "--expected-revision",
+            "0",
+            "--request",
+            str(patch),
+        )
+    )
+    assert accepted["revision"] == 1
+    state = json.loads(directory.joinpath("state.json").read_text(encoding="utf-8"))
+    assert state["syllabus"] == ["Bayes rule"]
+    assert state["grounding"]["legacy_fallback"] is True
+
+
 def test_markdown_grounding_receipts_neutralize_active_syntax_and_page_fences() -> None:
     source = build_ingestion_event(
         FIXTURE,

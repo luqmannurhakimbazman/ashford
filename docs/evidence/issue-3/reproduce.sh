@@ -110,20 +110,25 @@ PY
   python3 "$STORE" validate --root "$VAULT" --domain-id "$DOMAIN_ID"
 } >"$LOG" 2>&1
 
-mkdir -p /tmp/dunk-swift-cache
-SWIFT_MODULECACHE_PATH=/tmp/dunk-swift-cache \
-CLANG_MODULE_CACHE_PATH=/tmp/dunk-swift-cache \
+SWIFT_CACHE="$EVIDENCE_ROOT/swift-cache"
+mkdir -p "$SWIFT_CACHE"
+
+if grep -E '/Users/|/private/|dunk-issue3-evidence\.' \
+  "$EVIDENCE_ROOT/intake-preapproval.md" \
+  "$DOMAIN/dashboard.md" \
+  "$DOMAIN/sessions/st5201x-grounded-session-001.md" \
+  "$LOG" >/dev/null; then
+  echo 'personal or temporary path leaked into rendered evidence text' >&2
+  exit 1
+fi
+
+SWIFT_MODULECACHE_PATH="$SWIFT_CACHE" \
+CLANG_MODULE_CACHE_PATH="$SWIFT_CACHE" \
   swift "$EVIDENCE_DIR/render-evidence.swift" \
     "$EVIDENCE_ROOT/intake-preapproval.md" \
     "$DOMAIN/dashboard.md" \
     "$DOMAIN/sessions/st5201x-grounded-session-001.md" \
     "$LOG" "$EVIDENCE_DIR" "$RENDER_DATE" "$DOMAIN_ID"
-
-if grep -R -E '/Users/|/private/|dunk-issue3-evidence\.' \
-  "$EVIDENCE_DIR"/*.png "$LOG" >/dev/null; then
-  echo 'personal or temporary path leaked into evidence' >&2
-  exit 1
-fi
 
 printf 'Evidence regenerated for disposable domain %s\n' "$DOMAIN_ID"
 cat "$EVIDENCE_ROOT/hashes-after.txt"

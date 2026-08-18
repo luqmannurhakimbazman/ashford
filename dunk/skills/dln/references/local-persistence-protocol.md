@@ -80,6 +80,6 @@ Never run `rebuild` as a way to erase validation failures. `rebuild` reconstruct
 
 - Reset is a revision-checked `domain_reset` event. It preserves historic events and receipts.
 - Goal, review preferences, annotations, and current exam configuration are `profile_patch` fields.
-- Flat `profile.syllabus` is editable only as a legacy ungrounded curriculum. Grounded source values use dedicated intake/approval commands and superseding approval snapshots.
+- Flat `profile.syllabus` is editable only while the domain is ungrounded or awaiting approval; once an approval is active the store rejects that patch instead of silently ignoring it. Grounded source values use dedicated intake/approval commands and superseding approval snapshots.
 - Closing an exam cycle is an `exam_cycle_closed` event; it does not delete earlier evidence.
 - A legacy import uses `import-legacy-ks` on a manually exported block and never contacts a remote service.

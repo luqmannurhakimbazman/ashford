@@ -11,7 +11,8 @@ All notable changes to this plugin will be documented in this file.
 
 ### Changed
 
-- Approved syllabus coverage now derives the flat planning projection; legacy `profile.syllabus` remains readable but explicitly ungrounded and non-citable.
+- Approved syllabus coverage now derives the flat planning projection; legacy `profile.syllabus` remains readable but explicitly ungrounded and non-citable. A `profile_patch.syllabus` edit is rejected while an approved grounding is active instead of being silently discarded by the projection.
+- Syllabus administrative sessions are now rejected symmetrically: neither intake nor approval may claim a session id already used by an earlier event.
 - Syllabus assertions, approval, coverage, and citations remain separate from mastery evidence. Raw PDFs are not retained, and broader PDF/OCR support remains out of scope.
 - Existing 2.0 canonical pairs load without migration. Domains containing new syllabus events are forward-only because Dunk 2.0 rejects their event kinds; back up the matched canonical pair before intake if downgrade may be required.
 

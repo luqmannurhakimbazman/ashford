@@ -21,7 +21,7 @@ The vault root resolves in this order: `--root`, `DLN_VAULT_ROOT`, then `${CLAUD
 
 ## Ownership
 
-`profile.yaml` uses the JSON-compatible YAML subset accepted by the stdlib parser. The learner chooses `domain` at initialization; it is then immutable because it determines the directory identity. User-editable fields are `goal`, `syllabus`, `annotations`, `review_preferences`, and `exam`. Store-owned fields are `schema_version`, `domain_id`, and `revision`; never patch them. To rename a domain, initialize a new domain instead of renaming its directory or profile.
+`profile.yaml` uses the JSON-compatible YAML subset accepted by the stdlib parser. The learner chooses `domain` at initialization; it is then immutable because it determines the directory identity. User-editable fields are `goal`, `syllabus`, `annotations`, `review_preferences`, and `exam`. The store rejects a `syllabus` patch while grounding status is `approved` or `approved_update_pending`. Store-owned fields are `schema_version`, `domain_id`, and `revision`; never patch them. To rename a domain, initialize a new domain instead of renaming its directory or profile.
 
 `events.jsonl` is append-only. Each line is one canonical JSON event. Event IDs and session IDs are portable identifiers: letters, digits, dot, underscore, or hyphen, at most 128 characters. Timestamps are UTC RFC 3339 strings ending in `Z`.
 

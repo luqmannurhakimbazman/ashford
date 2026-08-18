@@ -45,7 +45,7 @@ Each learning domain has this layout:
 - `syllabus/<source-version-id>.md` is a generated Syllabus Intake Receipt containing source metadata, located assertions, approval history, unresolved items, and canonical extracted page text.
 - `sessions/<session-id>.md` is the sole canonical learner-facing Session Receipt for a completed session.
 
-You choose `domain` during initialization; it is then immutable because it determines the directory identity. You may edit `goal`, `annotations`, `review_preferences`, and `exam` in `profile.yaml`. Flat `profile.syllabus` remains editable only as a legacy ungrounded curriculum; approved document-backed topics are derived from syllabus events. Do not edit `domain`, `schema_version`, `domain_id`, or `revision`; initialize a new domain to rename it.
+You choose `domain` during initialization; it is then immutable because it determines the directory identity. You may edit `goal`, `annotations`, `review_preferences`, and `exam` in `profile.yaml`. Flat `profile.syllabus` remains editable only as a legacy ungrounded curriculum, and a patch to it is rejected once an approved grounding is active; approved document-backed topics are derived from syllabus events. Do not edit `domain`, `schema_version`, `domain_id`, or `revision`; initialize a new domain to rename it.
 
 ## Common operations
 

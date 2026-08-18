@@ -50,7 +50,7 @@ A correction changes the effective tutoring value but never erases the document-
 - pending source summaries and receipt paths;
 - `planning_topics`, each with backing assertion IDs and `citable`.
 
-Do not pass raw PDF bytes, canonical page text, full event history, or prior chat to a phase skill. When approved grounding exists, select course tasks from `state.grounding.planning_topics`; `state.syllabus` is the derived flat projection. When only `profile.syllabus` exists, it is a legacy ungrounded planning fallback and its topics are not citable.
+Do not pass raw PDF bytes, canonical page text, full event history, or prior chat to a phase skill. When approved grounding exists, select course tasks from `state.grounding.planning_topics`; `state.syllabus` is the derived flat projection. When only `profile.syllabus` exists, it is a legacy ungrounded planning fallback and its topics are not citable; once an approval is active the store rejects a `profile_patch.syllabus` edit.
 
 Course-specific logistics, policies, dates, requirements, and topic selection must use effective approved assertions. Deferred/unresolved assertions must be described as unresolved. Textbook, web, or model additions that are absent from the approved assertions must be labeled supplemental rather than syllabus-derived.
 

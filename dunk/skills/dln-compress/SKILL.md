@@ -38,11 +38,20 @@ Return a compact machine-readable object with only fields needed for immediate r
   ],
   "current_model": null,
   "calibration": {"status": "not-measured"},
+  "grounding": {
+    "status": "ungrounded|approval_required|approved|approved_update_pending",
+    "active_approval": null,
+    "planning_topics": [{"label": "...", "assertion_ids": [], "citable": false}],
+    "unresolved_assertions": [],
+    "pending_sources": []
+  },
   "next_action": null
 }
 ```
 
 Preserve event IDs and measurement status exactly when present. Omit verbose labels only if stable subject IDs remain sufficient for the immediate task.
+
+Carry `state.grounding` through under the same field names the phase skills read. Keep `status`, `active_approval.event_id`, every `planning_topics` entry with its `label`, `assertion_ids`, and `citable` flag, the `assertion_id` of each unresolved assertion, and each pending source's `receipt` path. Drop only the verbose `effective_assertions` citation bodies; a phase skill that needs a quote reloads `dln-store context`.
 
 ## Prohibitions
 
@@ -53,5 +62,7 @@ Preserve event IDs and measurement status exactly when present. Omit verbose lab
 - Do not alter, summarize, or compress the learner's pedagogical model. Learner model revision/compression belongs only to `dln-network` and requires cited prediction events.
 - Do not produce a learner-facing summary or artifact.
 - Do not hide independent/supported separation or convert `not-measured` into a qualitative claim.
+- Do not drop, rename, or flatten `state.grounding`, and do not separate a planning topic from its backing `assertion_ids` or its `citable` flag.
+- Do not present legacy ungrounded topics as citable, resolve a deferred assertion, or promote a pending-source assertion into the active approval.
 
 If required state is missing, return an explicit missing-field diagnostic and ask the caller to reload `dln-store context`. Never fill gaps from conversation memory.
