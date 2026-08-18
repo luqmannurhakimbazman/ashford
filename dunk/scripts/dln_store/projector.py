@@ -51,6 +51,7 @@ def project_state(
     """Validate references and reduce sources to a byte-stable state object."""
     validate_profile(profile)
     event_index: dict[str, dict[str, Any]] = {}
+    session_identities: dict[str, str] = {}
     completed_sessions: set[str] = set()
     completed_index: list[dict[str, Any]] = []
     archived_exams: list[dict[str, Any]] = []
@@ -69,6 +70,13 @@ def project_state(
         if event_id in event_index:
             raise ValidationError(f"events[{position}].event_id: duplicate event ID {event_id!r}")
         session_id = event["session_id"]
+        established = session_identities.setdefault(session_id.casefold(), session_id)
+        if established != session_id:
+            raise ValidationError(
+                f"events[{position}].session_id: {session_id!r} differs only by case from "
+                f"{established!r}; session receipt paths must stay unique on "
+                "case-insensitive filesystems"
+            )
         if session_id in completed_sessions:
             raise ValidationError(
                 f"events[{position}]: session {session_id!r} was already completed"

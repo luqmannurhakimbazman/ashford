@@ -353,3 +353,57 @@ def test_rebuild_never_changes_sources_and_is_byte_deterministic(tmp_path: Path)
     assert files(directory) == first_tree
     assert directory.joinpath("profile.yaml").read_bytes() == sources["profile"]
     assert directory.joinpath("events.jsonl").read_bytes() == sources["events"]
+
+
+def test_symlinked_lock_file_is_rejected_and_never_written(tmp_path: Path) -> None:
+    domain_id, _ = init_domain(tmp_path)
+    outside = tmp_path / "outside.txt"
+    outside.write_text("untouched", encoding="utf-8")
+    lock = tmp_path / ".locks" / f"{domain_id}.lock"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.symlink_to(outside)
+
+    for command in (("context",), ("doctor",)):
+        result = run_cli(tmp_path, *command, "--domain-id", domain_id)
+        assert result.returncode == 2, result.stdout
+        assert "lock file must not be a symlink" in error(result)["message"]
+        assert outside.read_text(encoding="utf-8") == "untouched"
+        assert lock.is_symlink()
+
+
+def test_transaction_fsyncs_nested_stage_and_backup_directories(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    domain_id, directory = init_domain(tmp_path)
+    store = LocalStore(tmp_path)
+    session = {
+        "event_id": "complete-1",
+        "evidence_event_ids": [],
+        "kind": "session_completed",
+        "next_action": "Retrieve on a new setup",
+        "next_review_date": None,
+        "occurred_at": "2026-08-18T01:00:00Z",
+        "receipt_schema_version": 1,
+        "schema_version": 1,
+        "session_id": "session-1",
+    }
+    store.commit(domain_id, 0, {"events": [session]})
+    receipt = directory / "sessions" / "session-1.md"
+    assert receipt.is_file()
+
+    fsynced: list[Path] = []
+    original = store_module._fsync_directory
+
+    def record(path: Path) -> None:
+        fsynced.append(Path(path))
+        original(path)
+
+    monkeypatch.setattr(store_module, "_fsync_directory", record)
+    store.commit(domain_id, 1, {"profile_patch": {"goal": "A revised goal"}})
+
+    transaction = directory / store_module.TXN_NAME
+    assert transaction / "stage" / "sessions" in fsynced
+    assert transaction / "backups" / "sessions" in fsynced
+    assert transaction / "stage" in fsynced
+    assert transaction / "backups" in fsynced
+    assert not transaction.exists()

@@ -186,12 +186,21 @@ def _lock_directory(paths: DomainPaths) -> Path:
     return directory
 
 
+def _open_lock(paths: DomainPaths) -> tuple[Path, Any]:
+    lock_directory = _lock_directory(paths)
+    try:
+        fd = os.open(paths.lock, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    except OSError as exc:
+        if exc.errno in {errno.ELOOP, errno.EMLINK}:
+            raise ValidationError(f"lock file must not be a symlink: {paths.lock}") from exc
+        raise
+    return lock_directory, os.fdopen(fd, "r+b", buffering=0)
+
+
 @contextmanager
 def domain_lock(paths: DomainPaths) -> Iterator[None]:
     """Hold a kernel-owned advisory lock; the path is never unlinked."""
-    lock_directory = _lock_directory(paths)
-    fd = os.open(paths.lock, os.O_CREAT | os.O_RDWR, 0o600)
-    handle = os.fdopen(fd, "r+b", buffering=0)
+    lock_directory, handle = _open_lock(paths)
     acquired = False
     try:
         try:
@@ -368,6 +377,7 @@ def _install_transaction(
     stage.mkdir()
     backups.mkdir()
     journal_targets: list[dict[str, Any]] = []
+    written_directories: set[Path] = {stage, backups}
     try:
         for relative_text in sorted(targets):
             relative = _safe_relative(relative_text)
@@ -375,6 +385,7 @@ def _install_transaction(
             target = paths.directory / relative
             staged = stage / relative
             _write_fsynced(staged, targets[relative_text])
+            written_directories.add(staged.parent)
             _failpoint(f"stage:{relative.as_posix()}")
             entry: dict[str, Any] = {
                 "candidate_sha256": sha256_bytes(targets[relative_text]),
@@ -386,10 +397,13 @@ def _install_transaction(
                 backup.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(target, backup)
                 _fsync_file(backup)
+                written_directories.add(backup.parent)
                 entry["backup_sha256"] = _hash_file(backup)
             journal_targets.append(entry)
-        _fsync_directory(stage)
-        _fsync_directory(backups)
+        for directory in sorted(
+            written_directories, key=lambda item: (-len(item.parts), item.as_posix())
+        ):
+            _fsync_directory(directory)
         journal = {
             "phase": "prepared",
             "schema_version": 1,
@@ -500,12 +514,18 @@ class LocalStore:
             _write_fsynced(stage / "dashboard.md", render_dashboard(state))
             _fsync_directory(stage / "sessions")
             _fsync_directory(stage)
-            try:
-                os.rename(stage, final.directory)
-            except FileExistsError as exc:
+            if os.path.lexists(final.directory):
                 raise ValidationError(
                     f"domain {domain_id!r} already exists; use context or commit"
-                ) from exc
+                )
+            try:
+                os.rename(stage, final.directory)
+            except OSError as exc:
+                if exc.errno in {errno.EEXIST, errno.ENOTEMPTY, errno.ENOTDIR}:
+                    raise ValidationError(
+                        f"domain {domain_id!r} already exists; use context or commit"
+                    ) from exc
+                raise
             _fsync_directory(domains)
         finally:
             if stage.exists():
@@ -708,9 +728,7 @@ class LocalStore:
         break_stale_lock: bool = False,
     ) -> dict[str, Any]:
         paths = self._require_domain(domain_id)
-        lock_directory = _lock_directory(paths)
-        fd = os.open(paths.lock, os.O_CREAT | os.O_RDWR, 0o600)
-        handle = os.fdopen(fd, "r+b", buffering=0)
+        lock_directory, handle = _open_lock(paths)
         metadata, lock_error = _read_lock(paths.lock)
         lock_broken = False
         try:
