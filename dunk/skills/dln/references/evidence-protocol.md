@@ -45,7 +45,7 @@ A retrieval event is an assessment linked to a prior assessment of the same stab
 {"prior_event_id":"...","scheduled_date":"YYYY-MM-DD","observed_delay_days":7}
 ```
 
-Only a positive observed delay counts as measured delayed retrieval. A scheduled review that was not attempted is not evidence. If no valid delayed retrieval occurred, say **spacing was not measured** rather than inferring retention.
+Only a retrieval on a later UTC calendar date in the current reset generation counts. `observed_delay_days` must equal the calendar-date difference from the cited assessment, and `scheduled_date` must be after the prior assessment and no later than the attempt. A scheduled review that was not attempted is not evidence. If no valid delayed retrieval occurred, say **spacing was not measured** rather than inferring retention.
 
 Prefer independent free recall or application before cues. If cues are later supplied, record a separate supported assessment rather than altering the independent attempt.
 
@@ -65,11 +65,11 @@ Capturing the first model uses `initial_model: true`; it is a baseline, not proo
 
 ## Stage gates
 
-A transition requires one or more already-committed independent assessments cited by `assessment_event_ids`.
+A transition requires one or more already-committed independent assessments from the current reset generation, cited by `assessment_event_ids`.
 
-- Acquire → Relate: independent recall/discrimination and application across the intended foundation; syllabus coverage alone is insufficient.
-- Relate → Revise: independent structural explanation plus at least one novel comparison or transfer task.
-- Revise → earlier stage: allowed when cited independent prediction evidence shows the model needs foundational repair; explain the decision.
+- Acquire → Relate: passing `acquire`/`discriminate` evidence across the intended foundation; syllabus coverage alone is insufficient.
+- Relate → Revise: passing `relate`/`abstract` evidence including at least one novel comparison or transfer task.
+- Revise → Acquire/Relate: partial or failed `predict` evidence showing the model needs foundational repair; explain the decision.
 
 A gate decision must name a versioned/stable `rubric_id`. Never transition based only on supported performance, self-rating, session count, coverage percentage, or imported claims.
 

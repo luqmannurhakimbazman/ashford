@@ -14,7 +14,13 @@ The first two PNGs are deterministic local AppKit renderings of the generated Ma
 
 ## Reproduce the fixture
 
-Run from the repository root. This uses only `/tmp`; choose another disposable path if preferred.
+On macOS, the committed reproduction script creates a temporary vault, runs the real tests/storage checks, captures their output, verifies unchanged rebuild hashes, and invokes the renderer:
+
+```bash
+bash docs/evidence/issue-1/reproduce.sh
+```
+
+The script deletes its temporary vault/transcript on exit; only regenerated PNGs remain. The equivalent manual flow follows. Run from the repository root. This uses only `/tmp`; choose another disposable path if preferred.
 
 ```bash
 EVIDENCE_ROOT=/tmp/dunk-issue1-evidence
