@@ -2,6 +2,19 @@
 
 All notable changes to this plugin will be documented in this file.
 
+## [2.1.0] - 2026-08-19
+
+### Added
+
+- Added a digest-bound `st5201x-2026-v1` intake adapter for the exact supplied ST5201X syllabus, immutable extraction/assertion and learner approval history, bounded approved grounding, deterministic Syllabus Intake Receipts, and stable grounding citations in teaching receipts.
+- Added truthful unavailable, unreadable, media-type, size, and digest-mismatch degradation plus replay/rebuild/validation coverage.
+
+### Changed
+
+- Approved syllabus coverage now derives the flat planning projection; legacy `profile.syllabus` remains readable but explicitly ungrounded and non-citable.
+- Syllabus assertions, approval, coverage, and citations remain separate from mastery evidence. Raw PDFs are not retained, and broader PDF/OCR support remains out of scope.
+- Existing 2.0 canonical pairs load without migration. Domains containing new syllabus events are forward-only because Dunk 2.0 rejects their event kinds; back up the matched canonical pair before intake if downgrade may be required.
+
 ## [2.0.0] - 2026-08-18
 
 ### Changed

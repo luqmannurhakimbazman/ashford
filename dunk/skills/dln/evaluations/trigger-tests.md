@@ -53,3 +53,27 @@
 ### T12: Persistence failure
 **Context:** Local commit returns schema, recovery, or repeated stale-revision failure.
 **Expected:** Stops persistent writes, reports unsaved structured events, and never falls back to prose-as-state.
+
+### T13: Supplied ST5201X syllabus
+**Input:** "Teach me ST5201X from this syllabus." The exact supported PDF is available at a readable runtime path.
+**Expected:** Initializes/loads the domain, runs `ingest-syllabus`, presents the generated Syllabus Intake Receipt, collects accepted/corrected/deferred assertions, runs `approve-syllabus`, reloads `context`, and does not patch `profile.syllabus`.
+
+### T14: Attachment without byte channel
+**Input:** "Use the attached syllabus." The host exposes only transient attachment content and no readable path/bytes.
+**Expected:** Says registration is unavailable, makes no grounding claim, and offers either retrying with a readable file or a separately labeled ungrounded generated curriculum.
+
+### T15: Digest mismatch
+**Context:** A readable PDF does not match the exact `st5201x-2026-v1` size/digest.
+**Expected:** Reports truthful intake failure, leaves the revision unchanged, and never substitutes research/model output as document-derived.
+
+### T16: Approved ambiguity
+**Context:** ST5201X intake is approved with `st5201x.schedule.weeks_7_13_alignment` deferred.
+**Expected:** Passes bounded `state.grounding`, keeps Weeks 7–13 alignment unresolved, selects tasks from citable planning topics, and records used stable assertion IDs without treating coverage as evidence.
+
+### T17: Existing-domain registration
+**Input:** "Add this ST5201X syllabus to my existing statistics domain." A readable exact fixture is available.
+**Expected:** Loads `context`, ingests through the dedicated interface at the retained revision, presents the pending receipt, records the complete approval, reloads context, and only then routes teaching.
+
+### T18: Pending update
+**Context:** An existing domain has `state.grounding.status: approved_update_pending`.
+**Expected:** Presents the pending receipt for approval while keeping only the prior `active_source`/`active_approval` authoritative; pending assertions are not cited or taught as settled.

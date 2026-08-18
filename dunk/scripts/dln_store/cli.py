@@ -47,6 +47,27 @@ def build_parser() -> argparse.ArgumentParser:
     command.add_argument("--expected-revision", required=True, type=int)
     command.add_argument("--request", required=True, type=Path)
 
+    command = subparsers.add_parser(
+        "ingest-syllabus", help="ingest the exact verified ST5201X syllabus fixture"
+    )
+    _add_root(command)
+    command.add_argument("--domain-id", required=True)
+    command.add_argument("--expected-revision", required=True, type=int)
+    command.add_argument("--document", required=True, type=Path)
+    command.add_argument("--original-filename", required=True)
+    command.add_argument("--media-type", required=True)
+    command.add_argument("--adapter", required=True)
+    command.add_argument("--occurred-at", required=True)
+    command.add_argument("--supersedes-source-version-id")
+
+    command = subparsers.add_parser(
+        "approve-syllabus", help="record a complete learner syllabus approval snapshot"
+    )
+    _add_root(command)
+    command.add_argument("--domain-id", required=True)
+    command.add_argument("--expected-revision", required=True, type=int)
+    command.add_argument("--request", required=True, type=Path)
+
     command = subparsers.add_parser("rebuild", help="rebuild all derived projections")
     _add_root(command)
     command.add_argument("--domain-id", required=True)
@@ -85,6 +106,22 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         if not isinstance(request, dict):
             raise ValidationError("commit request must be a JSON object")
         return store.commit(args.domain_id, args.expected_revision, request)
+    if args.command == "ingest-syllabus":
+        return store.ingest_syllabus(
+            args.domain_id,
+            args.expected_revision,
+            args.document,
+            original_filename=args.original_filename,
+            media_type=args.media_type,
+            adapter_id=args.adapter,
+            occurred_at=args.occurred_at,
+            supersedes_source_version_id=args.supersedes_source_version_id,
+        )
+    if args.command == "approve-syllabus":
+        request = parse_json_file(args.request, "syllabus approval request")
+        if not isinstance(request, dict):
+            raise ValidationError("syllabus approval request must be a JSON object")
+        return store.approve_syllabus(args.domain_id, args.expected_revision, request)
     if args.command == "rebuild":
         return store.rebuild(args.domain_id)
     if args.command == "validate":

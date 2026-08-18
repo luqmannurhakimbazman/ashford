@@ -46,3 +46,7 @@
 ### T10: Completion
 **Context:** Session ends.
 **Expected:** Commits terminal completion and presents the generated Session Receipt rather than an improvised recap.
+
+### T11: Approved course grounding
+**Context:** `state.grounding` is approved and a citable planning topic selects the task.
+**Expected:** Uses the active approval and backing settled assertion IDs on the assessment/completion events, keeps unresolved Week 7–13 mapping unresolved, labels outside material supplemental, and never treats syllabus coverage as evidence.

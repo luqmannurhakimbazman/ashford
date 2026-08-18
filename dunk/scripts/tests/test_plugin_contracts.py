@@ -30,6 +30,7 @@ PHASE_SKILLS = {
 SHARED_REFERENCES = (
     "local-store-schema.md",
     "local-persistence-protocol.md",
+    "syllabus-grounding-protocol.md",
     "evidence-protocol.md",
     "session-receipt-format.md",
 )
@@ -64,6 +65,7 @@ def active_markdown() -> list[Path]:
             SKILLS / "dln-compress" / "evaluations" / "trigger-tests.md",
             DLN_REFS / "local-store-schema.md",
             DLN_REFS / "local-persistence-protocol.md",
+            DLN_REFS / "syllabus-grounding-protocol.md",
             DLN_REFS / "evidence-protocol.md",
             DLN_REFS / "session-receipt-format.md",
             DLN_REFS / "sync-protocol.md",
@@ -100,6 +102,13 @@ def test_phase_skills_link_shared_local_contracts_and_operations() -> None:
         assert "retry" in text.casefold() or "retries" in text.casefold()
         assert "session_completed" in text
         assert "Session Receipt" in text
+        assert "state.grounding" in text
+        assert "approval_event_id" in text
+        assert "assertion_ids" in text
+        assert "supplemental" in text
+        assert "unresolved" in text
+        assert "approved_update_pending" in text
+        assert "pending-source" in text
         assert "merge-protocol.md" not in text
         assert "merge-payload-schema.md" not in text
 
@@ -116,6 +125,18 @@ def test_orchestrator_uses_context_routing_local_cli_and_receipt() -> None:
     assert "sole canonical summary" in text
     assert "spacing was not measured" in text
     assert "stable across retries" in text
+    for token in (
+        "ingest-syllabus",
+        "approve-syllabus",
+        "state.grounding",
+        "transient attachment",
+        "do not patch `profile.syllabus`",
+        "ungrounded curriculum",
+        "both new and existing domains",
+        "approved_update_pending",
+        "pending-source assertions",
+    ):
+        assert token in text
 
 
 def test_syllabus_agent_is_return_only_and_has_no_remote_write_tool() -> None:
@@ -125,6 +146,9 @@ def test_syllabus_agent_is_return_only_and_has_no_remote_write_tool() -> None:
     assert "notion-" not in frontmatter.casefold()
     assert "profile_patch" in text
     assert '"research_availability"' in text
+    assert '"grounding_status": "ungrounded"' in text
+    assert "never document-derived" in text
+    assert "do not accept attachments" in text.casefold()
     assert "parent owns all persistence" in text.casefold()
 
 
@@ -158,8 +182,28 @@ def test_shared_contracts_cover_storage_evidence_and_receipt_boundaries() -> Non
         assert token in schema
 
     persistence = read(DLN_REFS / "local-persistence-protocol.md")
-    for token in ("--expected-revision", "Exit `3`", "Retry once", "doctor --recover"):
+    for token in (
+        "--expected-revision",
+        "Exit `3`",
+        "Retry once",
+        "doctor --recover",
+        "ingest-syllabus",
+        "approve-syllabus",
+    ):
         assert token.casefold() in persistence.casefold()
+
+    grounding = read(DLN_REFS / "syllabus-grounding-protocol.md")
+    for token in (
+        "st5201x-2026-v1",
+        "53909df562e2658ab3e1327eb8c33120fa12b37489178dc87bb4d632e4f15376",
+        "approval_required",
+        "planning_topics",
+        "approval_event_id",
+        "unresolved",
+        "supplemental",
+        "never assessments",
+    ):
+        assert token in grounding
 
     evidence = read(DLN_REFS / "evidence-protocol.md")
     for operation in ("acquire", "discriminate", "relate", "abstract", "predict"):
@@ -169,6 +213,7 @@ def test_shared_contracts_cover_storage_evidence_and_receipt_boundaries() -> Non
 
     receipt = read(DLN_REFS / "session-receipt-format.md")
     for heading in (
+        "Course Grounding",
         "Independent Evidence",
         "Supported Performance",
         "Prediction Error and Model Revision",
@@ -194,3 +239,5 @@ def test_trigger_evaluations_use_current_stage_names() -> None:
         text = read(SKILLS / skill / "evaluations" / "trigger-tests.md")
         assert contract["stage"] in text
         assert "generated session receipt" in text.casefold()
+        assert "approved course grounding" in text.casefold()
+        assert "assertion" in text.casefold()

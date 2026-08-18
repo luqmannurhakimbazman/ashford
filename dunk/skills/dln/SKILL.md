@@ -29,6 +29,7 @@ Before operating the store or routing a session, read:
 
 - `@references/local-store-schema.md` — exact profile/event/state contract.
 - `@references/local-persistence-protocol.md` — CLI lifecycle, revisions, retries, and recovery.
+- `@references/syllabus-grounding-protocol.md` — supplied-document intake, approval, bounded grounding, and citations.
 - `@references/evidence-protocol.md` — what does and does not count as evidence.
 - `@references/session-receipt-format.md` — the sole completion artifact.
 - `@references/sync-protocol.md` — local checkpoints and plan adjustment.
@@ -46,7 +47,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" <command>
 
 Root discovery is `--root`, then `DLN_VAULT_ROOT`, then `${CLAUDE_PLUGIN_DATA}/dln-vault`. If the CLI says the root is unconfigured, ask the user to set `DLN_VAULT_ROOT`; do not choose an implicit directory.
 
-Canonical sources are `profile.yaml` and append-only `events.jsonl`. `state.json`, `dashboard.md`, and `sessions/<session-id>.md` are deterministic generated projections. Obsidian can open the ordinary Markdown directly and is never a write authority.
+Canonical sources are `profile.yaml` and append-only `events.jsonl`, including immutable syllabus source and approval history. `state.json`, `dashboard.md`, `syllabus/<source-version-id>.md`, and `sessions/<session-id>.md` are deterministic generated projections. Raw syllabus PDFs are not retained. Obsidian can open the ordinary Markdown directly and is never a write authority.
 
 ## Command parsing
 
@@ -70,22 +71,30 @@ Run `dln-store.py list`. Present each ready domain with domain, goal, revision, 
 
 When no matching domain exists:
 
-1. Ask for or infer a concise goal, then confirm it.
-2. Run `init --domain <domain> --goal <goal>`.
-3. Retain the returned `domain_id` and revision `0`.
-4. Dispatch `dln-syllabus` with only the domain and goal. It returns a strict research result and performs no persistence.
-5. Show the flat topics for learner edits.
-6. After approval, commit `{"profile_patch":{"goal":"...","syllabus":[...]}}` with the retained revision.
-7. Run `context`; use its returned profile/state as the first session context.
+1. Ask for or infer a concise goal and confirm it.
+2. Run `init --domain <domain> --goal <goal>` and retain the returned `domain_id` and revision `0`.
+3. Continue through the shared syllabus registration/status flow below before routing the first session.
 
-If research is unavailable, clearly label the syllabus as generated without external research. A syllabus is planning configuration, not mastery or evidence.
+## Syllabus registration and pending approval
+
+For both new and existing domains, ask whether the learner wants to register a supplied syllabus whenever one is offered. After `init` or `context`, resolve syllabus status before routing teaching:
+
+1. If a supplied syllabus is chosen, require a runtime-resolvable file containing the actual bytes. A transient attachment preview or attachment content without a readable path/byte channel cannot be registered; say so and do not claim grounding.
+2. For a readable file, run `ingest-syllabus` with `--adapter st5201x-2026-v1`, `--media-type application/pdf`, the original filename, timestamp, and retained revision. Only the exact supported ST5201X digest can succeed, then reload `context`.
+3. If `state.grounding.status` is `approval_required` or `approved_update_pending`, open the pending generated Syllabus Intake Receipt from `state.grounding.pending_sources` and present its assertions. Collect a complete learner decision: accepted, corrected, or deferred. Keep the Week 7–13 row alignment unresolved unless the learner explicitly corrects it.
+4. Write the complete approval request privately and run `approve-syllabus` with the retained revision. Reload `context` after success and use its approved `state.grounding`; do not patch `profile.syllabus` on this grounded path.
+5. While status is `approved_update_pending`, the prior `active_source` and `active_approval` remain authoritative. Never cite or teach pending-source assertions as settled before approval.
+6. If intake fails because bytes are unavailable, unreadable, or do not match the exact adapter digest, offer either a registration retry or the separate ungrounded curriculum path. Never conflate the two.
+7. On the explicit no-document/generated-curriculum path only, dispatch `dln-syllabus` with `{domain, goal}`, show its ungrounded flat topics for learner edits, and commit the approved `profile_patch.syllabus`. Label the result generated and non-citable even when research tools were available.
+
+A syllabus or curriculum is planning configuration, not mastery or evidence.
 
 ## Resume and route
 
 For every existing domain:
 
 1. Run `context --domain-id <id>`.
-2. Retain `profile`, `state`, and `state.revision`.
+2. Retain `profile`, `state`, `state.grounding`, and `state.revision`.
 3. If context exits `5`, run `doctor --recover` and retry context. For other errors, follow the persistence protocol and do not start a persistent session from stale conversation memory.
 4. Check `state.next_review_date`, subject retrieval status, latest independent/supported evidence, syllabus, goal, current model, and exam configuration.
 5. Create one portable session ID and keep it for the entire live session.
@@ -93,7 +102,7 @@ For every existing domain:
    - `acquire` → preload/invoke `dln-dot` as **Acquire/Discriminate**.
    - `relate` → preload/invoke `dln-linear` as **Relate/Abstract**.
    - `revise` → preload/invoke `dln-network` as **Predict/Revise/Compress**.
-7. Pass only bounded `context` output, the domain ID, retained revision, session ID, command intent, and whether a delayed review is due. Do not pass raw event history or generated Markdown as machine state.
+7. Pass only bounded `context` output (including `state.grounding`), the domain ID, retained revision, session ID, command intent, and whether a delayed review is due. Do not pass raw PDF bytes, full event history, canonical page text, prior chat, or generated Markdown as machine state.
 
 A phase skill owns teaching and structured event construction. The parent owns CLI calls, revision tracking, recovery, and receipt presentation unless the runtime explicitly permits the phase skill to run Bash.
 
@@ -119,7 +128,7 @@ Reset never deletes events, profile ownership fields, or historic receipts. If t
 
 ## Goal and syllabus edits
 
-Apply learner-approved changes through a revision-checked `profile_patch`. The syllabus agent never writes. Re-read context after a stale revision and retry the semantically same approved patch once. Added syllabus topics do not demote or promote a stage automatically; route any new foundational gap through measured evidence.
+Apply learner-approved goal changes through a revision-checked `profile_patch`. Flat `profile.syllabus` edits are allowed only for the legacy ungrounded curriculum path. When an approved source is active, `state.syllabus` is derived from approved coverage assertions; change grounded values through a complete superseding `approve-syllabus` snapshot, never a profile patch. The syllabus agent never writes. Re-read context after a stale revision and retry the semantically same approved operation once. Added topics do not demote or promote a stage automatically; route any new foundational gap through measured evidence.
 
 ## Exam commands
 
@@ -165,7 +174,7 @@ If the completion commit fails, state that the session is not durably closed. Ke
 
 ## Non-negotiable safeguards
 
-- Content delivery, dialogue, plans, and notes are not evidence.
+- Content delivery, dialogue, plans, notes, syllabus assertions, source approval, citations, and coverage are not evidence.
 - Supported and independent performance remain separate.
 - Transfer requires `novel`; calibration requires pre-answer confidence plus score; retrieval requires a linked prior assessment and observed delay.
 - Omit response time unless explicitly timed.

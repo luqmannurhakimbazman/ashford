@@ -10,7 +10,7 @@ Ashford contains three independent plugins:
 |---|---:|---|
 | `egg/` | 1.1.0 | development, writing, interview, and teacher workflows |
 | `aerion/` | 1.0.0 | Gmail-to-Google-Sheets job application tracking |
-| `dunk/` | 2.0.0 | local-first, DLN-inspired tutoring with Obsidian-readable projections |
+| `dunk/` | 2.1.0 | local-first, DLN-inspired tutoring with Obsidian-readable projections |
 
 The marketplace registry is `.claude-plugin/marketplace.json`. Each plugin has its own `<plugin>/.claude-plugin/plugin.json` and must be installed, configured, enabled, versioned, and validated separately.
 
@@ -95,7 +95,7 @@ Plugin-scoped MCP tools use `mcp__plugin_<plugin>_<server>__<tool>`. The project
 
 ### Dunk
 
-Dunk registers no hooks. Its local CLI enforces persistence invariants directly; do not add a remote-write hook or make an MCP service authoritative.
+Dunk registers no hooks. Its local CLI enforces persistence invariants directly; do not add a remote-write hook or make an MCP service authoritative. Version 2.1.0 adds only the exact digest-bound ST5201X syllabus adapter, append-only source/approval history, bounded grounding citations, and generated Syllabus Intake Receipts; it does not add generic PDF/OCR support or retain raw PDFs.
 
 Hook commands use exec form with explicit `command`, `args`, and `timeout`. Reference scripts as `${CLAUDE_PLUGIN_ROOT}/scripts/<file>`; never assume the current working directory is the plugin root.
 
@@ -108,7 +108,7 @@ Use paths according to purpose:
 - `${CLAUDE_PROJECT_DIR}`: the user's project and default resume workspace.
 - Repository-relative paths such as `egg/skills/...`: maintainer documentation and validation run from the ashford repository root.
 
-Dunk root precedence is explicit `--root`, then `DLN_VAULT_ROOT`, then `${CLAUDE_PLUGIN_DATA}/dln-vault`. Because strict plugin validation does not prove that parent Bash receives `${CLAUDE_PLUGIN_DATA}`, runtime instructions must preserve the explicit `DLN_VAULT_ROOT` fallback and must not invent an implicit home-directory path. Within each domain, users may edit `goal`, `syllabus`, `annotations`, `review_preferences`, and `exam` in JSON-compatible `profile.yaml`; `domain`, `domain_id`, `schema_version`, and `revision` are immutable store-owned identity/metadata. `events.jsonl` is append-only. `state.json`, `dashboard.md`, and Session Receipts are generated.
+Dunk root precedence is explicit `--root`, then `DLN_VAULT_ROOT`, then `${CLAUDE_PLUGIN_DATA}/dln-vault`. Because strict plugin validation does not prove that parent Bash receives `${CLAUDE_PLUGIN_DATA}`, runtime instructions must preserve the explicit `DLN_VAULT_ROOT` fallback and must not invent an implicit home-directory path. Within each domain, users may edit `goal`, `annotations`, `review_preferences`, and `exam` in JSON-compatible `profile.yaml`; flat `syllabus` edits are a legacy ungrounded fallback, while approved document-backed topics derive from append-only syllabus events. `domain`, `domain_id`, `schema_version`, and `revision` are immutable store-owned identity/metadata. `events.jsonl` is append-only. `state.json`, `dashboard.md`, Syllabus Intake Receipts, and Session Receipts are generated.
 
 `dunk/scripts/ks-merge.py` and its tests are legacy compatibility tooling for exported marker-delimited Knowledge State Markdown; active skills must not route through them. Egg's loaders perform a one-time, non-overwriting migration from `~/.local/share/claude/` to `${CLAUDE_PLUGIN_DATA}` for LeetCode and markets profiles, ledgers, and session-state files. Do not add new runtime writes to the legacy directory or to the plugin cache.
 

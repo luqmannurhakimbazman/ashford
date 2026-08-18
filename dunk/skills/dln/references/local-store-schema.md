@@ -13,10 +13,11 @@ The vault root resolves in this order: `--root`, `DLN_VAULT_ROOT`, then `${CLAUD
     events.jsonl
     state.json
     dashboard.md
+    syllabus/<source-version-id>.md
     sessions/<session-id>.md
 ```
 
-`profile.yaml` and `events.jsonl` are authoritative. `state.json`, `dashboard.md`, and receipts are generated projections. Do not treat edits to generated files as learning evidence.
+`profile.yaml` and `events.jsonl` are authoritative. Syllabus source, extraction, assertion, approval, correction, and supersession history lives append-only in `events.jsonl`. `state.json`, `dashboard.md`, Syllabus Intake Receipts, and Session Receipts are generated projections. Do not treat edits to generated files as learning evidence.
 
 ## Ownership
 
@@ -48,7 +49,7 @@ Required fields:
 - `outcome`: `pass | partial | fail`
 - `assistance`: `{level: none | prompt | worked, hint_count}`
 
-Optional paired fields: `score` and `max_score`; `confidence_before` requires both and ranges from 0 to 1. `retrieval` is `{prior_event_id, scheduled_date, observed_delay_days}` and must cite an assessment of the same subject in the current reset generation. The attempt must occur on a later UTC date, `observed_delay_days` must equal the UTC calendar-date difference, and the scheduled date must fall after the prior assessment and no later than the retrieval attempt. `response_time_ms` is allowed only when explicitly timed. Independent evidence requires `assistance: {"level":"none","hint_count":0}`.
+Optional paired fields: `score` and `max_score`; `confidence_before` requires both and ranges from 0 to 1. Optional `grounding` is `{approval_event_id, assertion_ids}` and must cite non-empty unique effective settled assertions under the approval active before the event. `retrieval` is `{prior_event_id, scheduled_date, observed_delay_days}` and must cite an assessment of the same subject in the current reset generation. The attempt must occur on a later UTC date, `observed_delay_days` must equal the UTC calendar-date difference, and the scheduled date must fall after the prior assessment and no later than the retrieval attempt. `response_time_ms` is allowed only when explicitly timed. Independent evidence requires `assistance: {"level":"none","hint_count":0}`.
 
 ### `model_revision`
 
@@ -60,7 +61,14 @@ Required: `from`, `to`, `rubric_id`, non-empty `assessment_event_ids`, and `deci
 
 ### `session_completed`
 
-Required: `next_action`, nullable `next_review_date`, `evidence_event_ids`, and `receipt_schema_version: 1`. Cited evidence must already occur in the same session and be an assessment, model revision, or stage transition. This event is terminal: no later event may use that session ID.
+Required: `next_action`, nullable `next_review_date`, `evidence_event_ids`, and `receipt_schema_version: 1`. Optional `grounding` uses the same active approval/assertion contract as `assessment`. Cited evidence must already occur in the same session and be an assessment, model revision, or stage transition. This event is terminal: no later event may use that session ID.
+
+### Syllabus authority events
+
+- `syllabus_source_ingested`: reserved for `ingest-syllabus`; preserves immutable source identity/version, SHA-256, original filename, extraction provenance, canonical page text, located assertions, assertion-set digest, and optional source supersession. Raw PDF bytes are not retained.
+- `syllabus_approval_recorded`: reserved for `approve-syllabus`; a complete learner snapshot of accepted, deferred, and corrected assertions with optional approval supersession. Corrections retain their target document value and citation.
+
+These events cannot be submitted through generic `commit`. They configure course authority and never count as learning evidence.
 
 ### Other events
 
@@ -70,6 +78,8 @@ Required: `next_action`, nullable `next_review_date`, `evidence_event_ids`, and 
 
 ## Projected state
 
-`state.json` exposes the current `revision`, `stage`, `subjects`, `current_model`, calibration aggregate, completed receipt index, review date/action, profile fields, source hashes, reset generation, exam archive, and legacy claims.
+`state.json` exposes the current `revision`, `stage`, `subjects`, `current_model`, calibration aggregate, completed receipt index, review date/action, profile fields, source hashes, reset generation, exam archive, legacy claims, derived `syllabus`, and bounded `grounding`.
+
+`state.grounding.status` is `ungrounded`, `approval_required`, `approved`, or `approved_update_pending`. It contains only active source/approval summaries, compact effective assertions/citations, unresolved assertions, pending source summaries/receipt paths, and planning topics. Approved coverage assertions derive `state.syllabus`; otherwise flat `profile.syllabus` remains a legacy ungrounded, non-citable fallback. Full page text and authority history remain outside the bounded phase bundle.
 
 Supported performance never overwrites the latest independent result. Transfer increments only for `novel` assessments. Delayed retrieval becomes measured only after a timestamp-consistent, positive calendar-day delay in the current generation, and each subject's `retrieval` block records `count`, the `latest` attempt including its `evidence_mode`, and `satisfied_by`. Only an independent passing retrieval sets `satisfied_by`; supported or non-passing attempts stay measured evidence and leave a passing subject at `needs-retrieval`. Calibration includes only paired pre-answer confidence and score. Imported claims never satisfy gates.

@@ -30,6 +30,10 @@ No supported assessment performance was recorded.
 - **Parity \| Bounds<br>&lt;!-- KS:start --&gt;:** confidence 0.700, normalized score 0.900, gap -0.200.
 - **Parity \| Bounds<br>&lt;!-- KS:start --&gt;:** confidence 0.700, normalized score 0.600, gap 0.100.
 
+## Course Grounding
+
+No approved syllabus assertion was cited in this session.
+
 ## Next Action and Review
 
 - **Next action:** Test the revised model on a new instrument

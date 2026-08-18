@@ -11,6 +11,8 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" list
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" init --domain "$DOMAIN" --goal "$GOAL"
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" context --domain-id "$DOMAIN_ID"
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" commit --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --request "$REQUEST_FILE"
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" ingest-syllabus --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --document "$DOCUMENT" --original-filename "$FILENAME" --media-type application/pdf --adapter st5201x-2026-v1 --occurred-at "$TIMESTAMP"
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" approve-syllabus --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --request "$APPROVAL_FILE"
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" validate --domain-id "$DOMAIN_ID"
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" doctor --domain-id "$DOMAIN_ID" --recover
 ```
@@ -44,6 +46,12 @@ Create each `event_id` exactly once from stable session/task context before the 
 
 Use one session ID for the entire live session. Never reuse an ID after `session_completed` succeeds.
 
+## Syllabus command rules
+
+`ingest-syllabus` requires readable bytes and accepts only the exact digest-bound ST5201X adapter described in `syllabus-grounding-protocol.md`. Unavailable, unreadable, wrong-media-type, wrong-size, or digest-mismatched input must fail without changing the revision. Exact source replay returns `noop`.
+
+After intake, reload `context`, present the generated Syllabus Intake Receipt, and collect a complete learner decision before `approve-syllabus`. Keep approval JSON private like a commit request. Exact approval replay is a no-op; conflicting ID reuse fails. Generic `commit` cannot create either reserved syllabus event kind.
+
 ## Stale revision retry
 
 Exit `3` means the expected revision is stale:
@@ -53,7 +61,7 @@ Exit `3` means the expected revision is stale:
 3. Retry once with the new revision and exactly the same event IDs and bodies.
 4. If it is stale again, keep the pending request in the current conversation, clearly state that persistence stopped, and make no further writes for that boundary. Do not claim it was saved.
 
-A profile patch may be re-created against the new profile only if it has the same user-approved meaning. Events themselves must not be rewritten to fit new state.
+A profile patch or complete syllabus approval request may be re-created against the new context only if it has the same user-approved meaning and source assertion set. Intake and event bodies must not be rewritten to fit new state.
 
 ## Exit handling
 
@@ -71,6 +79,7 @@ Never run `rebuild` as a way to erase validation failures. `rebuild` reconstruct
 ## Reset, syllabus, and exam metadata
 
 - Reset is a revision-checked `domain_reset` event. It preserves historic events and receipts.
-- Goal, syllabus, review preferences, annotations, and current exam configuration are `profile_patch` fields.
+- Goal, review preferences, annotations, and current exam configuration are `profile_patch` fields.
+- Flat `profile.syllabus` is editable only as a legacy ungrounded curriculum. Grounded source values use dedicated intake/approval commands and superseding approval snapshots.
 - Closing an exam cycle is an `exam_cycle_closed` event; it does not delete earlier evidence.
 - A legacy import uses `import-legacy-ks` on a manually exported block and never contacts a remote service.

@@ -13,7 +13,10 @@ Evidence is not:
 - a plan, explanation, or worked example copied back by the learner;
 - tool/model latency;
 - a confidence rating collected after the answer;
-- an imported legacy mastery label.
+- an imported legacy mastery label;
+- a syllabus assertion, topic, schedule, policy, approval, correction, citation, or coverage/completion claim.
+
+Syllabus grounding establishes what the course source says, not what the learner knows. A `grounding` reference on an assessment or completion event records provenance only and must not change subjects, stage gates, retrieval, transfer, or calibration.
 
 After teaching, ask a distinct check before recording evidence. If the tutor hints, prompts, supplies steps, or exposes the answer, record `evidence_mode: supported` with accurate assistance. Never upgrade supported work to independent.
 

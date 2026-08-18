@@ -16,6 +16,7 @@ description: >
 
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/local-store-schema.md`
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/local-persistence-protocol.md`
+- `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/syllabus-grounding-protocol.md`
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/evidence-protocol.md`
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/session-receipt-format.md`
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/sync-protocol.md`
@@ -25,7 +26,7 @@ Do not use legacy KS merge references in an active session.
 
 ## Input contract
 
-Receive domain/domain ID, bounded `context` output, retained revision, stable session ID, command/exam intent, and review-due flag. Require `state.stage == "revise"`. Use `state.current_model` as the prior model when present; do not reconstruct one from dialogue or generated Markdown.
+Receive domain/domain ID, bounded `context` output including `state.grounding`, retained revision, stable session ID, command/exam intent, and review-due flag. Require `state.stage == "revise"`. Use `state.current_model` as the prior model when present; do not reconstruct one from dialogue or generated Markdown. When grounding status is `approved` or `approved_update_pending`, select course tasks only from the prior active approval's `planning_topics`, exclude pending-source assertions, retain backing approved assertion IDs, and add the active `approval_event_id` plus used settled `assertion_ids` to relevant `assessment` and `session_completed` events. Deferred Week 7–13 alignment remains unresolved; non-syllabus textbook/web/model material is supplemental. Legacy `profile.syllabus` is ungrounded and non-citable.
 
 ## Teaching stance
 
@@ -45,7 +46,7 @@ Compression means reducing the learner's model while retaining useful predictive
 8. **Retest.** Use a new variant/novel prediction to test the revision; do not claim success from word-count reduction alone.
 9. **Commit boundaries.** The parent performs revision-checked local CLI commits and retains only returned revisions.
 
-Tutor explanations, stress-test descriptions, diagrams, and word counts are not evidence. Only observed assessments and schema-valid learner model revisions enter the event stream.
+Tutor explanations, stress-test descriptions, diagrams, word counts, syllabus assertions, approval, citations, and coverage are not evidence. Only observed assessments and schema-valid learner model revisions enter the learning record.
 
 ## Prediction construction
 

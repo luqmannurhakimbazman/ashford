@@ -32,28 +32,40 @@ Each learning domain has this layout:
         ├── events.jsonl
         ├── state.json
         ├── dashboard.md
+        ├── syllabus/
+        │   └── <source-version-id>.md
         └── sessions/
             └── <session-id>.md
 ```
 
 - `profile.yaml` is user-owned configuration plus store-owned identity/revision fields. It is a JSON-compatible YAML subset so the stdlib-only CLI can validate it without a YAML dependency.
-- `events.jsonl` is the append-only, immutable learning and assessment history. Never edit, reorder, or truncate it.
+- `events.jsonl` is the append-only, immutable learning, syllabus-source, and approval history. Never edit, reorder, or truncate it.
 - `state.json` is a deterministic cache.
 - `dashboard.md` is the generated longitudinal Obsidian view.
+- `syllabus/<source-version-id>.md` is a generated Syllabus Intake Receipt containing source metadata, located assertions, approval history, unresolved items, and canonical extracted page text.
 - `sessions/<session-id>.md` is the sole canonical learner-facing Session Receipt for a completed session.
 
-You choose `domain` during initialization; it is then immutable because it determines the directory identity. You may edit `goal`, `syllabus`, `annotations`, `review_preferences`, and `exam` in `profile.yaml`. Do not edit `domain`, `schema_version`, `domain_id`, or `revision`; initialize a new domain to rename it.
+You choose `domain` during initialization; it is then immutable because it determines the directory identity. You may edit `goal`, `annotations`, `review_preferences`, and `exam` in `profile.yaml`. Flat `profile.syllabus` remains editable only as a legacy ungrounded curriculum; approved document-backed topics are derived from syllabus events. Do not edit `domain`, `schema_version`, `domain_id`, or `revision`; initialize a new domain to rename it.
 
 ## Common operations
 
 ```bash
 STORE="${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py"
+APPROVAL_FILE="/path/to/private/approval-request.json"
 
 python3 "$STORE" init --domain "Probability" --goal "Calibrate Bayesian predictions"
 python3 "$STORE" list
 python3 "$STORE" context --domain-id probability-<id>
 python3 "$STORE" validate --domain-id probability-<id>
 python3 "$STORE" rebuild --domain-id probability-<id>
+
+# Exact ST5201X digest-bound registration only
+python3 "$STORE" ingest-syllabus --domain-id probability-<id> --expected-revision 0 \
+  --document /path/to/syllabus2026.pdf --original-filename syllabus2026.pdf \
+  --media-type application/pdf --adapter st5201x-2026-v1 \
+  --occurred-at 2026-08-19T00:00:00Z
+python3 "$STORE" approve-syllabus --domain-id probability-<id> \
+  --expected-revision 1 --request "$APPROVAL_FILE"
 ```
 
 Tutoring skills commit validated event requests with the revision returned by `context`:
@@ -75,7 +87,7 @@ Obsidian or filesystem sync is external to Dunk. It is not a writer lock or conf
 
 ## Backup, validation, and recovery
 
-Back up `profile.yaml` and `events.jsonl`; every other domain artifact is reproducible. Preserve the directory structure and file bytes. A backup is only complete when both canonical files are from the same committed revision.
+Back up `profile.yaml` and `events.jsonl`; every other domain artifact is reproducible. Raw PDF bytes are not retained: re-verifying a source requires resupplying the document, while its digest, extracted page text, located assertions, and approval/correction history replay from `events.jsonl`. Preserve the directory structure and file bytes. A backup is only complete when both canonical files are from the same committed revision.
 
 Use `validate` to check canonical sources and projection drift. It exits nonzero when a generated projection is modified, missing, or an unexpected receipt is present. Run `rebuild` for modified or missing projections; remove an unexpected receipt only after confirming it is absent from canonical events. Leading-dot editor or operating-system metadata under `sessions/`, such as `.DS_Store` or `.obsidian/`, is ignored. If a process was interrupted, inspect before changing files:
 
@@ -84,6 +96,10 @@ python3 "$STORE" doctor --domain-id probability-<id>
 python3 "$STORE" doctor --domain-id probability-<id> --recover
 python3 "$STORE" validate --domain-id probability-<id>
 ```
+
+Existing Dunk 2.0 profiles/events load in 2.1.0 without migration and flat topics are labeled ungrounded. The first `syllabus_source_ingested` event makes that domain unreadable by Dunk 2.0 because its accepted event-kind set is closed. If downgrade may be required, back up the canonical pair before the first syllabus intake; rollback means restoring that matched pre-intake pair, never truncating the live ledger.
+
+Only the exact ST5201X PDF digest `53909df562e2658ab3e1327eb8c33120fa12b37489178dc87bb4d632e4f15376` is supported. There is no generic extraction, OCR, or binary content store.
 
 The store uses a single-writer lock, staged files, backups, a transaction journal, fsync, and atomic replacement. Reads do not return mixed revisions: recover the interrupted transaction or stop. Use `--break-stale-lock` only when `doctor` identifies stale metadata and no writer process is active.
 

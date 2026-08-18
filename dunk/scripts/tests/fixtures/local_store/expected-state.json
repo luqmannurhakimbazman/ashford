@@ -40,6 +40,27 @@
   "exam": {},
   "generation": 0,
   "goal": "Explain parity | safely",
+  "grounding": {
+    "active_approval": null,
+    "active_source": null,
+    "effective_assertions": [],
+    "legacy_fallback": true,
+    "pending_sources": [],
+    "planning_topics": [
+      {
+        "assertion_ids": [],
+        "citable": false,
+        "label": "Parity"
+      },
+      {
+        "assertion_ids": [],
+        "citable": false,
+        "label": "Transfer"
+      }
+    ],
+    "status": "ungrounded",
+    "unresolved_assertions": []
+  },
   "legacy_imports": [],
   "next_action": "Test the revised model on a new instrument",
   "next_review_date": null,

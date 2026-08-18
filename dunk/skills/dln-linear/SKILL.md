@@ -16,6 +16,7 @@ description: >
 
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/local-store-schema.md`
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/local-persistence-protocol.md`
+- `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/syllabus-grounding-protocol.md`
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/evidence-protocol.md`
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/session-receipt-format.md`
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/sync-protocol.md`
@@ -27,7 +28,7 @@ Do not use legacy KS merge references in an active session.
 
 Receive domain/domain ID, bounded `context` output, retained revision, stable session ID, command/exam intent, and review-due flag. Require `state.stage == "relate"`. Do not infer the stage or prior evidence from conversation, dashboard, or receipts.
 
-Use profile syllabus/goal and projected subjects/current model only to select tasks. A polished explanation in state is not evidence unless backed by a cited assessment event.
+Use the goal, projected subjects/current model, and bounded `state.grounding` only to select tasks. When grounding status is `approved` or `approved_update_pending`, choose course work only from the prior active approval's `planning_topics`, exclude pending-source assertions, retain the backing approved assertion IDs, and add the active `approval_event_id` plus used settled `assertion_ids` to relevant `assessment` and `session_completed` events. Describe deferred Week 7–13 alignment as unresolved and label textbook/web/model additions as supplemental. Legacy `profile.syllabus` is ungrounded and non-citable. A polished explanation or syllabus assertion is not learning evidence unless learner performance is recorded by an assessment event.
 
 ## Teaching stance
 

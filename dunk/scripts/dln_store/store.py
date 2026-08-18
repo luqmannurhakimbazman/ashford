@@ -20,13 +20,15 @@ from typing import Any, Iterator
 
 from .legacy import legacy_event
 from .projector import project_state
-from .render import render_all_receipts, render_dashboard
+from .render import render_all_receipts, render_all_syllabus_receipts, render_dashboard
 from .schema import (
+    RESERVED_SYLLABUS_EVENT_KINDS,
     LockError,
     RecoveryRequiredError,
     StaleRevisionError,
     StoreError,
     ValidationError,
+    build_syllabus_approval_event,
     canonical_json,
     encode_event_lines,
     initial_profile,
@@ -38,6 +40,7 @@ from .schema import (
     validate_commit_request,
     validate_profile,
 )
+from .st5201x_syllabus import build_ingestion_event
 
 TXN_NAME = ".dln-transaction"
 
@@ -78,6 +81,11 @@ class DomainPaths:
     def sessions(self) -> Path:
         """Return the directory holding generated Session Receipts."""
         return self.directory / "sessions"
+
+    @property
+    def syllabus(self) -> Path:
+        """Return the directory holding generated Syllabus Intake Receipts."""
+        return self.directory / "syllabus"
 
     @property
     def lock(self) -> Path:
@@ -513,6 +521,9 @@ def _load_sources(paths: DomainPaths) -> tuple[dict[str, Any], bytes, list[dict[
     _reject_symlink(paths.profile, "profile.yaml")
     _reject_symlink(paths.events, "events.jsonl")
     _reject_symlink(paths.sessions, "sessions directory")
+    _reject_symlink(paths.syllabus, "syllabus directory")
+    if paths.syllabus.exists() and not paths.syllabus.is_dir():
+        raise ValidationError(f"syllabus path must be a directory: {paths.syllabus}")
     _reject_symlink(paths.transaction, "transaction directory")
     profile, profile_bytes = load_profile(paths.profile)
     if profile["domain_id"] != paths.domain_id:
@@ -542,6 +553,7 @@ def _projection_targets(
         "state.json": pretty_json(state),
     }
     targets.update(render_all_receipts(profile, events))
+    targets.update(render_all_syllabus_receipts(events))
     return targets, state
 
 
@@ -614,12 +626,55 @@ class LocalStore:
             return recover_transaction(paths)
         return "none"
 
-    def commit(
-        self, domain_id: str, expected_revision: int, request: dict[str, Any]
+    @staticmethod
+    def _syllabus_snapshot_matches(existing: dict[str, Any], incoming: dict[str, Any]) -> bool:
+        """Compare immutable verified content while allowing a different audit filename/time."""
+        existing_source = dict(existing["source"])
+        incoming_source = dict(incoming["source"])
+        existing_source.pop("original_filename", None)
+        incoming_source.pop("original_filename", None)
+        existing_snapshot = {
+            "assertion_set_sha256": existing["assertion_set_sha256"],
+            "assertions": existing["assertions"],
+            "extraction": existing["extraction"],
+            "pages": existing["pages"],
+            "source": existing_source,
+        }
+        incoming_snapshot = {
+            "assertion_set_sha256": incoming["assertion_set_sha256"],
+            "assertions": incoming["assertions"],
+            "extraction": incoming["extraction"],
+            "pages": incoming["pages"],
+            "source": incoming_source,
+        }
+        return canonical_json(existing_snapshot, newline=False) == canonical_json(
+            incoming_snapshot, newline=False
+        )
+
+    def _commit_request(
+        self,
+        domain_id: str,
+        expected_revision: int,
+        request: dict[str, Any],
+        *,
+        allowed_reserved_kinds: set[str],
+        digest_idempotence: bool = False,
     ) -> dict[str, Any]:
-        """Append validated events and profile edits at the expected revision."""
+        """Run every mutation through one lock, candidate projection, and transaction path."""
         paths = self._require_domain(domain_id)
         validate_commit_request(request)
+        reserved = {
+            event["kind"]
+            for event in request.get("events", [])
+            if event["kind"] in RESERVED_SYLLABUS_EVENT_KINDS
+        }
+        disallowed = reserved - allowed_reserved_kinds
+        if disallowed:
+            kinds = ", ".join(sorted(disallowed))
+            raise ValidationError(
+                f"reserved syllabus event kind(s) {kinds} require ingest-syllabus or "
+                "approve-syllabus"
+            )
         with domain_lock(paths):
             recovery = self._recover_before_write(paths)
             profile, profile_bytes, events, events_bytes = _load_sources(paths)
@@ -629,6 +684,52 @@ class LocalStore:
                 raise StaleRevisionError(
                     f"stale revision: expected {expected_revision}, current {profile['revision']}"
                 )
+            project_state(
+                profile,
+                events,
+                profile_bytes=profile_bytes,
+                events_bytes=events_bytes,
+            )
+
+            if digest_idempotence:
+                incoming_sources = [
+                    event
+                    for event in request.get("events", [])
+                    if event["kind"] == "syllabus_source_ingested"
+                ]
+                if len(incoming_sources) != 1 or len(request.get("events", [])) != 1:
+                    raise ValidationError("ingest-syllabus must contain exactly one source event")
+                incoming = incoming_sources[0]
+                matching = [
+                    event
+                    for event in events
+                    if event["kind"] == "syllabus_source_ingested"
+                    and event["source"]["sha256"] == incoming["source"]["sha256"]
+                ]
+                if matching:
+                    existing = matching[0]
+                    if not self._syllabus_snapshot_matches(existing, incoming):
+                        raise ValidationError(
+                            "existing syllabus digest conflicts with the verified adapter snapshot"
+                        )
+                    approval_status = (
+                        "approved"
+                        if any(
+                            event["kind"] == "syllabus_approval_recorded"
+                            and event["source_version_id"]
+                            == incoming["source"]["source_version_id"]
+                            for event in events
+                        )
+                        else "approval_required"
+                    )
+                    return {
+                        "appended_events": 0,
+                        "approval_status": approval_status,
+                        "domain_id": domain_id,
+                        "recovery": recovery,
+                        "revision": profile["revision"],
+                        "status": "noop",
+                    }
 
             existing_by_id = {event["event_id"]: event for event in events}
             incoming_by_id: dict[str, dict[str, Any]] = {}
@@ -706,6 +807,78 @@ class LocalStore:
                 "status": "committed",
             }
 
+    def commit(
+        self, domain_id: str, expected_revision: int, request: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Append ordinary learning events/profile edits; syllabus kinds are reserved."""
+        return self._commit_request(
+            domain_id,
+            expected_revision,
+            request,
+            allowed_reserved_kinds=set(),
+        )
+
+    def ingest_syllabus(
+        self,
+        domain_id: str,
+        expected_revision: int,
+        document_path: Path,
+        *,
+        original_filename: str,
+        media_type: str,
+        adapter_id: str,
+        occurred_at: str,
+        supersedes_source_version_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Verify and append the exact supported ST5201X source snapshot."""
+        event = build_ingestion_event(
+            document_path,
+            original_filename=original_filename,
+            media_type=media_type,
+            adapter_id=adapter_id,
+            occurred_at=occurred_at,
+            supersedes_source_version_id=supersedes_source_version_id,
+        )
+        result = self._commit_request(
+            domain_id,
+            expected_revision,
+            {"events": [event]},
+            allowed_reserved_kinds={"syllabus_source_ingested"},
+            digest_idempotence=True,
+        )
+        result.setdefault("approval_status", "approval_required")
+        result.update(
+            {
+                "assertion_set_sha256": event["assertion_set_sha256"],
+                "source_event_id": event["event_id"],
+                "source_id": event["source"]["source_id"],
+                "source_sha256": event["source"]["sha256"],
+                "source_version_id": event["source"]["source_version_id"],
+            }
+        )
+        return result
+
+    def approve_syllabus(
+        self, domain_id: str, expected_revision: int, request: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Append one complete learner approval/correction snapshot."""
+        event = build_syllabus_approval_event(request)
+        result = self._commit_request(
+            domain_id,
+            expected_revision,
+            {"events": [event]},
+            allowed_reserved_kinds={"syllabus_approval_recorded"},
+        )
+        result.update(
+            {
+                "approval_event_id": event["event_id"],
+                "approval_status": "approved",
+                "approval_set_sha256": event["approval_set_sha256"],
+                "source_version_id": event["source_version_id"],
+            }
+        )
+        return result
+
     def rebuild(self, domain_id: str) -> dict[str, Any]:
         """Regenerate every derived projection from the canonical sources."""
         paths = self._require_domain(domain_id)
@@ -745,7 +918,7 @@ class LocalStore:
             return {"profile": profile, "state": state}
 
     def validate(self, domain_id: str) -> dict[str, Any]:
-        """Check derived projections and sessions/ for drift against the sources."""
+        """Check all generated projections and receipt trees against canonical sources."""
         paths = self._require_domain(domain_id)
         with domain_lock(paths):
             if paths.transaction.exists():
@@ -757,17 +930,23 @@ class LocalStore:
             drift: list[str] = []
             for relative, expected in targets.items():
                 actual = paths.directory / relative
-                if not actual.is_file() or actual.read_bytes() != expected:
+                if actual.is_symlink() or not actual.is_file() or actual.read_bytes() != expected:
                     drift.append(relative)
             expected_receipts = {
-                relative for relative in targets if relative.startswith("sessions/")
+                relative for relative in targets if relative.startswith(("sessions/", "syllabus/"))
             }
-            orphans: list[str] = []
-            if paths.sessions.is_dir():
-                for entry in paths.sessions.rglob("*"):
+            orphan_sessions: list[str] = []
+            orphan_syllabus: list[str] = []
+            for generated_directory, orphans in (
+                (paths.sessions, orphan_sessions),
+                (paths.syllabus, orphan_syllabus),
+            ):
+                if not generated_directory.is_dir():
+                    continue
+                for entry in generated_directory.rglob("*"):
                     if not (entry.is_file() or entry.is_symlink()):
                         continue
-                    if not entry.is_symlink() and _is_editor_metadata(paths.sessions, entry):
+                    if not entry.is_symlink() and _is_editor_metadata(generated_directory, entry):
                         continue
                     relative = entry.relative_to(paths.directory).as_posix()
                     if relative not in expected_receipts:
@@ -779,11 +958,17 @@ class LocalStore:
                     + ", ".join(sorted(set(drift)))
                     + "; restore generated files from canonical sources with rebuild"
                 )
-            if orphans:
+            if orphan_sessions:
                 problems.append(
                     "unexpected files under sessions/: "
-                    + ", ".join(sorted(set(orphans)))
+                    + ", ".join(sorted(set(orphan_sessions)))
                     + "; every receipt must correspond to a session_completed event"
+                )
+            if orphan_syllabus:
+                problems.append(
+                    "unexpected files under syllabus/: "
+                    + ", ".join(sorted(set(orphan_syllabus)))
+                    + "; every receipt must correspond to a syllabus_source_ingested event"
                 )
             if problems:
                 raise ValidationError("; ".join(problems))
