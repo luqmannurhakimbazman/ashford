@@ -13,7 +13,7 @@ A syllabus is planning authority, never learner evidence or mastery. Only the pa
 5. Present every proposal. Collect a complete learner accept/correct/defer/reject decision. Ambiguity cannot be accepted; corrections preserve document context.
 6. Run `decide-syllabus`, reload context, and cite accepted/corrected assertions with `decision_event_id` and `assertion_ids`.
 
-Statuses are `proposal_required`, `decision_required`, `approved`, and `approved_update_pending`. A later authoritative source must explicitly supersede the latest source; its complete decision supersedes the prior decision. Until then, the prior active decision remains authoritative. A supplement never becomes authority and never changes planning topics or citations.
+This lifecycle drives `state.grounding.status` from `ungrounded` through `proposal_required`, `decision_required`, `approved`, and `approved_update_pending`; `local-store-schema.md` owns the serialized bundle. A later authoritative source must explicitly supersede the latest source; its complete decision supersedes the prior decision. Until then, the prior active decision remains authoritative. A supplement never becomes authority and never changes planning topics or citations.
 
 ## Acquisition/extraction contract
 

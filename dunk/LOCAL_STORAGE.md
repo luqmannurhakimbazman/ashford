@@ -143,7 +143,7 @@ Never run `rebuild` to erase a validation failure; it reconstructs derived files
 
 Treat syllabus originals, extracted text, decisions, and learning evidence as private. Sync canonical files only through a trusted private channel and preserve permissions, filenames, bytes, and append order. Never merge ledgers line-by-line or sync a live `.dln-transaction`.
 
-Dunk 2.2.0 adds a `grounding` object to `state.json` and a Course Grounding section to `dashboard.md`, and it generates one Syllabus Intake Receipt per canonical syllabus source event. Canonical `profile.yaml` and `events.jsonl` from Dunk 2.0/2.1 load without migration, but their older generated projections are stale: run `rebuild` once per existing domain after upgrading, before `validate`.
+Dunk 2.2.0 adds a `grounding` object to `state.json` and a Course Grounding section to `dashboard.md`, and it generates one Syllabus Intake Receipt per canonical syllabus source event. Canonical `profile.yaml` and `events.jsonl` from Dunk 2.0 load without migration, but their older generated projections are stale: run `rebuild` once per existing domain after upgrading, before `validate`.
 
 New lifecycle events and store-invoked provenance are forward-only for older Dunk versions. Rollback restores a matched pre-upgrade backup of the complete domain; never truncate or rewrite a live ledger. Legacy text-only sources remain replayable without raw-byte CAS and retain historical `approval_event_id` citations. New learning writes use `decision_event_id`.
 

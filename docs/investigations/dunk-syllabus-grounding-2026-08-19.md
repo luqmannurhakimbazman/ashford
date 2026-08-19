@@ -1,6 +1,6 @@
 # Investigation: Dunk Authoritative, Versioned Syllabus Ingestion
 
-> **Historical investigation record, implemented in Dunk 2.1.0.** Proposal-time names below differ from the shipped contract (`syllabus_approval_recorded`, the event-level `grounding` reference, and `syllabus/<source-version-id>.md` receipts). `dunk/skills/dln/references/syllabus-grounding-protocol.md` is authoritative.
+> **Historical investigation record.** Its fixture-bound design was generalized before release and shipped in Dunk 2.2.0, so the proposal-time names below differ from the shipped contract and the `syllabus_source_ingested`/`syllabus_approval_recorded` events it describes are now read-only legacy v1 kinds. `dunk/skills/dln/references/syllabus-grounding-protocol.md` is authoritative.
 
 ## Summary
 Dunk conflates authoritative course grounding with a mutable planning list. The smallest complete issue-3 slice is a fixture-bound, PDF-aware intake command plus replayable intake/approval events, reducer-derived grounding/topics, deterministic receipts, and stable non-mastery grounding references for later teaching; generalized extraction and raw-PDF storage remain P2.

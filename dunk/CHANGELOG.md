@@ -15,24 +15,11 @@ All notable changes to this plugin will be documented in this file.
 - Replaced fixture-specific runtime instructions with portable proposal/decision contracts. New grounding citations use `decision_event_id`; historical `approval_event_id` remains replay-compatible.
 - Authoritative updates now preserve the prior active decision until a complete superseding decision. Supplements remain visible but cannot affect authority, planning citations, or mastery.
 - Canonical backups now include bounded original bytes and normalized prepared text. Rebuild never reacquires or re-extracts them.
-- `state.json` now carries a `grounding` object, `dashboard.md` gains a Course Grounding section, and each canonical syllabus source event generates a Syllabus Intake Receipt. Canonical `profile.yaml` and `events.jsonl` still load without migration, but projections written by 2.0/2.1 are stale: run `rebuild` once per existing domain after upgrading, before `validate`.
+- Decided authoritative coverage now derives the flat planning projection; legacy `profile.syllabus` remains readable but explicitly ungrounded and non-citable, and a `profile_patch.syllabus` edit is rejected while an authoritative decision is active. Syllabus authority stays separate from mastery evidence.
+- Syllabus administrative sessions are rejected symmetrically: neither a syllabus event nor a learning event may reuse the other's session id.
+- `state.json` now carries a `grounding` object, `dashboard.md` gains a Course Grounding section, and each canonical syllabus source event generates a Syllabus Intake Receipt. Canonical 2.0 `profile.yaml` and `events.jsonl` still load without migration, but projections written by 2.0 are stale: run `rebuild` once per existing domain after upgrading, before `validate`.
+- Domains containing syllabus lifecycle events are forward-only because Dunk 2.0 rejects their event kinds. `LOCAL_STORAGE.md` owns the privacy, sync, migration, and rollback model.
 - Only `prepare-syllabus --media-type application/pdf` requires the frozen `pypdf` environment; every other command stays stdlib-only, and `uv` must be pointed outside `${CLAUDE_PLUGIN_ROOT}` with `UV_PROJECT_ENVIRONMENT`.
-
-## [2.1.0] - 2026-08-19
-
-Superseded by 2.2.0 before publication; no 2.1.0 release was distributed. Its digest-bound ST5201X adapter no longer exists in any shipped version, and the entries below remain only as the development record for the invariants 2.2.0 generalized.
-
-### Added
-
-- Added a digest-bound `st5201x-2026-v1` intake adapter for the exact supplied ST5201X syllabus, immutable extraction/assertion and learner approval history, bounded approved grounding, deterministic Syllabus Intake Receipts, and stable grounding citations in teaching receipts.
-- Added truthful unavailable, unreadable, media-type, size, and digest-mismatch degradation plus replay/rebuild/validation coverage.
-
-### Changed
-
-- Approved syllabus coverage now derives the flat planning projection; legacy `profile.syllabus` remains readable but explicitly ungrounded and non-citable. A `profile_patch.syllabus` edit is rejected while an approved grounding is active instead of being silently discarded by the projection.
-- Syllabus administrative sessions are now rejected symmetrically: neither intake nor approval may claim a session id already used by an earlier event.
-- Syllabus assertions, approval, coverage, and citations remain separate from mastery evidence. Raw PDFs are not retained, and broader PDF/OCR support remains out of scope.
-- Existing 2.0 canonical pairs load without migration. Domains containing new syllabus events are forward-only because Dunk 2.0 rejects their event kinds; back up the matched canonical pair before intake if downgrade may be required.
 
 ## [2.0.0] - 2026-08-18
 
