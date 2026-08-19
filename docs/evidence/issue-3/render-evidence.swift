@@ -16,7 +16,7 @@ let domainID = args[7]
 try FileManager.default.createDirectory(atPath: outputDir, withIntermediateDirectories: true)
 
 let width: CGFloat = 1600
-let height: CGFloat = 1000
+var height: CGFloat = 1000
 let sidebarWidth: CGFloat = 340
 let background = NSColor(calibratedRed: 0.105, green: 0.105, blue: 0.125, alpha: 1)
 let panel = NSColor(calibratedRed: 0.145, green: 0.145, blue: 0.170, alpha: 1)
@@ -59,11 +59,11 @@ func clean(_ value: String) -> String {
 
 func sidebar(_ selected: String) {
     fill(panel, NSRect(x: 0, y: 0, width: sidebarWidth, height: height))
-    draw("DUNK 2.2 PORTABLE EVIDENCE", NSRect(x: 26, y: 934, width: 285, height: 24), .systemFont(ofSize: 13, weight: .semibold), color: muted)
-    draw("⌄  domains", NSRect(x: 26, y: 890, width: 285, height: 25), .systemFont(ofSize: 16, weight: .medium))
-    draw("⌄  \(domainID)", NSRect(x: 44, y: 852, width: 285, height: 25), .systemFont(ofSize: 13, weight: .medium))
+    draw("DUNK 2.2 PORTABLE EVIDENCE", NSRect(x: 26, y: height - 66, width: 285, height: 24), .systemFont(ofSize: 13, weight: .semibold), color: muted)
+    draw("⌄  domains", NSRect(x: 26, y: height - 110, width: 285, height: 25), .systemFont(ofSize: 16, weight: .medium))
+    draw("⌄  \(domainID)", NSRect(x: 44, y: height - 148, width: 285, height: 25), .systemFont(ofSize: 13, weight: .medium))
     let files = ["profile.yaml", "events.jsonl", "state.json", "dashboard.md", "⌄  sources", "⌄  prepared", "⌄  syllabus", "   portable receipt.md", "⌄  sessions", "   grounded session.md"]
-    var y: CGFloat = 812
+    var y: CGFloat = height - 188
     for file in files {
         let label = file.trimmingCharacters(in: .whitespaces)
         if label == selected {
@@ -76,25 +76,20 @@ func sidebar(_ selected: String) {
     draw("Rendered real dln-store artifacts", NSRect(x: 26, y: 34, width: 285, height: 22), .systemFont(ofSize: 12), color: muted)
 }
 
-func markdownLines(_ markdown: String, kind: String) -> [String] {
-    let all = markdown.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-    if kind != "intake" { return all }
-    return Array(all.prefix(31))
-}
-
-func markdown(_ source: String, selected: String, kind: String, output: String) throws {
+func markdown(_ source: String, selected: String, canvasHeight: CGFloat, output: String) throws {
+    height = canvasHeight
     let rep = canvas()
     fill(background, NSRect(x: 0, y: 0, width: width, height: height))
     sidebar(selected)
     fill(editor, NSRect(x: sidebarWidth, y: 0, width: width - sidebarWidth, height: height))
-    fill(panel, NSRect(x: sidebarWidth, y: 944, width: width - sidebarWidth, height: 56))
-    draw("\(selected)    ×", NSRect(x: sidebarWidth + 28, y: 962, width: 600, height: 22), .systemFont(ofSize: 14, weight: .medium))
-    draw("Rendered portable output", NSRect(x: width - 260, y: 962, width: 220, height: 22), .systemFont(ofSize: 12), color: muted, alignment: .right)
+    fill(panel, NSRect(x: sidebarWidth, y: height - 56, width: width - sidebarWidth, height: 56))
+    draw("\(selected)    ×", NSRect(x: sidebarWidth + 28, y: height - 38, width: 600, height: 22), .systemFont(ofSize: 14, weight: .medium))
+    draw("Rendered portable output", NSRect(x: width - 260, y: height - 38, width: 220, height: 22), .systemFont(ofSize: 12), color: muted, alignment: .right)
 
-    var y: CGFloat = 906
+    var y: CGFloat = height - 94
     let x = sidebarWidth + 48
     let contentWidth = width - sidebarWidth - 96
-    for raw in markdownLines(source, kind: kind) {
+    for raw in source.split(separator: "\n", omittingEmptySubsequences: false).map(String.init) {
         let line = clean(raw)
         if line.isEmpty { y -= 10; continue }
         if line.hasPrefix("# ") {
@@ -125,11 +120,12 @@ func markdown(_ source: String, selected: String, kind: String, output: String) 
 }
 
 func terminalImage(_ source: String, output: String) throws {
+    height = 1000
     let rep = canvas()
     fill(NSColor(calibratedRed: 0.055, green: 0.065, blue: 0.080, alpha: 1), NSRect(x: 0, y: 0, width: width, height: height))
-    fill(panel, NSRect(x: 0, y: 944, width: width, height: 56))
-    draw("dunk issue #3 — portable syllabus validation", NSRect(x: 480, y: 962, width: 640, height: 22), .monospacedSystemFont(ofSize: 13, weight: .medium), color: muted, alignment: .center)
-    var y: CGFloat = 910
+    fill(panel, NSRect(x: 0, y: height - 56, width: width, height: 56))
+    draw("dunk issue #3 — portable syllabus validation", NSRect(x: 480, y: height - 38, width: 640, height: 22), .monospacedSystemFont(ofSize: 13, weight: .medium), color: muted, alignment: .center)
+    var y: CGFloat = height - 90
     for raw in source.split(separator: "\n", omittingEmptySubsequences: false).map(String.init) {
         let command = raw.hasPrefix("$")
         let success = raw.contains("passed") || raw.contains("=true") || raw.contains("status=approved") || raw.contains("pypdf=6.14.2") || raw.contains("legacy_storage=legacy_text_only")
@@ -140,7 +136,7 @@ func terminalImage(_ source: String, output: String) throws {
     try finish(rep, output)
 }
 
-try markdown(intake, selected: "portable receipt.md", kind: "intake", output: outputDir + "/portable-intake-prepared.png")
-try markdown(dashboard, selected: "dashboard.md", kind: "dashboard", output: outputDir + "/portable-decision-dashboard.png")
-try markdown(session, selected: "grounded session.md", kind: "session", output: outputDir + "/portable-grounded-session.png")
+try markdown(intake, selected: "portable receipt.md", canvasHeight: 1200, output: outputDir + "/portable-intake-prepared.png")
+try markdown(dashboard, selected: "dashboard.md", canvasHeight: 1000, output: outputDir + "/portable-decision-dashboard.png")
+try markdown(session, selected: "grounded session.md", canvasHeight: 1000, output: outputDir + "/portable-grounded-session.png")
 try terminalImage(terminal, output: outputDir + "/terminal-validation.png")
