@@ -59,10 +59,10 @@ func clean(_ value: String) -> String {
 
 func sidebar(_ selected: String) {
     fill(panel, NSRect(x: 0, y: 0, width: sidebarWidth, height: height))
-    draw("DUNK ISSUE #3 FIXTURE", NSRect(x: 26, y: 934, width: 285, height: 24), .systemFont(ofSize: 13, weight: .semibold), color: muted)
+    draw("DUNK 2.2 PORTABLE EVIDENCE", NSRect(x: 26, y: 934, width: 285, height: 24), .systemFont(ofSize: 13, weight: .semibold), color: muted)
     draw("⌄  domains", NSRect(x: 26, y: 890, width: 285, height: 25), .systemFont(ofSize: 16, weight: .medium))
     draw("⌄  \(domainID)", NSRect(x: 44, y: 852, width: 285, height: 25), .systemFont(ofSize: 13, weight: .medium))
-    let files = ["profile.yaml", "events.jsonl", "state.json", "dashboard.md", "⌄  syllabus", "   intake receipt.md", "⌄  sessions", "   grounded session.md"]
+    let files = ["profile.yaml", "events.jsonl", "state.json", "dashboard.md", "⌄  sources", "⌄  prepared", "⌄  syllabus", "   portable receipt.md", "⌄  sessions", "   grounded session.md"]
     var y: CGFloat = 812
     for file in files {
         let label = file.trimmingCharacters(in: .whitespaces)
@@ -89,7 +89,7 @@ func markdown(_ source: String, selected: String, kind: String, output: String) 
     fill(editor, NSRect(x: sidebarWidth, y: 0, width: width - sidebarWidth, height: height))
     fill(panel, NSRect(x: sidebarWidth, y: 944, width: width - sidebarWidth, height: 56))
     draw("\(selected)    ×", NSRect(x: sidebarWidth + 28, y: 962, width: 600, height: 22), .systemFont(ofSize: 14, weight: .medium))
-    draw("Rendered fixture output", NSRect(x: width - 260, y: 962, width: 220, height: 22), .systemFont(ofSize: 12), color: muted, alignment: .right)
+    draw("Rendered portable output", NSRect(x: width - 260, y: 962, width: 220, height: 22), .systemFont(ofSize: 12), color: muted, alignment: .right)
 
     var y: CGFloat = 906
     let x = sidebarWidth + 48
@@ -114,13 +114,13 @@ func markdown(_ source: String, selected: String, kind: String, output: String) 
         } else if line.hasPrefix("|---") {
             continue
         } else {
-            let highlight = line.contains("approved") || line.contains("Unresolved") || line.contains("SHA-256") || line.contains("Approval")
+            let highlight = line.contains("approved") || line.contains("Prepared") || line.contains("Decision") || line.contains("Unresolved") || line.contains("SHA-256") || line.contains("CAS")
             draw(line, NSRect(x: x, y: y, width: contentWidth, height: 23), line.hasPrefix("|") ? .monospacedSystemFont(ofSize: 11.3, weight: .regular) : .systemFont(ofSize: 13.2), color: highlight ? amber : text)
             y -= 23
         }
         if y < 48 { break }
     }
-    draw("Actual dln-store fixture output • rendered \(renderDate)", NSRect(x: x, y: 15, width: contentWidth, height: 20), .systemFont(ofSize: 11), color: muted, alignment: .right)
+    draw("Actual dln-store portable output • rendered \(renderDate)", NSRect(x: x, y: 15, width: contentWidth, height: 20), .systemFont(ofSize: 11), color: muted, alignment: .right)
     try finish(rep, output)
 }
 
@@ -128,11 +128,11 @@ func terminalImage(_ source: String, output: String) throws {
     let rep = canvas()
     fill(NSColor(calibratedRed: 0.055, green: 0.065, blue: 0.080, alpha: 1), NSRect(x: 0, y: 0, width: width, height: height))
     fill(panel, NSRect(x: 0, y: 944, width: width, height: 56))
-    draw("dunk issue #3 — grounding validation", NSRect(x: 520, y: 962, width: 560, height: 22), .monospacedSystemFont(ofSize: 13, weight: .medium), color: muted, alignment: .center)
+    draw("dunk issue #3 — portable syllabus validation", NSRect(x: 480, y: 962, width: 640, height: 22), .monospacedSystemFont(ofSize: 13, weight: .medium), color: muted, alignment: .center)
     var y: CGFloat = 910
     for raw in source.split(separator: "\n", omittingEmptySubsequences: false).map(String.init) {
         let command = raw.hasPrefix("$")
-        let success = raw.contains("passed") || raw.contains("Validation passed") || raw.contains("hashes_unchanged=true") || raw.contains("digest_mismatch_at_expected_size=true") || raw.contains("degradation_preserved=true")
+        let success = raw.contains("passed") || raw.contains("=true") || raw.contains("status=approved") || raw.contains("pypdf=6.14.2") || raw.contains("legacy_storage=legacy_text_only")
         draw(raw, NSRect(x: 38, y: y, width: width - 76, height: 20), .monospacedSystemFont(ofSize: 12.0, weight: command ? .semibold : .regular), color: command ? accent : (success ? green : text))
         y -= 22
         if y < 24 { break }
@@ -140,7 +140,7 @@ func terminalImage(_ source: String, output: String) throws {
     try finish(rep, output)
 }
 
-try markdown(intake, selected: "intake receipt.md", kind: "intake", output: outputDir + "/st5201x-intake-preapproval.png")
-try markdown(dashboard, selected: "dashboard.md", kind: "dashboard", output: outputDir + "/st5201x-approved-dashboard.png")
-try markdown(session, selected: "grounded session.md", kind: "session", output: outputDir + "/st5201x-grounded-session.png")
+try markdown(intake, selected: "portable receipt.md", kind: "intake", output: outputDir + "/portable-intake-prepared.png")
+try markdown(dashboard, selected: "dashboard.md", kind: "dashboard", output: outputDir + "/portable-decision-dashboard.png")
+try markdown(session, selected: "grounded session.md", kind: "session", output: outputDir + "/portable-grounded-session.png")
 try terminalImage(terminal, output: outputDir + "/terminal-validation.png")

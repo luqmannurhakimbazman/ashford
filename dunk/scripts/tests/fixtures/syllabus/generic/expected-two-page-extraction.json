@@ -1,0 +1,32 @@
+{
+  "engine_options": {
+    "extraction_mode": "plain",
+    "strict": false
+  },
+  "prepared_document": {
+    "media_type": "application/pdf",
+    "normalization": {
+      "line_endings": "LF",
+      "policy_id": "pypdf-plain-nfc-lf-v1",
+      "unicode": "NFC"
+    },
+    "prepared_schema_version": 1,
+    "units": [
+      {
+        "kind": "page",
+        "label": "Page 1",
+        "text": "Generic Distributed Systems\nInstructor: Dr Ada Rivera\nAssessment: Project 40 percent\nExam date: TBA",
+        "text_sha256": "62165315f72a61c13423a50f31a561136966899ff03328a4d30c41d3b0f367ab",
+        "unit_id": "page:1"
+      },
+      {
+        "kind": "page",
+        "label": "Page 2",
+        "text": "Generic Distributed Systems\nSchedule: Week 1 Foundations\nWeek 2 Replication\nMilestone: project proposal",
+        "text_sha256": "f3b78856d07a17df7a84bb57b13bba3e127d4041be0f9912e9105eea02db6703",
+        "unit_id": "page:2"
+      }
+    ]
+  },
+  "pypdf_version": "6.14.2"
+}

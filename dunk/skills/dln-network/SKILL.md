@@ -26,7 +26,7 @@ Do not use legacy KS merge references in an active session.
 
 ## Input contract
 
-Receive domain/domain ID, bounded `context` output including `state.grounding`, retained revision, stable session ID, command/exam intent, and review-due flag. Require `state.stage == "revise"`. Use `state.current_model` as the prior model when present; do not reconstruct one from dialogue or generated Markdown. When grounding status is `approved` or `approved_update_pending`, select course tasks only from the prior active approval's `planning_topics`, exclude pending-source assertions, retain backing approved assertion IDs, and add the active `approval_event_id` plus used settled `assertion_ids` to relevant `assessment` and `session_completed` events. Deferred Week 7–13 alignment remains unresolved; non-syllabus textbook/web/model material is supplemental. Legacy `profile.syllabus` is ungrounded and non-citable.
+Receive domain/domain ID, bounded `context` output including `state.grounding`, retained revision, stable session ID, command/exam intent, and review-due flag. Require `state.stage == "revise"`. Use `state.current_model` as the prior model when present; do not reconstruct one from dialogue or generated Markdown. When grounding status is `approved` or `approved_update_pending`, select course tasks only from the prior active decision's `planning_topics`, exclude pending-source proposals and supplements, retain backing settled assertion IDs, and add the active `decision_event_id` plus used `assertion_ids` to relevant `assessment` and `session_completed` events. Deferred or ambiguous document claims remain unresolved; non-syllabus textbook/web/model material is supplemental. Legacy `profile.syllabus` is ungrounded and non-citable.
 
 ## Teaching stance
 
@@ -46,7 +46,7 @@ Compression means reducing the learner's model while retaining useful predictive
 8. **Retest.** Use a new variant/novel prediction to test the revision; do not claim success from word-count reduction alone.
 9. **Commit boundaries.** The parent performs revision-checked local CLI commits and retains only returned revisions.
 
-Tutor explanations, stress-test descriptions, diagrams, word counts, syllabus assertions, approval, citations, and coverage are not evidence. Only observed assessments and schema-valid learner model revisions enter the learning record.
+Tutor explanations, stress-test descriptions, diagrams, word counts, syllabus proposals, source decisions, citations, and coverage are not evidence. Only observed assessments and schema-valid learner model revisions enter the learning record.
 
 ## Prediction construction
 
@@ -95,6 +95,10 @@ There is no automatic promotion beyond `revise`. If committed independent predic
 ## Exam-aware behavior
 
 Use the exam format and priority to select prediction tasks. Do not call a familiar past-paper item novel or infer response time from tool latency. Time pressure never changes assistance classification or the need to cite prediction evidence for revisions.
+
+## Intake boundary
+
+This phase consumes only active decided grounding. It must not prepare, propose, decide, fetch, extract, or promote supplements/pending authoritative sources. Source decisions are separate from learner evidence and mastery.
 
 ## Completion
 

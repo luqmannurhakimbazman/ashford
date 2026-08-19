@@ -2,38 +2,38 @@
   "events": [
     {
       "assistance": {"hint_count": 0, "level": "none"},
-      "context_id": "ctx-st5201x-probability",
-      "event_id": "st5201x-grounded-assessment-001",
+      "context_id": "ctx-portable-foundations",
+      "event_id": "portable-grounded-assessment-001",
       "evidence_mode": "independent",
       "grounding": {
-        "approval_event_id": "syllabus-approval-st5201x-2026-v1",
-        "assertion_ids": ["st5201x.coverage.01"]
+        "decision_event_id": "DECISION_EVENT_ID",
+        "assertion_ids": ["PROPOSAL_ID"]
       },
       "kind": "assessment",
       "novelty": "variant",
-      "occurred_at": "2026-08-19T00:20:00Z",
+      "occurred_at": "2026-08-19T00:03:00Z",
       "operation": "acquire",
       "outcome": "pass",
-      "rubric_id": "st5201x-grounded-acquire-v1",
+      "rubric_id": "portable-grounded-acquire-v1",
       "schema_version": 1,
-      "session_id": "st5201x-grounded-session-001",
-      "subject": {"id": "probability-basics", "label": "Probability basics", "type": "concept"},
-      "task_id": "st5201x-probability-check-001"
+      "session_id": "portable-grounded-session-001",
+      "subject": {"id": "week-1-foundations", "label": "Week 1 Foundations", "type": "concept"},
+      "task_id": "portable-foundations-check-001"
     },
     {
-      "event_id": "st5201x-grounded-complete-001",
-      "evidence_event_ids": ["st5201x-grounded-assessment-001"],
+      "event_id": "portable-grounded-complete-001",
+      "evidence_event_ids": ["portable-grounded-assessment-001"],
       "grounding": {
-        "approval_event_id": "syllabus-approval-st5201x-2026-v1",
-        "assertion_ids": ["st5201x.coverage.01"]
+        "decision_event_id": "DECISION_EVENT_ID",
+        "assertion_ids": ["PROPOSAL_ID"]
       },
       "kind": "session_completed",
-      "next_action": "Retrieve probability basics on a fresh variant.",
+      "next_action": "Retrieve Week 1 foundations on a fresh variant.",
       "next_review_date": "2026-08-26",
-      "occurred_at": "2026-08-19T00:25:00Z",
+      "occurred_at": "2026-08-19T00:04:00Z",
       "receipt_schema_version": 1,
       "schema_version": 1,
-      "session_id": "st5201x-grounded-session-001"
+      "session_id": "portable-grounded-session-001"
     }
   ]
 }

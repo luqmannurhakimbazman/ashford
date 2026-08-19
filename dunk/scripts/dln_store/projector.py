@@ -7,7 +7,7 @@ from datetime import date, datetime
 from typing import Any
 
 from .grounding import GroundingTimeline, reduce_grounding_timeline
-from .schema import ValidationError, sha256_bytes, validate_event, validate_profile
+from .schema import RESERVED_SYLLABUS_EVENT_KINDS, ValidationError, sha256_bytes, validate_event, validate_profile
 
 OUTCOME_LABEL = {
     "pass": "independent-pass",
@@ -62,10 +62,11 @@ def project_state(
     profile_bytes: bytes,
     events_bytes: bytes,
     timeline: GroundingTimeline | None = None,
+    prepared_documents: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Validate references and reduce sources to a byte-stable state object."""
     validate_profile(profile)
-    grounding_timeline = timeline if timeline is not None else reduce_grounding_timeline(events)
+    grounding_timeline = timeline if timeline is not None else reduce_grounding_timeline(events, prepared_documents)
     event_index: dict[str, dict[str, Any]] = {}
     event_generation: dict[str, int] = {}
     session_identities: dict[str, str] = {}
@@ -354,7 +355,7 @@ def project_state(
                 archive["self_reported_outcome"] = event["self_reported_outcome"]
             archived_exams.append(archive)
 
-        elif kind in {"syllabus_source_ingested", "syllabus_approval_recorded"}:
+        elif kind in RESERVED_SYLLABUS_EVENT_KINDS:
             # Syllabus authority is reduced separately by reduce_grounding_timeline over the
             # whole log, so it is deliberately not generation-scoped: a later domain_reset
             # restarts learning evidence without clearing registered sources or approvals.

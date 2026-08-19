@@ -64,6 +64,9 @@ jobs:
           uv python install 3.10.20
           uv sync --project dunk/scripts --python 3.10.20 --frozen
 
+      - name: Verify pinned PDF extractor
+        run: uv run --project dunk/scripts --python 3.10.20 --frozen python -c "import pypdf; assert pypdf.__version__ == '6.14.2'"
+
       - name: Run Dunk local-store, contract, recovery, projection, and legacy tests
         run: uv run --project dunk/scripts --python 3.10.20 --frozen pytest dunk/scripts/tests
 

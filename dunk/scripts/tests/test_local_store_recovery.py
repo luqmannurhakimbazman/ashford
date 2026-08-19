@@ -15,11 +15,10 @@ import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent
 SCRIPT = SCRIPTS / "dln-store.py"
-SYLLABUS_FIXTURE = Path(__file__).parent / "fixtures" / "syllabus" / "st5201x" / "syllabus2026.pdf"
 sys.path.insert(0, str(SCRIPTS))
 
 import dln_store.store as store_module  # noqa: E402
-from dln_store.schema import StaleRevisionError  # noqa: E402
+from dln_store.schema import StaleRevisionError, canonical_json, sha256_bytes  # noqa: E402
 from dln_store.store import LocalStore  # noqa: E402
 
 
@@ -505,176 +504,65 @@ def test_unchanged_receipts_are_not_restaged_or_reinstalled(tmp_path: Path) -> N
     assert validated.returncode == 0, validated.stderr
 
 
-@pytest.mark.parametrize("fail_at", ["before_install", "install:events.jsonl"])
-def test_syllabus_intake_caught_failure_restores_prior_tree(tmp_path: Path, fail_at: str) -> None:
+@pytest.mark.parametrize("target_kind", ["source", "prepared", "before", "events"])
+def test_generic_prepare_caught_failures_restore_cas_canonical_and_projections(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, target_kind: str
+) -> None:
     domain_id, directory = init_domain(tmp_path)
+    store = LocalStore(tmp_path)
+    text = "Topic: Trees\n"
+    document = {
+        "prepared_schema_version": 1,
+        "media_type": "application/pdf",
+        "normalization": {"policy_id": "test-v1", "unicode": "NFC", "line_endings": "LF"},
+        "units": [{"unit_id": "page:1", "kind": "page", "text": text, "text_sha256": sha256_bytes(text.encode())}],
+    }
+    raw = b"atomic-generic-source"
+    raw_digest = sha256_bytes(raw)
+    prepared_digest = sha256_bytes(canonical_json(document, newline=False))
+    fail_at = {
+        "source": f"stage:sources/sha256/{raw_digest}",
+        "prepared": f"stage:prepared/sha256/{prepared_digest}.json",
+        "before": "before_install",
+        "events": "install:events.jsonl",
+    }[target_kind]
     before = files(directory)
-    env = os.environ.copy()
-    env["DLN_STORE_FAIL_AT"] = fail_at
-    result = run_cli(
-        tmp_path,
-        "ingest-syllabus",
-        "--domain-id",
-        domain_id,
-        "--expected-revision",
-        "0",
-        "--document",
-        str(SYLLABUS_FIXTURE),
-        "--original-filename",
-        "syllabus2026.pdf",
-        "--media-type",
-        "application/pdf",
-        "--adapter",
-        "st5201x-2026-v1",
-        "--occurred-at",
-        "2026-08-19T00:00:00Z",
-        env=env,
-    )
-    assert result.returncode == 1
-    assert "injected failure" in error(result)["message"]
+    monkeypatch.setenv("DLN_STORE_FAIL_AT", fail_at)
+    with pytest.raises(OSError, match="injected failure"):
+        store._install_prepared_syllabus(
+            domain_id, 0, raw_bytes=raw, prepared_document=document, role="authoritative",
+            display_name="generic.pdf", occurred_at="2026-08-19T00:00:00Z",
+        )
     assert files(directory) == before
     assert not directory.joinpath(".dln-transaction").exists()
 
 
-def test_syllabus_intake_crash_requires_doctor_and_rolls_forward(tmp_path: Path) -> None:
+def test_generic_prepare_installing_crash_rolls_forward_all_targets(tmp_path: Path) -> None:
     domain_id, directory = init_domain(tmp_path)
+    code = r'''from pathlib import Path
+from dln_store.schema import sha256_bytes
+from dln_store.store import LocalStore
+root=Path({root!r})
+text='Topic: Trees\n'
+doc={{'prepared_schema_version':1,'media_type':'application/pdf','normalization':{{'policy_id':'test-v1','unicode':'NFC','line_endings':'LF'}},'units':[{{'unit_id':'page:1','kind':'page','text':text,'text_sha256':sha256_bytes(text.encode())}}]}}
+LocalStore(root)._install_prepared_syllabus({domain!r},0,raw_bytes=b'crash-source',prepared_document=doc,role='authoritative',display_name='generic.pdf',occurred_at='2026-08-19T00:00:00Z')
+'''.format(root=str(tmp_path), domain=domain_id)
     env = os.environ.copy()
     env["DLN_STORE_CRASH_AT"] = "install:events.jsonl"
-    crashed = run_cli(
-        tmp_path,
-        "ingest-syllabus",
-        "--domain-id",
-        domain_id,
-        "--expected-revision",
-        "0",
-        "--document",
-        str(SYLLABUS_FIXTURE),
-        "--original-filename",
-        "syllabus2026.pdf",
-        "--media-type",
-        "application/pdf",
-        "--adapter",
-        "st5201x-2026-v1",
-        "--occurred-at",
-        "2026-08-19T00:00:00Z",
-        env=env,
-    )
+    crashed = subprocess.run([sys.executable, "-c", code], cwd=SCRIPTS, env=env)
     assert crashed.returncode == 91
     blocked = run_cli(tmp_path, "context", "--domain-id", domain_id)
     assert blocked.returncode == 5
-
-    recovered = run_cli(
-        tmp_path,
-        "doctor",
-        "--domain-id",
-        domain_id,
-        "--break-stale-lock",
-        "--recover",
-    )
+    recovered = run_cli(tmp_path, "doctor", "--domain-id", domain_id, "--break-stale-lock", "--recover")
     assert recovered.returncode == 0, recovered.stderr
     assert output(recovered)["recovery"] == "rolled-forward"
-    profile = json.loads(directory.joinpath("profile.yaml").read_text())
-    events = directory.joinpath("events.jsonl").read_text().splitlines()
-    assert profile["revision"] == 1
-    assert len(events) == 1
-    source = json.loads(events[0])
-    assert source["kind"] == "syllabus_source_ingested"
-    receipt = directory / "syllabus" / f"{source['source']['source_version_id']}.md"
-    assert receipt.is_file()
-    assert b"Syllabus Intake Receipt" in receipt.read_bytes()
-    validated = run_cli(tmp_path, "validate", "--domain-id", domain_id)
-    assert validated.returncode == 0, validated.stderr
-
-
-def test_syllabus_approval_failure_restores_ingested_tree(tmp_path: Path) -> None:
-    domain_id, directory = init_domain(tmp_path)
-    ingested = run_cli(
-        tmp_path,
-        "ingest-syllabus",
-        "--domain-id",
-        domain_id,
-        "--expected-revision",
-        "0",
-        "--document",
-        str(SYLLABUS_FIXTURE),
-        "--original-filename",
-        "syllabus2026.pdf",
-        "--media-type",
-        "application/pdf",
-        "--adapter",
-        "st5201x-2026-v1",
-        "--occurred-at",
-        "2026-08-19T00:00:00Z",
-    )
-    assert ingested.returncode == 0, ingested.stderr
-    source = json.loads(directory.joinpath("events.jsonl").read_text().splitlines()[0])
-    alignment = "st5201x.schedule.weeks_7_13_alignment"
-    request = {
-        "event_id": "recovery-approval-1",
-        "session_id": "syllabus-approval-recovery-approval-1",
-        "occurred_at": "2026-08-19T00:10:00Z",
-        "source_version_id": source["source"]["source_version_id"],
-        "source_assertion_set_sha256": source["assertion_set_sha256"],
-        "actor": {"type": "learner", "id": "learner"},
-        "accepted_assertion_ids": [
-            item["assertion_id"]
-            for item in source["assertions"]
-            if item["assertion_id"] != alignment
-        ],
-        "deferred_assertion_ids": [alignment],
-        "corrections": [],
-        "supersedes_approval_event_id": None,
-    }
-    approval_path = tmp_path / "syllabus-approval.json"
-    approval_path.write_text(json.dumps(request), encoding="utf-8")
-    before = files(directory)
-    env = os.environ.copy()
-    env["DLN_STORE_FAIL_AT"] = "install:events.jsonl"
-    failed = run_cli(
-        tmp_path,
-        "approve-syllabus",
-        "--domain-id",
-        domain_id,
-        "--expected-revision",
-        "1",
-        "--request",
-        str(approval_path),
-        env=env,
-    )
-    assert failed.returncode == 1
-    assert "injected failure" in error(failed)["message"]
-    assert files(directory) == before
-    assert not directory.joinpath(".dln-transaction").exists()
-
-    receipt_relative = f"syllabus/{source['source']['source_version_id']}.md"
-    crash_env = os.environ.copy()
-    crash_env["DLN_STORE_CRASH_AT"] = f"install:{receipt_relative}"
-    crashed = run_cli(
-        tmp_path,
-        "approve-syllabus",
-        "--domain-id",
-        domain_id,
-        "--expected-revision",
-        "1",
-        "--request",
-        str(approval_path),
-        env=crash_env,
-    )
-    assert crashed.returncode == 91
-    recovered = run_cli(
-        tmp_path,
-        "doctor",
-        "--domain-id",
-        domain_id,
-        "--break-stale-lock",
-        "--recover",
-    )
-    assert recovered.returncode == 0, recovered.stderr
-    assert output(recovered)["recovery"] == "rolled-forward"
-    approved_receipt = directory / receipt_relative
-    assert "Syllabus Intake Receipt — Approved" in approved_receipt.read_text(encoding="utf-8")
-    validated = run_cli(tmp_path, "validate", "--domain-id", domain_id)
-    assert validated.returncode == 0, validated.stderr
+    events = [json.loads(line) for line in directory.joinpath("events.jsonl").read_text().splitlines()]
+    assert events[0]["kind"] == "syllabus_source_prepared"
+    source = events[0]
+    assert directory.joinpath(source["source"]["cas_path"]).is_file()
+    assert directory.joinpath(source["prepared"]["cas_path"]).is_file()
+    assert directory.joinpath("syllabus", f"{source['source']['source_version_id']}.md").is_file()
+    assert run_cli(tmp_path, "validate", "--domain-id", domain_id).returncode == 0
 
 
 def test_concurrent_commits_admit_exactly_one_winner(tmp_path: Path) -> None:
@@ -718,6 +606,7 @@ def test_concurrent_commits_admit_exactly_one_winner(tmp_path: Path) -> None:
     validated = run_cli(tmp_path, "validate", "--domain-id", domain_id)
     assert validated.returncode == 0, validated.stderr
     assert output(validated) == {
+        "canonical_content": {"corrupt": [], "missing": [], "orphaned": [], "referenced_prepared_documents": 0, "referenced_sources": 0},
         "derived_drift": [],
         "domain_id": domain_id,
         "event_count": 0,

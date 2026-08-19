@@ -1,0 +1,14 @@
+{
+  "occurred_at": "2026-08-19T00:01:00Z",
+  "prepared_event_id": "PREPARED_EVENT_ID",
+  "producer": {"name": "fixture-proposer", "trust": "external_unverified", "version": "1"},
+  "proposals": [{
+    "label": "Course identity",
+    "locators": [{"end_char": 27, "quote": "Generic Distributed Systems", "start_char": 0, "unit_id": "page:1"}],
+    "predicate": "course.identity",
+    "semantic_roles": ["course_identity"],
+    "status": "specified",
+    "value": "Generic Distributed Systems",
+    "value_type": "text"
+  }]
+}

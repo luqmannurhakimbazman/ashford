@@ -28,7 +28,7 @@ Do not use legacy KS merge references in an active session.
 
 Receive domain/domain ID, bounded `context` output, retained revision, stable session ID, command/exam intent, and review-due flag. Require `state.stage == "relate"`. Do not infer the stage or prior evidence from conversation, dashboard, or receipts.
 
-Use the goal, projected subjects/current model, and bounded `state.grounding` only to select tasks. When grounding status is `approved` or `approved_update_pending`, choose course work only from the prior active approval's `planning_topics`, exclude pending-source assertions, retain the backing approved assertion IDs, and add the active `approval_event_id` plus used settled `assertion_ids` to relevant `assessment` and `session_completed` events. Describe deferred Week 7–13 alignment as unresolved and label textbook/web/model additions as supplemental. Legacy `profile.syllabus` is ungrounded and non-citable. A polished explanation or syllabus assertion is not learning evidence unless learner performance is recorded by an assessment event.
+Use the goal, projected subjects/current model, and bounded `state.grounding` only to select tasks. When grounding status is `approved` or `approved_update_pending`, choose course work only from the prior active decision's `planning_topics`, exclude pending-source proposals and supplements, retain the backing settled assertion IDs, and add the active `decision_event_id` plus used `assertion_ids` to relevant `assessment` and `session_completed` events. Describe every deferred or ambiguous claim as unresolved and label textbook/web/model additions as supplemental. Legacy `profile.syllabus` is ungrounded and non-citable. A polished explanation or syllabus assertion is not learning evidence unless learner performance is recorded by an assessment event.
 
 ## Teaching stance
 
@@ -87,6 +87,10 @@ Do not gate on coverage, number of factors, session count, supported comparisons
 ## Exam-aware behavior
 
 Use exam configuration to choose task form and priority, not to alter the rubric or evidence mode. Repeated past-paper questions are `repeat`/`variant` unless they demand an unsignaled new structural mapping. Timing is recorded only when explicitly measured.
+
+## Intake boundary
+
+This phase consumes only active decided grounding. It must not prepare, propose, decide, fetch, extract, or promote supplements/pending authoritative sources. Source decisions are separate from learner evidence and mastery.
 
 ## Completion
 

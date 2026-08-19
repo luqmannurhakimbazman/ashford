@@ -1,1203 +1,362 @@
-"""Digest-bound ST5201X syllabus intake, approval, grounding, and receipt tests."""
+"""Focused tests for the generic canonical syllabus lifecycle."""
 
 from __future__ import annotations
 
-import hashlib
-import importlib
 import json
-import os
-import subprocess
+import shutil
 import sys
 from copy import deepcopy
 from pathlib import Path
 
 import pytest
 
-SCRIPTS = Path(__file__).resolve().parents[1]
-SCRIPT = SCRIPTS / "dln-store.py"
-FIXTURE = Path(__file__).parent / "fixtures" / "syllabus" / "st5201x" / "syllabus2026.pdf"
-EXPECTED_DIGEST = "53909df562e2658ab3e1327eb8c33120fa12b37489178dc87bb4d632e4f15376"
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-sys.path.insert(0, str(SCRIPTS))
-
-projector_module = importlib.import_module("dln_store.projector")
-schema_module = importlib.import_module("dln_store.schema")
-adapter_module = importlib.import_module("dln_store.st5201x_syllabus")
-render_module = importlib.import_module("dln_store.render")
-project_state = projector_module.project_state
-ValidationError = schema_module.ValidationError
-build_syllabus_approval_event = schema_module.build_syllabus_approval_event
-initial_profile = schema_module.initial_profile
-pretty_json = schema_module.pretty_json
-sha256_bytes = schema_module.sha256_bytes
-build_ingestion_event = adapter_module.build_ingestion_event
-render_all_receipts = render_module.render_all_receipts
-render_all_syllabus_receipts = render_module.render_all_syllabus_receipts
-render_dashboard = render_module.render_dashboard
-
-
-def run_cli(
-    root: Path, *args: str, env: dict[str, str] | None = None
-) -> subprocess.CompletedProcess[str]:
-    command_env = os.environ.copy()
-    if env:
-        command_env.update(env)
-    return subprocess.run(
-        [sys.executable, str(SCRIPT), *args, "--root", str(root)],
-        capture_output=True,
-        check=False,
-        text=True,
-        env=command_env,
-    )
-
-
-def output(result: subprocess.CompletedProcess[str]) -> dict:
-    assert result.returncode == 0, result.stderr
-    return json.loads(result.stdout)
-
-
-def error(result: subprocess.CompletedProcess[str]) -> dict:
-    assert result.returncode != 0, result.stdout
-    return json.loads(result.stderr)
-
-
-def init_domain(root: Path) -> tuple[str, Path]:
-    result = output(run_cli(root, "init", "--domain", "ST5201X", "--goal", "Learn statistics"))
-    domain_id = result["domain_id"]
-    return domain_id, root / "domains" / domain_id
+from dln_store.grounding import _decision_view, reduce_grounding_timeline
+from dln_store.schema import ValidationError, canonical_json, pretty_json, sha256_bytes, syllabus_approval_set_sha256
+from dln_store.store import LocalStore
 
 
 def tree(directory: Path) -> dict[str, bytes]:
+    return {p.relative_to(directory).as_posix(): p.read_bytes() for p in directory.rglob("*") if p.is_file() and ".dln-transaction" not in p.parts}
+
+
+def initialized(tmp_path: Path) -> tuple[LocalStore, str, Path]:
+    store = LocalStore(tmp_path)
+    domain_id = store.init("Generic Systems", "Learn from an authoritative syllabus")["domain_id"]
+    return store, domain_id, tmp_path / "domains" / domain_id
+
+
+def prepared(text: str = "Course: Generic Systems\nTopic: Trees\nExam date: TBA\n", *, media_type: str = "application/pdf") -> dict:
     return {
-        path.relative_to(directory).as_posix(): path.read_bytes()
-        for path in sorted(directory.rglob("*"))
-        if path.is_file() and ".dln-transaction" not in path.parts
+        "prepared_schema_version": 1,
+        "media_type": media_type,
+        "normalization": {"policy_id": "fixture-normalization-v1", "unicode": "NFC", "line_endings": "LF"},
+        "units": [{"unit_id": "page:1", "kind": "page", "label": "Page 1", "text": text, "text_sha256": sha256_bytes(text.encode())}],
     }
 
 
-def ingest(
-    root: Path, domain_id: str, revision: int, document: Path = FIXTURE, **overrides: str
-) -> subprocess.CompletedProcess[str]:
-    values = {
-        "original_filename": "syllabus2026.pdf",
-        "media_type": "application/pdf",
-        "adapter": "st5201x-2026-v1",
-        "occurred_at": "2026-08-19T00:00:00Z",
-    }
-    values.update(overrides)
-    return run_cli(
-        root,
-        "ingest-syllabus",
-        "--domain-id",
-        domain_id,
-        "--expected-revision",
-        str(revision),
-        "--document",
-        str(document),
-        "--original-filename",
-        values["original_filename"],
-        "--media-type",
-        values["media_type"],
-        "--adapter",
-        values["adapter"],
-        "--occurred-at",
-        values["occurred_at"],
-    )
+def located(text: str, quote: str, **values: object) -> dict:
+    start = text.index(quote)
+    return {**values, "locators": [{"unit_id": "page:1", "start_char": start, "end_char": start + len(quote), "quote": quote}]}
 
 
-def source_event(directory: Path) -> dict:
-    return json.loads(
-        directory.joinpath("events.jsonl").read_text(encoding="utf-8").splitlines()[0]
-    )
-
-
-def approval_request(
-    source: dict,
-    *,
-    event_id: str,
-    occurred_at: str,
-    supersedes: str | None = None,
-    correction: bool = False,
-) -> dict:
-    all_ids = [item["assertion_id"] for item in source["assertions"]]
-    alignment = "st5201x.schedule.weeks_7_13_alignment"
-    title = "st5201x.course.title"
-    accepted = [item for item in all_ids if item != alignment and (not correction or item != title)]
-    corrections = []
-    if correction:
-        corrections.append(
-            {
-                "correction_assertion_id": "learner-correction-course-title-v1",
-                "target_assertion_id": title,
-                "field": "course.title",
-                "status": "specified",
-                "normalized_value": "Statistical Foundations for Data Science",
-                "rationale": "Use the learner-confirmed official catalog wording.",
-                "origin": "learner_correction",
-            }
-        )
-    return {
-        "event_id": event_id,
-        "session_id": f"syllabus-approval-{event_id}",
-        "occurred_at": occurred_at,
-        "source_version_id": source["source"]["source_version_id"],
-        "source_assertion_set_sha256": source["assertion_set_sha256"],
-        "actor": {"type": "learner", "id": "learner"},
-        "accepted_assertion_ids": accepted,
-        "deferred_assertion_ids": [alignment],
-        "corrections": corrections,
-        "supersedes_approval_event_id": supersedes,
-    }
-
-
-def write_json(path: Path, value: dict) -> Path:
-    path.write_text(json.dumps(value), encoding="utf-8")
-    return path
-
-
-def mastery_view(state: dict) -> dict:
-    fields = {
-        "archived_exams",
-        "calibration",
-        "completed_sessions",
-        "current_model",
-        "generation",
-        "legacy_imports",
-        "next_action",
-        "next_review_date",
-        "stage",
-        "subjects",
-    }
-    return {field: state[field] for field in fields}
-
-
-def test_verified_fixture_manifest_and_noninvented_alignment() -> None:
-    document = FIXTURE.read_bytes()
-    assert len(document) == 45_185
-    assert hashlib.sha256(document).hexdigest() == EXPECTED_DIGEST
-
-    event = build_ingestion_event(
-        FIXTURE,
-        original_filename="syllabus2026.pdf",
-        media_type="application/pdf",
-        adapter_id="st5201x-2026-v1",
-        occurred_at="2026-08-19T00:00:00Z",
-    )
-    assert event["source"] == {
-        "source_id": "st5201x-2026-2027-sem1-syllabus",
-        "source_version_id": f"sha256-{EXPECTED_DIGEST}",
-        "original_filename": "syllabus2026.pdf",
-        "media_type": "application/pdf",
-        "byte_size": 45_185,
-        "page_count": 1,
-        "sha256": EXPECTED_DIGEST,
-        "content_retention": "extracted_text_only",
-        "supersedes_source_version_id": None,
-    }
-    assert event["extraction"]["extractor_version"] == "1.0 (build 1451.5.3)"
-    assert len(event["assertions"]) == 52
-    for assertion in event["assertions"]:
-        for evidence in assertion["evidence"]:
-            page = event["pages"][evidence["page_number"] - 1]["text"]
-            assert page[evidence["start_char"] : evidence["end_char"]] == evidence["quote"]
-
-    assertions = {item["assertion_id"]: item for item in event["assertions"]}
-    values = {item["assertion_id"]: item["normalized_value"] for item in event["assertions"]}
-    assert values["st5201x.course.code"] == "ST5201X"
-    assert values["st5201x.course.title"] == "Statistical Foundations of Data Science"
-    assert values["st5201x.offering.term"] == "Semester 1"
-    assert values["st5201x.offering.academic_year"] == "2026/2027"
-    assert values["st5201x.staff.lecturer.name"] == "Zhang Yao"
-    assert values["st5201x.staff.lecturer.department"] == "Department of Statistics & Data Science"
-    assert values["st5201x.staff.lecturer.room"] == "L7-106, Faculty of Science"
-    assert values["st5201x.staff.lecturer.email"] == "yaozhang@nus.edu.sg"
-    assert values["st5201x.class.days"] == ["Thursday", "Friday"]
-    assert values["st5201x.class.time"] == "19:00-22:00"
-    assert values["st5201x.class.venue"] == "Lecture Theatre 34 (LT34)"
-    assert values["st5201x.tutorial.start_week"] == 3
-    assert values["st5201x.reference.primary.author"] == "John Rice"
-    assert values["st5201x.reference.primary.edition"] == "Third edition"
-    assert {
-        (item["normalized_value"]["name"], item["normalized_value"]["weight_percent"])
-        for item in event["assertions"]
-        if item["field"] == "assessment.component"
-    } == {("Homework", 50), ("Final exam", 50)}
-    policy_categories = {
-        item["normalized_value"]["category"]
-        for item in event["assertions"]
-        if item["field"] == "policy.rule"
-    }
-    assert policy_categories == {
-        "submission",
-        "solutions",
-        "lateness",
-        "exam_format",
-        "notes",
-        "calculator",
-        "devices",
-        "past_exams",
-        "exam_consequence",
-    }
-    assert assertions["st5201x.assessment.final_exam.date"]["status"] == "not_specified"
-    assert assertions["st5201x.reference.primary.designation"]["status"] == "not_specified"
-    alignment = assertions["st5201x.schedule.weeks_7_13_alignment"]
-    assert alignment["status"] == "unresolved"
-    assert alignment["normalized_value"]["alternatives"] == []
-    assert alignment["normalized_value"]["unresolved_fields"] == [
-        "week_to_topic",
-        "week_to_milestone",
+def lifecycle(store: LocalStore, domain_id: str, *, role: str = "authoritative", raw: bytes = b"generic-source-v1", predecessor: str | None = None, base_minute: int = 0) -> tuple[dict, dict, dict]:
+    text = "Course: Generic Systems\nTopic: Trees\nExam date: TBA\n"
+    source = store._install_prepared_syllabus(domain_id, base_minute * 3, raw_bytes=raw, prepared_document=prepared(text), role=role,
+                                    display_name="generic-syllabus.pdf", occurred_at=f"2026-08-19T00:{base_minute:02d}:00Z",
+                                    supersedes_source_version_id=predecessor)
+    proposals = [
+        located(text, "Trees", predicate="coverage.topic", label="Coverage topic", semantic_roles=["planning_topic"], value_type="text", status="specified", value="Trees"),
+        located(text, "TBA", predicate="assessment.exam.date", label="Exam date", semantic_roles=["assessment"], value_type="date", status="explicitly_unknown", value=None),
     ]
-    assert [
-        item["normalized_value"]["week"]
-        for item in event["assertions"]
-        if item["field"] == "schedule.row"
-    ] == list(range(1, 7))
-    assert len([item for item in event["assertions"] if item["field"] == "coverage.topic"]) == 10
-    assert len([item for item in event["assertions"] if item["field"] == "milestone.homework"]) == 5
+    proposal = store.propose_syllabus(domain_id, base_minute * 3 + 1, prepared_event_id=source["source_event_id"],
+                                      occurred_at=f"2026-08-19T00:{base_minute + 1:02d}:00Z",
+                                      producer={"trust": "external_unverified", "name": "test-builder", "version": "1"}, proposals=proposals)
+    decision = store.decide_syllabus(domain_id, base_minute * 3 + 2, proposal_event_id=proposal["proposal_event_id"],
+                                     occurred_at=f"2026-08-19T00:{base_minute + 2:02d}:00Z",
+                                     accepted_proposal_ids=proposal["proposal_ids"], deferred_proposal_ids=[], rejected_proposal_ids=[], corrections=[])
+    return source, proposal, decision
 
 
-def test_cli_intake_is_digest_idempotent_and_does_not_change_mastery(tmp_path: Path) -> None:
-    root = tmp_path / "vault"
-    domain_id, directory = init_domain(root)
-    before = output(run_cli(root, "context", "--domain-id", domain_id))["state"]
+def test_prepare_propose_decide_cas_content_and_offline_rebuild(tmp_path: Path) -> None:
+    store, domain_id, directory = initialized(tmp_path)
+    source, proposal, decision = lifecycle(store, domain_id)
+    source_digest = source["source_sha256"]
+    prepared_digest = source["prepared_document_sha256"]
+    assert directory.joinpath("sources", "sha256", source_digest).read_bytes() == b"generic-source-v1"
+    prepared_bytes = directory.joinpath("prepared", "sha256", f"{prepared_digest}.json").read_bytes()
+    assert not prepared_bytes.endswith(b"\n")
+    assert sha256_bytes(prepared_bytes) == prepared_digest
+    content = store.syllabus_content(domain_id, source["source_event_id"])
+    assert content["storage"] == "cas"
+    assert content["raw_bytes"] == b"generic-source-v1"
+    assert content["prepared_bytes"] == prepared_bytes
+    grounding = store.context(domain_id)["state"]["grounding"]
+    assert grounding["status"] == "approved"
+    assert grounding["active_decision"]["event_id"] == decision["decision_event_id"]
+    assert grounding["active_decision"]["reference_field"] == "decision_event_id"
+    assert grounding["planning_topics"] == [{"assertion_ids": [proposal["proposal_ids"][0]], "citable": True, "label": "Trees"}]
+    before_cas = {p.relative_to(directory).as_posix(): p.read_bytes() for p in (directory / "sources").rglob("*") if p.is_file()} | {p.relative_to(directory).as_posix(): p.read_bytes() for p in (directory / "prepared").rglob("*") if p.is_file()}
+    store.rebuild(domain_id)
+    store.rebuild(domain_id)
+    after_cas = {p.relative_to(directory).as_posix(): p.read_bytes() for p in (directory / "sources").rglob("*") if p.is_file()} | {p.relative_to(directory).as_posix(): p.read_bytes() for p in (directory / "prepared").rglob("*") if p.is_file()}
+    assert after_cas == before_cas
+    assert store.validate(domain_id)["canonical_content"]["referenced_sources"] == 1
 
-    result = output(ingest(root, domain_id, 0))
+
+def test_prepare_propose_decide_exact_retries_are_idempotent(tmp_path: Path) -> None:
+    store, domain_id, _ = initialized(tmp_path)
+    source, proposal, decision = lifecycle(store, domain_id)
+    text = "Course: Generic Systems\nTopic: Trees\nExam date: TBA\n"
+    retry_source = store._install_prepared_syllabus(domain_id, 3, raw_bytes=b"generic-source-v1", prepared_document=prepared(text), role="authoritative",
+                                          display_name="retry-name.pdf", occurred_at="2026-08-19T00:59:00Z")
+    assert retry_source["status"] == "noop" and retry_source["revision"] == 3
+    retry_proposal = store.propose_syllabus(domain_id, 3, prepared_event_id=source["source_event_id"], occurred_at="2026-08-19T00:58:00Z",
+                                            producer={"trust": "external_unverified", "name": "test-builder", "version": "1"},
+                                            proposals=[located(text, "Trees", predicate="coverage.topic", label="Coverage topic", semantic_roles=["planning_topic"], value_type="text", status="specified", value="Trees"),
+                                                       located(text, "TBA", predicate="assessment.exam.date", label="Exam date", semantic_roles=["assessment"], value_type="date", status="explicitly_unknown", value=None)])
+    assert retry_proposal["status"] == "noop" and retry_proposal["proposal_event_id"] == proposal["proposal_event_id"]
+    retry_decision = store.decide_syllabus(domain_id, 3, proposal_event_id=proposal["proposal_event_id"], occurred_at="2026-08-19T00:57:00Z",
+                                           accepted_proposal_ids=proposal["proposal_ids"], deferred_proposal_ids=[], rejected_proposal_ids=[], corrections=[])
+    assert retry_decision["status"] == "noop" and retry_decision["decision_event_id"] == decision["decision_event_id"]
+
+
+def test_all_reserved_kinds_rejected_by_generic_commit_without_writes(tmp_path: Path) -> None:
+    store, domain_id, directory = initialized(tmp_path)
+    source, proposal, decision = lifecycle(store, domain_id)
+    events = [json.loads(line) for line in directory.joinpath("events.jsonl").read_text().splitlines()]
+    before = tree(directory)
+    for event in events:
+        with pytest.raises(ValidationError, match="reserved syllabus"):
+            store.commit(domain_id, 3, {"events": [event]})
+        assert tree(directory) == before
+    legacy_fixture = Path(__file__).parent / "fixtures" / "syllabus" / "legacy-v1" / "events.jsonl"
+    for legacy_event in [json.loads(line) for line in legacy_fixture.read_text().splitlines()[:2]]:
+        with pytest.raises(ValidationError, match="reserved syllabus"):
+            store.commit(domain_id, 3, {"events": [legacy_event]})
+        assert tree(directory) == before
+
+
+def test_existing_nonmatching_cas_path_is_never_overwritten(tmp_path: Path) -> None:
+    store, domain_id, directory = initialized(tmp_path)
+    raw = b"collision-candidate"
+    path = directory / "sources" / "sha256" / sha256_bytes(raw)
+    path.write_bytes(b"preexisting-corrupt-bytes")
+    before = tree(directory)
+    with pytest.raises(ValidationError, match="collision/corruption"):
+        store._install_prepared_syllabus(domain_id, 0, raw_bytes=raw, prepared_document=prepared("Topic: Trees\n"), role="authoritative",
+                               display_name="generic.pdf", occurred_at="2026-08-19T00:00:00Z")
+    assert tree(directory) == before
+
+
+def test_locator_and_decision_failures_are_write_free(tmp_path: Path) -> None:
+    store, domain_id, directory = initialized(tmp_path)
+    text = "Topic: Graphs\nAmbiguous room: A or B\n"
+    source = store._install_prepared_syllabus(domain_id, 0, raw_bytes=b"source", prepared_document=prepared(text), role="authoritative",
+                                    display_name="course.pdf", occurred_at="2026-08-19T00:00:00Z")
+    before = tree(directory)
+    bad = [located(text, "Graphs", predicate="coverage.topic", label="Topic", semantic_roles=["planning_topic"], value_type="text", status="specified", value="Graphs")]
+    bad[0]["locators"][0]["quote"] = "Grapes"
+    with pytest.raises(ValidationError, match="quote"):
+        store.propose_syllabus(domain_id, 1, prepared_event_id=source["source_event_id"], occurred_at="2026-08-19T00:01:00Z",
+                               producer={"trust": "external_unverified", "name": "test", "version": "1"}, proposals=bad)
+    assert tree(directory) == before
+    ambiguous = [located(text, "A or B", predicate="class.room", label="Room", semantic_roles=["logistics"], value_type="text", status="ambiguous", value=None,
+                         ambiguity={"reason": "two rooms listed", "unresolved_dimensions": ["room"], "candidates": []})]
+    proposal = store.propose_syllabus(domain_id, 1, prepared_event_id=source["source_event_id"], occurred_at="2026-08-19T00:01:00Z",
+                                      producer={"trust": "external_unverified", "name": "test", "version": "1"}, proposals=ambiguous)
+    before_decision = tree(directory)
+    with pytest.raises(ValidationError, match="ambiguous proposals cannot be accepted"):
+        store.decide_syllabus(domain_id, 2, proposal_event_id=proposal["proposal_event_id"], occurred_at="2026-08-19T00:02:00Z",
+                              accepted_proposal_ids=proposal["proposal_ids"], deferred_proposal_ids=[], rejected_proposal_ids=[], corrections=[])
+    assert tree(directory) == before_decision
+    with pytest.raises(ValidationError, match="completely and exactly"):
+        store.decide_syllabus(domain_id, 2, proposal_event_id=proposal["proposal_event_id"], occurred_at="2026-08-19T00:02:00Z",
+                              accepted_proposal_ids=[], deferred_proposal_ids=[], rejected_proposal_ids=[], corrections=[])
+    assert tree(directory) == before_decision
+    store.decide_syllabus(domain_id, 2, proposal_event_id=proposal["proposal_event_id"], occurred_at="2026-08-19T00:02:00Z",
+                          accepted_proposal_ids=[], deferred_proposal_ids=[], rejected_proposal_ids=[],
+                          corrections=[{"target_proposal_id": proposal["proposal_ids"][0], "predicate": "class.room", "semantic_roles": ["logistics"],
+                                        "value_type": "text", "status": "specified", "value": "A", "rationale": "Learner confirmed room A", "origin": "learner_correction"}])
+    effective = store.context(domain_id)["state"]["grounding"]["effective_assertions"][0]
+    assert effective["origin"] == "learner_correction" and effective["citations"] == []
+    assert effective["document_context"][0]["quote"] == "A or B"
+
+
+def test_planning_topic_correction_requires_text_and_is_write_free(tmp_path: Path) -> None:
+    store, domain_id, directory = initialized(tmp_path)
+    text = "Topic: Trees\n"
+    source = store._install_prepared_syllabus(
+        domain_id, 0, raw_bytes=b"planning-topic", prepared_document=prepared(text),
+        role="authoritative", display_name="course.pdf", occurred_at="2026-08-19T00:00:00Z",
+    )
+    proposal = store.propose_syllabus(
+        domain_id, 1, prepared_event_id=source["source_event_id"], occurred_at="2026-08-19T00:01:00Z",
+        producer={"trust": "external_unverified", "name": "test", "version": "1"},
+        proposals=[located(text, "Trees", predicate="coverage.topic", label="Topic", semantic_roles=["planning_topic"],
+                           value_type="text", status="specified", value="Trees")],
+    )
+    before = tree(directory)
+    with pytest.raises(ValidationError, match="planning_topic corrections must use text values"):
+        store.decide_syllabus(
+            domain_id, 2, proposal_event_id=proposal["proposal_event_id"], occurred_at="2026-08-19T00:02:00Z",
+            accepted_proposal_ids=[], deferred_proposal_ids=[], rejected_proposal_ids=[],
+            corrections=[{"target_proposal_id": proposal["proposal_ids"][0], "predicate": "coverage.topic",
+                          "semantic_roles": ["planning_topic"], "value_type": "integer", "status": "specified",
+                          "value": 7, "rationale": "Adversarial non-text topic", "origin": "learner_correction"}],
+        )
+    assert tree(directory) == before
+
+
+def test_generic_and_legacy_correction_ids_cannot_collide_with_source_assertions() -> None:
+    proposals = [
+        {"proposal_id": "source-a", "predicate": "coverage.topic", "semantic_roles": ["planning_topic"],
+         "value_type": "text", "status": "specified", "value": "A", "locators": []},
+        {"proposal_id": "source-b", "predicate": "coverage.topic", "semantic_roles": ["planning_topic"],
+         "value_type": "text", "status": "specified", "value": "B", "locators": []},
+    ]
+    generic = {
+        "accepted_proposal_ids": [], "deferred_proposal_ids": ["source-b"], "rejected_proposal_ids": [],
+        "corrections": [{"correction_id": "source-b", "target_proposal_id": "source-a"}],
+        "decision_set_sha256": "unused",
+    }
+    legacy = {
+        "accepted_assertion_ids": [], "deferred_assertion_ids": ["source-b"],
+        "corrections": [{"correction_assertion_id": "source-b", "target_assertion_id": "source-a"}],
+        "approval_set_sha256": "unused",
+    }
+    for decision, is_legacy in ((generic, False), (legacy, True)):
+        with pytest.raises(ValidationError, match="must not collide with proposal/source assertion IDs"):
+            _decision_view(decision, {}, proposals, legacy=is_legacy)
+
+
+def test_authoritative_update_pending_and_nonforking_lineage(tmp_path: Path) -> None:
+    store, domain_id, directory = initialized(tmp_path)
+    first, _, first_decision = lifecycle(store, domain_id)
+    second = store._install_prepared_syllabus(domain_id, 3, raw_bytes=b"generic-source-v2", prepared_document=prepared("Topic: Graphs\n"), role="authoritative",
+                                    display_name="update.pdf", occurred_at="2026-08-19T00:03:00Z", supersedes_source_version_id=first["source_version_id"])
+    grounding = store.context(domain_id)["state"]["grounding"]
+    assert second["grounding_status"] == "approved_update_pending"
+    assert grounding["status"] == "approved_update_pending"
+    assert grounding["active_decision"]["event_id"] == first_decision["decision_event_id"]
+    before = tree(directory)
+    with pytest.raises(ValidationError, match="forks/skips"):
+        store._install_prepared_syllabus(domain_id, 4, raw_bytes=b"fork", prepared_document=prepared("Topic: Fork\n"), role="authoritative",
+                               display_name="fork.pdf", occurred_at="2026-08-19T00:04:00Z", supersedes_source_version_id=first["source_version_id"])
+    assert tree(directory) == before
+    assert second["source_event_id"] in directory.joinpath("events.jsonl").read_text()
+
+
+def test_supplement_visible_but_authority_planning_and_mastery_neutral(tmp_path: Path) -> None:
+    store, domain_id, _ = initialized(tmp_path)
+    _, _, decision = lifecycle(store, domain_id)
+    before = store.context(domain_id)["state"]
+    supplement, proposal, supplement_decision = lifecycle(store, domain_id, role="supplement", raw=b"supplement", base_minute=1)
+    assert supplement["grounding_status"] == "approved"
+    assert supplement_decision["grounding_status"] == "approved"
+    after = store.context(domain_id)["state"]
+    assert after["grounding"]["active_decision"]["event_id"] == decision["decision_event_id"]
+    assert after["grounding"]["planning_topics"] == before["grounding"]["planning_topics"]
+    assert after["grounding"]["supplements"][0]["source_version_id"] == supplement["source_version_id"]
+    mastery_keys = ["stage", "generation", "subjects", "calibration", "archived_exams"]
+    assert canonical_json({key: before[key] for key in mastery_keys}) == canonical_json({key: after[key] for key in mastery_keys})
+
+
+def test_missing_corrupt_and_orphaned_cas_are_integrity_failures(tmp_path: Path) -> None:
+    store, domain_id, directory = initialized(tmp_path)
+    source, _, _ = lifecycle(store, domain_id)
+    raw_path = directory / "sources" / "sha256" / source["source_sha256"]
+    original = raw_path.read_bytes()
+    raw_path.unlink()
+    with pytest.raises(ValidationError, match="missing canonical"):
+        store.rebuild(domain_id)
+    raw_path.write_bytes(b"corrupt")
+    with pytest.raises(ValidationError, match="corrupt"):
+        store.context(domain_id)
+    raw_path.write_bytes(original)
+    orphan = directory / "sources" / "sha256" / ("f" * 64)
+    orphan.write_bytes(b"orphan")
+    with pytest.raises(ValidationError, match="orphaned canonical"):
+        store.validate(domain_id)
+    raw_path.unlink()
+    with pytest.raises(ValidationError) as combined:
+        store.validate(domain_id)
+    assert "missing canonical" in str(combined.value) and "orphaned canonical" in str(combined.value)
+
+
+def test_chronology_admin_session_and_payload_bounds_are_enforced(tmp_path: Path) -> None:
+    store, domain_id, directory = initialized(tmp_path)
+    text = "Topic: Trees\n"
+    source = store._install_prepared_syllabus(domain_id, 0, raw_bytes=b"chronology", prepared_document=prepared(text), role="authoritative",
+                                    display_name="generic.pdf", occurred_at="2026-08-19T00:10:00Z")
+    proposal_input = [located(text, "Trees", predicate="coverage.topic", label="Topic", semantic_roles=["planning_topic"], value_type="text", status="specified", value="Trees")]
+    before = tree(directory)
+    with pytest.raises(ValidationError, match="cannot precede"):
+        store.propose_syllabus(domain_id, 1, prepared_event_id=source["source_event_id"], occurred_at="2026-08-19T00:09:00Z",
+                               producer={"trust": "external_unverified", "name": "test", "version": "1"}, proposals=proposal_input)
+    assert tree(directory) == before
+    oversized = deepcopy(proposal_input); oversized[0]["note"] = "x" * 4097
+    with pytest.raises(ValidationError, match="4096"):
+        store.propose_syllabus(domain_id, 1, prepared_event_id=source["source_event_id"], occurred_at="2026-08-19T00:11:00Z",
+                               producer={"trust": "external_unverified", "name": "test", "version": "1"}, proposals=oversized)
+    proposal = store.propose_syllabus(domain_id, 1, prepared_event_id=source["source_event_id"], occurred_at="2026-08-19T00:11:00Z",
+                                      producer={"trust": "external_unverified", "name": "test", "version": "1"}, proposals=proposal_input)
+    with pytest.raises(ValidationError, match="cannot precede"):
+        store.decide_syllabus(domain_id, 2, proposal_event_id=proposal["proposal_event_id"], occurred_at="2026-08-19T00:10:30Z",
+                              accepted_proposal_ids=proposal["proposal_ids"], deferred_proposal_ids=[], rejected_proposal_ids=[], corrections=[])
+    admin_session = json.loads(directory.joinpath("events.jsonl").read_text().splitlines()[0])["session_id"]
+    reset = {"schema_version": 1, "event_id": "bad-admin-reuse", "session_id": admin_session, "occurred_at": "2026-08-19T00:12:00Z", "kind": "domain_reset"}
+    with pytest.raises(ValidationError, match="administrative session"):
+        store.commit(domain_id, 2, {"events": [reset]})
+
+
+def test_legacy_unresolved_correction_remains_uncitable() -> None:
+    fixture = Path(__file__).parent / "fixtures" / "syllabus" / "legacy-v1" / "events.jsonl"
+    source, approval, _ = [json.loads(line) for line in fixture.read_text().splitlines()]
+    approval = deepcopy(approval)
+    approval["accepted_assertion_ids"] = []
+    approval["corrections"] = [{"correction_assertion_id": "legacy-unresolved-correction", "target_assertion_id": "legacy-topic-graphs",
+                                "field": "coverage.topic", "status": "unresolved", "normalized_value": {"possibilities": ["Graphs", "Trees"]},
+                                "rationale": "historical ambiguity", "origin": "learner_correction"}]
+    approval["approval_set_sha256"] = syllabus_approval_set_sha256(approval)
+    timeline = reduce_grounding_timeline([source, approval])
+    view = timeline.current_view()
+    assert view is not None
+    assert view["effective_assertions"] == []
+    assert view["unresolved_assertions"][0]["status"] == "ambiguous"
+    with pytest.raises(ValidationError):
+        timeline.resolve_assertion(approval["event_id"], "legacy-unresolved-correction")
+
+
+def test_rejected_proposals_are_visible_but_not_citable(tmp_path: Path) -> None:
+    store, domain_id, directory = initialized(tmp_path)
+    text = "Topic: Optional Lab\n"
+    source = store._install_prepared_syllabus(domain_id, 0, raw_bytes=b"reject", prepared_document=prepared(text), role="authoritative",
+                                    display_name="generic.pdf", occurred_at="2026-08-19T00:00:00Z")
+    proposal = store.propose_syllabus(domain_id, 1, prepared_event_id=source["source_event_id"], occurred_at="2026-08-19T00:01:00Z",
+                                      producer={"trust": "external_unverified", "name": "test", "version": "1"},
+                                      proposals=[located(text, "Optional Lab", predicate="coverage.topic", label="Optional lab", semantic_roles=["planning_topic"], value_type="text", status="specified", value="Optional Lab")])
+    store.decide_syllabus(domain_id, 2, proposal_event_id=proposal["proposal_event_id"], occurred_at="2026-08-19T00:02:00Z",
+                          accepted_proposal_ids=[], deferred_proposal_ids=[], rejected_proposal_ids=proposal["proposal_ids"], corrections=[])
+    state = store.context(domain_id)["state"]
+    assert state["grounding"]["planning_topics"] == []
+    receipt = directory / "syllabus" / f"{source['source_version_id']}.md"
+    rendered = receipt.read_text()
+    assert "## Rejected" in rendered and proposal["proposal_ids"][0] in rendered and "Rejected:" in rendered
+
+
+def test_legacy_v1_fixture_replays_without_pdf_manifest_or_cas(tmp_path: Path) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "syllabus" / "legacy-v1"
+    profile = json.loads(fixture.joinpath("profile.yaml").read_text())
+    directory = tmp_path / "domains" / profile["domain_id"]
+    (directory / "sessions").mkdir(parents=True)
+    shutil.copyfile(fixture / "profile.yaml", directory / "profile.yaml")
+    shutil.copyfile(fixture / "events.jsonl", directory / "events.jsonl")
+    store = LocalStore(tmp_path)
+    state = store.context(profile["domain_id"])["state"]
+    assert state["grounding"]["status"] == "approved"
+    assert state["grounding"]["active_decision"]["reference_field"] == "approval_event_id"
+    assert state["grounding"]["planning_topics"][0]["label"] == "Graphs"
+    source_event_id = json.loads(fixture.joinpath("events.jsonl").read_text().splitlines()[0])["event_id"]
+    content = store.syllabus_content(profile["domain_id"], source_event_id)
+    assert content["storage"] == "legacy_text_only"
+    assert content["raw_bytes"] is None and content["prepared_bytes"] is None
+    historical = json.loads(fixture.joinpath("events.jsonl").read_text().splitlines()[2])
+    continued = deepcopy(historical)
+    continued.update({
+        "event_id": "legacy-assessment-continued",
+        "session_id": "legacy-learning-session-continued",
+        "occurred_at": "2025-01-01T00:03:00Z",
+        "task_id": "legacy-task-continued",
+    })
+    continued["grounding"] = {
+        "decision_event_id": "historical-approval-1",
+        "assertion_ids": ["legacy-topic-graphs"],
+    }
+    result = store.commit(profile["domain_id"], profile["revision"], {"events": [continued]})
     assert result["status"] == "committed"
-    assert result["revision"] == 1
-    assert result["appended_events"] == 1
-    assert result["source_sha256"] == EXPECTED_DIGEST
-    assert result["approval_status"] == "approval_required"
-
-    alias = tmp_path / "renamed.pdf"
-    alias.write_bytes(FIXTURE.read_bytes())
-    replay = output(
-        ingest(
-            root,
-            domain_id,
-            1,
-            alias,
-            original_filename="department-copy.pdf",
-            occurred_at="2026-08-20T00:00:00Z",
-        )
-    )
-    assert replay["status"] == "noop"
-    assert replay["revision"] == 1
-    assert replay["appended_events"] == 0
-    assert len(directory.joinpath("events.jsonl").read_text().splitlines()) == 1
-
-    after = output(run_cli(root, "context", "--domain-id", domain_id))["state"]
-    assert mastery_view(after) == mastery_view(before)
-
-
-def test_truthful_degradation_never_changes_canonical_tree(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    root = tmp_path / "vault"
-    domain_id, directory = init_domain(root)
-    baseline = tree(directory)
-
-    missing = error(ingest(root, domain_id, 0, tmp_path / "missing.pdf"))
-    assert missing["error"] == "SyllabusUnavailableError"
-    assert "unavailable: missing path" in missing["message"]
-    assert tree(directory) == baseline
-
-    directory_input = error(ingest(root, domain_id, 0, tmp_path))
-    assert "not a regular file" in directory_input["message"]
-    assert tree(directory) == baseline
-
-    symlink = tmp_path / "syllabus-link.pdf"
-    symlink.symlink_to(FIXTURE)
-    linked = error(ingest(root, domain_id, 0, symlink))
-    assert "symlinks are not accepted" in linked["message"]
-    assert tree(directory) == baseline
-
-    mutated = tmp_path / "mutated.pdf"
-    changed = bytearray(FIXTURE.read_bytes())
-    changed[-1] ^= 1
-    mutated.write_bytes(changed)
-    mismatch = error(ingest(root, domain_id, 0, mutated))
-    assert mismatch["error"] == "SyllabusDigestMismatchError"
-    assert "syllabus digest mismatch" in mismatch["message"]
-    assert EXPECTED_DIGEST in mismatch["message"]
-    assert tree(directory) == baseline
-
-    wrong_media = error(ingest(root, domain_id, 0, FIXTURE, media_type="text/plain"))
-    assert wrong_media["error"] == "SyllabusUnsupportedError"
-    assert "unsupported syllabus media type" in wrong_media["message"]
-    wrong_adapter = error(ingest(root, domain_id, 0, FIXTURE, adapter="generic-pdf"))
-    assert "unsupported syllabus adapter" in wrong_adapter["message"]
-    assert tree(directory) == baseline
-
-    import dln_store.st5201x_syllabus as adapter
-
-    def unreadable(_descriptor: int, _count: int) -> bytes:
-        raise OSError("injected read failure")
-
-    monkeypatch.setattr(adapter.os, "read", unreadable)
-    with pytest.raises(ValidationError, match="syllabus document unreadable"):
-        build_ingestion_event(
-            FIXTURE,
-            original_filename="syllabus2026.pdf",
-            media_type="application/pdf",
-            adapter_id="st5201x-2026-v1",
-            occurred_at="2026-08-19T00:00:00Z",
-        )
-    assert tree(directory) == baseline
-
-
-def test_context_approval_correction_supersession_is_immutable_and_replayable(
-    tmp_path: Path,
-) -> None:
-    root = tmp_path / "vault"
-    domain_id, directory = init_domain(root)
-    output(ingest(root, domain_id, 0))
-    source = source_event(directory)
-    before_approvals = output(run_cli(root, "context", "--domain-id", domain_id))["state"]
-
-    first = approval_request(
-        source,
-        event_id="syllabus-approval-1",
-        occurred_at="2026-08-19T00:10:00Z",
-    )
-    request_path = write_json(tmp_path / "approval-1.json", first)
-    committed = output(
-        run_cli(
-            root,
-            "approve-syllabus",
-            "--domain-id",
-            domain_id,
-            "--expected-revision",
-            "1",
-            "--request",
-            str(request_path),
-        )
-    )
-    assert committed["status"] == "committed"
-    assert committed["revision"] == 2
-    assert committed["approval_status"] == "approved"
-
-    source_replay = output(ingest(root, domain_id, 2, occurred_at="2026-08-20T00:00:00Z"))
-    assert source_replay["status"] == "noop"
-    assert source_replay["approval_status"] == "approved"
-    assert source_replay["revision"] == 2
-
-    replay = output(
-        run_cli(
-            root,
-            "approve-syllabus",
-            "--domain-id",
-            domain_id,
-            "--expected-revision",
-            "2",
-            "--request",
-            str(request_path),
-        )
-    )
-    assert replay["status"] == "noop"
-    assert replay["revision"] == 2
-
-    conflicting = deepcopy(first)
-    conflicting["accepted_assertion_ids"].append(conflicting["deferred_assertion_ids"].pop())
-    conflict_path = write_json(tmp_path / "approval-conflict.json", conflicting)
-    conflict = error(
-        run_cli(
-            root,
-            "approve-syllabus",
-            "--domain-id",
-            domain_id,
-            "--expected-revision",
-            "2",
-            "--request",
-            str(conflict_path),
-        )
-    )
-    assert "already exists with different content" in conflict["message"]
-
-    second = approval_request(
-        source,
-        event_id="syllabus-approval-2",
-        occurred_at="2026-08-19T00:20:00Z",
-        supersedes="syllabus-approval-1",
-        correction=True,
-    )
-    second_path = write_json(tmp_path / "approval-2.json", second)
-    superseded = output(
-        run_cli(
-            root,
-            "approve-syllabus",
-            "--domain-id",
-            domain_id,
-            "--expected-revision",
-            "2",
-            "--request",
-            str(second_path),
-        )
-    )
-    assert superseded["status"] == "committed"
-    assert superseded["revision"] == 3
-
-    events = [
-        json.loads(line) for line in directory.joinpath("events.jsonl").read_text().splitlines()
-    ]
-    original_title = next(
-        item for item in events[0]["assertions"] if item["assertion_id"] == "st5201x.course.title"
-    )
-    assert original_title["normalized_value"] == "Statistical Foundations of Data Science"
-    assert (
-        events[2]["corrections"][0]["normalized_value"]
-        == "Statistical Foundations for Data Science"
-    )
-    assert events[2]["supersedes_approval_event_id"] == "syllabus-approval-1"
-
-    fresh = output(run_cli(root, "context", "--domain-id", domain_id))
-    assert fresh["profile"]["revision"] == 3
-    assert fresh["state"]["source"]["event_count"] == 3
-    assert mastery_view(fresh["state"]) == mastery_view(before_approvals)
-
-
-def test_invalid_approval_and_generic_injection_preserve_tree(tmp_path: Path) -> None:
-    root = tmp_path / "vault"
-    domain_id, directory = init_domain(root)
-    output(ingest(root, domain_id, 0))
-    source = source_event(directory)
-    baseline = tree(directory)
-
-    omitted = approval_request(
-        source,
-        event_id="bad-approval",
-        occurred_at="2026-08-19T00:10:00Z",
-    )
-    omitted["accepted_assertion_ids"].pop()
-    path = write_json(tmp_path / "bad.json", omitted)
-    invalid = error(
-        run_cli(
-            root,
-            "approve-syllabus",
-            "--domain-id",
-            domain_id,
-            "--expected-revision",
-            "1",
-            "--request",
-            str(path),
-        )
-    )
-    assert "disposition omits assertion IDs" in invalid["message"]
-    assert tree(directory) == baseline
-
-    before_source = approval_request(
-        source,
-        event_id="early-approval",
-        occurred_at="2026-08-18T23:59:59Z",
-    )
-    path = write_json(tmp_path / "early.json", before_source)
-    early = error(
-        run_cli(
-            root,
-            "approve-syllabus",
-            "--domain-id",
-            domain_id,
-            "--expected-revision",
-            "1",
-            "--request",
-            str(path),
-        )
-    )
-    assert "approval cannot precede source ingestion" in early["message"]
-    assert tree(directory) == baseline
-
-    injected = write_json(tmp_path / "injected.json", {"events": [source]})
-    blocked = error(
-        run_cli(
-            root,
-            "commit",
-            "--domain-id",
-            domain_id,
-            "--expected-revision",
-            "1",
-            "--request",
-            str(injected),
-        )
-    )
-    assert "reserved syllabus event kind" in blocked["message"]
-    approval_event = build_syllabus_approval_event(
-        approval_request(
-            source,
-            event_id="injected-approval",
-            occurred_at="2026-08-19T00:10:00Z",
-        )
-    )
-    injected_approval = write_json(
-        tmp_path / "injected-approval.json", {"events": [approval_event]}
-    )
-    blocked_approval = error(
-        run_cli(
-            root,
-            "commit",
-            "--domain-id",
-            domain_id,
-            "--expected-revision",
-            "1",
-            "--request",
-            str(injected_approval),
-        )
-    )
-    assert "reserved syllabus event kind" in blocked_approval["message"]
-    assert tree(directory) == baseline
-
-
-def test_history_rejects_noncanonical_source_identity_and_branched_approval() -> None:
-    source = build_ingestion_event(
-        FIXTURE,
-        original_filename="syllabus2026.pdf",
-        media_type="application/pdf",
-        adapter_id="st5201x-2026-v1",
-        occurred_at="2026-08-19T00:00:00Z",
-    )
-    duplicate = deepcopy(source)
-    duplicate["event_id"] = "different-source-event"
-    duplicate["session_id"] = "different-source-session"
-    with pytest.raises(ValidationError, match="deterministically derived"):
-        project_state(
-            {
-                "annotations": [],
-                "domain": "ST5201X",
-                "domain_id": "st5201x-86824c31",
-                "exam": {},
-                "goal": "Learn",
-                "review_preferences": {},
-                "revision": 2,
-                "schema_version": 1,
-                "syllabus": [],
-            },
-            [source, duplicate],
-            profile_bytes=b"profile",
-            events_bytes=b"events",
-        )
-
-    first = build_syllabus_approval_event(
-        approval_request(source, event_id="approval-1", occurred_at="2026-08-19T00:10:00Z")
-    )
-    branch = build_syllabus_approval_event(
-        approval_request(source, event_id="approval-branch", occurred_at="2026-08-19T00:20:00Z")
-    )
-    profile = {
-        "annotations": [],
-        "domain": "ST5201X",
-        "domain_id": "st5201x-86824c31",
-        "exam": {},
-        "goal": "Learn",
-        "review_preferences": {},
-        "revision": 3,
-        "schema_version": 1,
-        "syllabus": [],
-    }
-    with pytest.raises(ValidationError, match="must cite the active approval"):
-        project_state(
-            profile,
-            [source, first, branch],
-            profile_bytes=pretty_json(profile),
-            events_bytes=b"events",
-        )
-
-    active_session = {
-        "assistance": {"hint_count": 0, "level": "none"},
-        "context_id": "reuse-check",
-        "evidence_mode": "independent",
-        "event_id": "assessment-before-approval",
-        "kind": "assessment",
-        "novelty": "repeat",
-        "occurred_at": "2026-08-19T00:05:00Z",
-        "operation": "acquire",
-        "outcome": "pass",
-        "rubric_id": "reuse-check",
-        "schema_version": 1,
-        "session_id": "syllabus-approval-approval-reuse",
-        "subject": {"id": "probability", "label": "Probability", "type": "concept"},
-        "task_id": "reuse-check",
-    }
-    reused = build_syllabus_approval_event(
-        approval_request(
-            source,
-            event_id="approval-reuse",
-            occurred_at="2026-08-19T00:10:00Z",
-        )
-    )
-    with pytest.raises(ValidationError, match="must not reuse a prior event session"):
-        project_state(
-            profile,
-            [source, active_session, reused],
-            profile_bytes=pretty_json(profile),
-            events_bytes=b"events",
-        )
-
-
-def projected(profile: dict, events: list[dict]) -> dict:
-    return project_state(
-        profile,
-        events,
-        profile_bytes=pretty_json(profile),
-        events_bytes=b"".join(pretty_json(event) for event in events),
-    )
-
-
-def grounded_assessment(
-    approval_event_id: str,
-    assertion_ids: list[str],
-    *,
-    event_id: str = "grounded-assessment",
-    occurred_at: str = "2026-08-19T00:20:00Z",
-) -> dict:
-    return {
-        "assistance": {"hint_count": 0, "level": "none"},
-        "context_id": event_id,
-        "evidence_mode": "independent",
-        "event_id": event_id,
-        "grounding": {
-            "approval_event_id": approval_event_id,
-            "assertion_ids": assertion_ids,
-        },
-        "kind": "assessment",
-        "novelty": "repeat",
-        "occurred_at": occurred_at,
-        "operation": "acquire",
-        "outcome": "pass",
-        "rubric_id": "grounded-rubric",
-        "schema_version": 1,
-        "session_id": f"session-{event_id}",
-        "subject": {"id": "probability", "label": "Probability", "type": "concept"},
-        "task_id": event_id,
-    }
-
-
-def test_grounding_projection_legacy_pending_approved_and_correction() -> None:
-    profile = initial_profile("ST5201X", "Learn statistics")
-    profile["syllabus"] = ["Legacy Topic"]
-    legacy = projected(profile, [])
-    assert legacy["syllabus"] == ["Legacy Topic"]
-    assert legacy["grounding"] == {
-        "active_approval": None,
-        "active_source": None,
-        "effective_assertions": [],
-        "legacy_fallback": True,
-        "pending_sources": [],
-        "planning_topics": [{"assertion_ids": [], "citable": False, "label": "Legacy Topic"}],
-        "status": "ungrounded",
-        "unresolved_assertions": [],
-    }
-
-    source = build_ingestion_event(
-        FIXTURE,
-        original_filename="syllabus2026.pdf",
-        media_type="application/pdf",
-        adapter_id="st5201x-2026-v1",
-        occurred_at="2026-08-19T00:00:00Z",
-    )
-    pending = projected(profile, [source])
-    assert pending["grounding"]["status"] == "approval_required"
-    assert pending["grounding"]["active_source"] is None
-    assert pending["grounding"]["pending_sources"][0]["receipt"].startswith("syllabus/")
-    assert pending["syllabus"] == ["Legacy Topic"]
-
-    first = build_syllabus_approval_event(
-        approval_request(source, event_id="approval-1", occurred_at="2026-08-19T00:10:00Z")
-    )
-    approved = projected(profile, [source, first])
-    expected_topics = []
-    for assertion in source["assertions"]:
-        if (
-            assertion["field"] == "coverage.topic"
-            and assertion["normalized_value"] not in expected_topics
-        ):
-            expected_topics.append(assertion["normalized_value"])
-    assert approved["grounding"]["status"] == "approved"
-    assert approved["grounding"]["legacy_fallback"] is False
-    assert approved["syllabus"] == expected_topics
-    assert all(topic["citable"] for topic in approved["grounding"]["planning_topics"])
-    assert approved["grounding"]["unresolved_assertions"][0]["assertion_id"] == (
-        "st5201x.schedule.weeks_7_13_alignment"
-    )
-    assert "pages" not in approved["grounding"]
-    approved_dashboard = render_dashboard(approved).decode()
-    assert "## Course Grounding" in approved_dashboard
-    assert "`approved`" in approved_dashboard
-    assert "Syllabus Intake Receipt" in approved_dashboard
-
-    update = deepcopy(source)
-    update_digest = "1" * 64
-    update["event_id"] = f"syllabus-source-{update_digest}"
-    update["session_id"] = f"syllabus-intake-{update_digest}"
-    update["occurred_at"] = "2026-08-20T00:00:00Z"
-    update["source"]["sha256"] = update_digest
-    update["source"]["source_version_id"] = f"sha256-{update_digest}"
-    update["source"]["original_filename"] = "syllabus2026-revised.pdf"
-    update["source"]["supersedes_source_version_id"] = source["source"]["source_version_id"]
-    pending_update = projected(profile, [source, first, update])
-    assert pending_update["grounding"]["status"] == "approved_update_pending"
-    assert pending_update["grounding"]["active_source"]["sha256"] == EXPECTED_DIGEST
-    assert pending_update["grounding"]["pending_sources"][0]["sha256"] == update_digest
-    assert pending_update["syllabus"] == expected_topics
-    assert "Pending update" in render_dashboard(pending_update).decode()
-
-    update_approval = build_syllabus_approval_event(
-        approval_request(
-            update,
-            event_id="approval-update",
-            occurred_at="2026-08-20T00:10:00Z",
-            supersedes="approval-1",
-        )
-    )
-    updated_receipts = render_all_syllabus_receipts([source, first, update, update_approval])
-    old_receipt = updated_receipts[f"syllabus/{source['source']['source_version_id']}.md"].decode()
-    assert "Historically Approved — Superseded" in old_receipt
-    assert "Superseded by approval:** `approval-update`" in old_receipt
-    assert update["source"]["source_version_id"] in old_receipt
-
-    second = build_syllabus_approval_event(
-        approval_request(
-            source,
-            event_id="approval-2",
-            occurred_at="2026-08-19T00:20:00Z",
-            supersedes="approval-1",
-            correction=True,
-        )
-    )
-    corrected = projected(profile, [source, first, second])
-    title = next(
-        item
-        for item in corrected["grounding"]["effective_assertions"]
-        if item["field"] == "course.title"
-    )
-    assert title["origin"] == "learner_correction"
-    assert title["normalized_value"] == "Statistical Foundations for Data Science"
-    assert title["document_value"] == "Statistical Foundations of Data Science"
-    assert title["citations"]
-    corrected_reference = grounded_assessment(
-        "approval-2",
-        ["learner-correction-course-title-v1"],
-        occurred_at="2026-08-19T00:30:00Z",
-    )
-    assert projected(profile, [source, first, second, corrected_reference])["subjects"]
-
-    backdated = grounded_assessment(
-        "approval-1",
-        ["st5201x.course.code"],
-        event_id="grounded-before-backdated-approval",
-        occurred_at="2026-08-19T00:30:00Z",
-    )
-    with pytest.raises(ValidationError, match="later than every learning event"):
-        projected(profile, [source, first, backdated, second])
-
-
-def test_context_intake_receipts_are_deterministic_pending_and_approved_snapshots() -> None:
-    source = build_ingestion_event(
-        FIXTURE,
-        original_filename="syllabus2026.pdf",
-        media_type="application/pdf",
-        adapter_id="st5201x-2026-v1",
-        occurred_at="2026-08-19T00:00:00Z",
-    )
-    relative = f"syllabus/{source['source']['source_version_id']}.md"
-    pending = render_all_syllabus_receipts([source])[relative]
-    approved_event = build_syllabus_approval_event(
-        approval_request(source, event_id="approval-1", occurred_at="2026-08-19T00:10:00Z")
-    )
-    approved = render_all_syllabus_receipts([source, approved_event])[relative]
-    snapshot_root = Path(__file__).parent / "fixtures" / "syllabus" / "st5201x"
-    assert pending == snapshot_root.joinpath("expected-pending-receipt.md").read_bytes()
-    assert approved == snapshot_root.joinpath("expected-approved-receipt.md").read_bytes()
-    assert b"Approval Required" in pending
-    assert b"Approved" in approved
-    assert b"weeks_7_13_alignment" in approved
-    assert b"## Canonical Page Text" in approved
-
-
-def test_citation_history_is_pinned_and_mastery_neutral() -> None:
-    source = build_ingestion_event(
-        FIXTURE,
-        original_filename="syllabus2026.pdf",
-        media_type="application/pdf",
-        adapter_id="st5201x-2026-v1",
-        occurred_at="2026-07-31T00:00:00Z",
-    )
-    first = build_syllabus_approval_event(
-        approval_request(source, event_id="approval-1", occurred_at="2026-07-31T00:10:00Z")
-    )
-    fixture_events = [
-        json.loads(line)
-        for line in (Path(__file__).parent / "fixtures" / "local_store" / "events.jsonl")
-        .read_text(encoding="utf-8")
-        .splitlines()[:5]
-    ]
-    title_id = "st5201x.course.title"
-    fixture_events[0]["grounding"] = {
-        "approval_event_id": "approval-1",
-        "assertion_ids": [title_id],
-    }
-    fixture_events[-1]["grounding"] = {
-        "approval_event_id": "approval-1",
-        "assertion_ids": [title_id],
-    }
-    second = build_syllabus_approval_event(
-        approval_request(
-            source,
-            event_id="approval-2",
-            occurred_at="2026-08-02T00:00:00Z",
-            supersedes="approval-1",
-            correction=True,
-        )
-    )
-    profile = initial_profile("ST5201X", "Learn statistics")
-    grounded_events = [source, first, *fixture_events, second]
-    grounded_state = projected(profile, grounded_events)
-    ungrounded_learning = deepcopy(grounded_events)
-    for event in ungrounded_learning:
-        event.pop("grounding", None)
-    ungrounded_state = projected(profile, ungrounded_learning)
-    assert mastery_view(grounded_state) == mastery_view(ungrounded_state)
-
-    receipt = render_all_receipts(profile, grounded_events)["sessions/session-1.md"].decode()
-    assert "## Course Grounding" in receipt
-    assert "Approval `approval-1`" in receipt
-    assert "Statistical Foundations of Data Science" in receipt
-    assert "Statistical Foundations for Data Science" not in receipt
-    assert "page 1, chars" in receipt
-
-
-def test_citation_validation_rejects_unknown_deferred_wrong_and_early() -> None:
-    source = build_ingestion_event(
-        FIXTURE,
-        original_filename="syllabus2026.pdf",
-        media_type="application/pdf",
-        adapter_id="st5201x-2026-v1",
-        occurred_at="2026-08-19T00:00:00Z",
-    )
-    first = build_syllabus_approval_event(
-        approval_request(source, event_id="approval-1", occurred_at="2026-08-19T00:10:00Z")
-    )
-    profile = initial_profile("ST5201X", "Learn statistics")
-
-    with pytest.raises(ValidationError, match="not settled and effective"):
-        projected(profile, [source, first, grounded_assessment("approval-1", ["unknown-id"])])
-    with pytest.raises(ValidationError, match="not settled and effective"):
-        projected(
-            profile,
-            [
-                source,
-                first,
-                grounded_assessment("approval-1", ["st5201x.schedule.weeks_7_13_alignment"]),
-            ],
-        )
-
-    second = build_syllabus_approval_event(
-        approval_request(
-            source,
-            event_id="approval-2",
-            occurred_at="2026-08-19T00:15:00Z",
-            supersedes="approval-1",
-        )
-    )
-    with pytest.raises(ValidationError, match="expected active approval 'approval-2'"):
-        projected(
-            profile,
-            [source, first, second, grounded_assessment("approval-1", ["st5201x.course.code"])],
-        )
-    early = grounded_assessment(
-        "approval-1",
-        ["st5201x.course.code"],
-        event_id="early-grounding",
-        occurred_at="2026-08-19T00:05:00Z",
-    )
-    with pytest.raises(ValidationError, match="no syllabus approval was active"):
-        projected(profile, [source, early, first])
-
-
-def test_validation_rejects_correction_id_collision_with_source_namespace() -> None:
-    source = build_ingestion_event(
-        FIXTURE,
-        original_filename="syllabus2026.pdf",
-        media_type="application/pdf",
-        adapter_id="st5201x-2026-v1",
-        occurred_at="2026-08-19T00:00:00Z",
-    )
-    request = approval_request(
-        source,
-        event_id="approval-colliding-correction",
-        occurred_at="2026-08-19T00:10:00Z",
-        correction=True,
-    )
-    request["corrections"][0]["correction_assertion_id"] = "st5201x.course.code"
-    approval = build_syllabus_approval_event(request)
-
-    with pytest.raises(ValidationError, match="must not collide with a source assertion ID"):
-        projected(initial_profile("ST5201X", "Learn statistics"), [source, approval])
-
-
-@pytest.mark.parametrize(
-    ("admin_kind", "learning_kind"),
-    [
-        ("intake", "assessment"),
-        ("intake", "session_completed"),
-        ("approval", "assessment"),
-        ("approval", "session_completed"),
-    ],
-)
-def test_validation_rejects_later_learning_reuse_of_syllabus_admin_session(
-    admin_kind: str,
-    learning_kind: str,
-) -> None:
-    source = build_ingestion_event(
-        FIXTURE,
-        original_filename="syllabus2026.pdf",
-        media_type="application/pdf",
-        adapter_id="st5201x-2026-v1",
-        occurred_at="2026-08-19T00:00:00Z",
-    )
-    approval = build_syllabus_approval_event(
-        approval_request(
-            source,
-            event_id="approval-admin-session",
-            occurred_at="2026-08-19T00:10:00Z",
-        )
-    )
-    admin_session_id = source["session_id"] if admin_kind == "intake" else approval["session_id"]
-    if learning_kind == "assessment":
-        learning = grounded_assessment(
-            "approval-admin-session",
-            ["st5201x.course.code"],
-            event_id=f"reuse-{admin_kind}-assessment",
-            occurred_at="2026-08-19T00:20:00Z",
-        )
-        learning["session_id"] = admin_session_id
-    else:
-        learning = {
-            "event_id": f"reuse-{admin_kind}-completion",
-            "evidence_event_ids": [],
-            "kind": "session_completed",
-            "next_action": "Continue",
-            "next_review_date": None,
-            "occurred_at": "2026-08-19T00:20:00Z",
-            "receipt_schema_version": 1,
-            "schema_version": 1,
-            "session_id": admin_session_id,
-        }
-
-    with pytest.raises(ValidationError, match="must not reuse a syllabus administrative session"):
-        projected(
-            initial_profile("ST5201X", "Learn statistics"),
-            [source, approval, learning],
-        )
-
-
-@pytest.mark.parametrize("admin_kind", ["intake", "approval"])
-def test_validation_rejects_syllabus_admin_reuse_of_an_earlier_event_session(
-    admin_kind: str,
-) -> None:
-    source = build_ingestion_event(
-        FIXTURE,
-        original_filename="syllabus2026.pdf",
-        media_type="application/pdf",
-        adapter_id="st5201x-2026-v1",
-        occurred_at="2026-08-19T00:00:00Z",
-    )
-    approval = build_syllabus_approval_event(
-        approval_request(
-            source,
-            event_id="approval-claimed-session",
-            occurred_at="2026-08-19T00:10:00Z",
-        )
-    )
-    admin_event = source if admin_kind == "intake" else approval
-    claimed = {
-        "assistance": {"hint_count": 0, "level": "none"},
-        "context_id": "claimed-session",
-        "evidence_mode": "independent",
-        "event_id": f"assessment-claiming-{admin_kind}-session",
-        "kind": "assessment",
-        "novelty": "repeat",
-        "occurred_at": "2026-08-18T23:00:00Z",
-        "operation": "acquire",
-        "outcome": "pass",
-        "rubric_id": "claimed-session",
-        "schema_version": 1,
-        "session_id": admin_event["session_id"],
-        "subject": {"id": "probability", "label": "Probability", "type": "concept"},
-        "task_id": "claimed-session",
-    }
-    history = [claimed, source] if admin_kind == "intake" else [claimed, source, approval]
-    with pytest.raises(ValidationError, match="must not reuse a prior event session"):
-        projected(initial_profile("ST5201X", "Learn statistics"), history)
-
-
-def test_commit_rejects_legacy_syllabus_patch_once_grounding_is_approved(
-    tmp_path: Path,
-) -> None:
-    root = tmp_path / "vault"
-    domain_id, directory = init_domain(root)
-    output(ingest(root, domain_id, 0))
-    source = source_event(directory)
-    approval = write_json(
-        tmp_path / "approval.json",
-        approval_request(
-            source,
-            event_id="syllabus-approval-legacy-patch",
-            occurred_at="2026-08-19T00:10:00Z",
-        ),
-    )
-    output(
-        run_cli(
-            root,
-            "approve-syllabus",
-            "--domain-id",
-            domain_id,
-            "--expected-revision",
-            "1",
-            "--request",
-            str(approval),
-        )
-    )
-    baseline = tree(directory)
-    grounded_topics = json.loads(directory.joinpath("state.json").read_text(encoding="utf-8"))[
-        "syllabus"
-    ]
-    assert grounded_topics
-
-    patch = write_json(tmp_path / "patch.json", {"profile_patch": {"syllabus": ["Bayes rule"]}})
-    rejected = error(
-        run_cli(
-            root,
-            "commit",
-            "--domain-id",
-            domain_id,
-            "--expected-revision",
-            "2",
-            "--request",
-            str(patch),
-        )
-    )
-    assert "profile_patch.syllabus" in rejected["message"]
-    assert "approve-syllabus" in rejected["message"]
-    assert tree(directory) == baseline
-
-    goal_only = write_json(tmp_path / "goal.json", {"profile_patch": {"goal": "Pass ST5201X"}})
-    accepted = output(
-        run_cli(
-            root,
-            "commit",
-            "--domain-id",
-            domain_id,
-            "--expected-revision",
-            "2",
-            "--request",
-            str(goal_only),
-        )
-    )
-    assert accepted["revision"] == 3
-    updated = json.loads(directory.joinpath("state.json").read_text(encoding="utf-8"))
-    assert updated["syllabus"] == grounded_topics
-
-
-def test_commit_allows_legacy_syllabus_patch_while_ungrounded(tmp_path: Path) -> None:
-    root = tmp_path / "vault"
-    domain_id, directory = init_domain(root)
-    patch = write_json(tmp_path / "patch.json", {"profile_patch": {"syllabus": ["Bayes rule"]}})
-    accepted = output(
-        run_cli(
-            root,
-            "commit",
-            "--domain-id",
-            domain_id,
-            "--expected-revision",
-            "0",
-            "--request",
-            str(patch),
-        )
-    )
-    assert accepted["revision"] == 1
-    state = json.loads(directory.joinpath("state.json").read_text(encoding="utf-8"))
-    assert state["syllabus"] == ["Bayes rule"]
-    assert state["grounding"]["legacy_fallback"] is True
-
-
-def test_markdown_grounding_receipts_neutralize_active_syntax_and_page_fences() -> None:
-    source = build_ingestion_event(
-        FIXTURE,
-        original_filename="syllabus2026.pdf",
-        media_type="application/pdf",
-        adapter_id="st5201x-2026-v1",
-        occurred_at="2026-08-19T00:00:00Z",
-    )
-    source["source"]["original_filename"] = "![[note]] [link](target) `tick`"
-    source["pages"][0]["text"] += "\n````\n![[page-note]]\n![image](target)"
-    source["pages"][0]["text_sha256"] = sha256_bytes(source["pages"][0]["text"].encode("utf-8"))
-    relative = f"syllabus/{source['source']['source_version_id']}.md"
-    pending = render_all_syllabus_receipts([source])[relative].decode()
-    header, appendix = pending.split("## Canonical Page Text", maxsplit=1)
-    assert "![[note]]" not in header
-    assert r"!\[\[note\]\] \[link\](target) \`tick\`" in header
-    assert "`````text\n" in appendix
-    assert "\n`````\n" in appendix
-    assert "![[page-note]]" in appendix
-
-    approval_request_value = approval_request(
-        source,
-        event_id="approval-markdown",
-        occurred_at="2026-08-19T00:10:00Z",
-        correction=True,
-    )
-    approval_request_value["corrections"][0]["rationale"] = "Use ![[private]] [link](x)."
-    approval = build_syllabus_approval_event(approval_request_value)
-    approved = render_all_syllabus_receipts([source, approval])[relative].decode()
-    before_appendix = approved.split("## Canonical Page Text", maxsplit=1)[0]
-    assert "![[private]]" not in before_appendix
-    assert r"!\[\[private\]\] \[link\](x)." in before_appendix
-
-
-def test_syllabus_generated_tree_rebuild_validation_and_symlink_safety(tmp_path: Path) -> None:
-    root = tmp_path / "vault"
-    domain_id, directory = init_domain(root)
-    directory.joinpath("syllabus").write_text("obstruction\n", encoding="utf-8")
-    obstructed = error(run_cli(root, "validate", "--domain-id", domain_id))
-    assert "syllabus path must be a directory" in obstructed["message"]
-    directory.joinpath("syllabus").unlink()
-    output(ingest(root, domain_id, 0))
-    receipt = next(directory.joinpath("syllabus").glob("*.md"))
-    expected = {
-        "state.json": directory.joinpath("state.json").read_bytes(),
-        "dashboard.md": directory.joinpath("dashboard.md").read_bytes(),
-        receipt.relative_to(directory).as_posix(): receipt.read_bytes(),
-    }
-    for relative in expected:
-        directory.joinpath(relative).unlink()
-    rebuilt = output(run_cli(root, "rebuild", "--domain-id", domain_id))
-    assert rebuilt["status"] == "rebuilt"
-    for relative, content in expected.items():
-        assert directory.joinpath(relative).read_bytes() == content
-    assert output(run_cli(root, "validate", "--domain-id", domain_id))["status"] == "valid"
-
-    receipt.write_text("drift\n", encoding="utf-8")
-    drift = error(run_cli(root, "validate", "--domain-id", domain_id))
-    assert receipt.relative_to(directory).as_posix() in drift["message"]
-    output(run_cli(root, "rebuild", "--domain-id", domain_id))
-
-    orphan = directory / "syllabus" / "orphan.md"
-    orphan.write_text("orphan\n", encoding="utf-8")
-    invalid = error(run_cli(root, "validate", "--domain-id", domain_id))
-    assert "syllabus/orphan.md" in invalid["message"]
-    orphan.unlink()
-
-    outside = tmp_path / "outside.md"
-    outside.write_bytes(receipt.read_bytes())
-    receipt.unlink()
-    receipt.symlink_to(outside)
-    linked = error(run_cli(root, "validate", "--domain-id", domain_id))
-    assert receipt.relative_to(directory).as_posix() in linked["message"]
-    blocked = error(run_cli(root, "rebuild", "--domain-id", domain_id))
-    assert "generated target path must not contain symlinks" in blocked["message"]
-
-    receipt.unlink()
-    directory.joinpath("syllabus").rmdir()
-    outside_directory = tmp_path / "outside-syllabus"
-    outside_directory.mkdir()
-    directory.joinpath("syllabus").symlink_to(outside_directory, target_is_directory=True)
-    linked_directory = error(run_cli(root, "validate", "--domain-id", domain_id))
-    assert "syllabus directory must not be a symlink" in linked_directory["message"]
+    store.rebuild(profile["domain_id"])
+    assert not directory.joinpath("sources").exists()
+    assert not directory.joinpath("prepared").exists()
+    assert store.validate(profile["domain_id"])["status"] == "valid"

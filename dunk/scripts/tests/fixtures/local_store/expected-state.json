@@ -42,9 +42,11 @@
   "goal": "Explain parity | safely",
   "grounding": {
     "active_approval": null,
+    "active_decision": null,
     "active_source": null,
     "effective_assertions": [],
     "legacy_fallback": true,
+    "pending_authoritative_sources": [],
     "pending_sources": [],
     "planning_topics": [
       {
@@ -59,6 +61,7 @@
       }
     ],
     "status": "ungrounded",
+    "supplements": [],
     "unresolved_assertions": []
   },
   "legacy_imports": [],

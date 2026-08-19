@@ -53,4 +53,4 @@
 
 ### T12: Approved course grounding
 **Context:** An approved syllabus planning topic informs a prediction task.
-**Expected:** Cites the active approval and backing settled assertion IDs on learning events, discloses unresolved claims and supplemental material, and never treats source approval or coverage as prediction evidence.
+**Expected:** Cites the active decision via `decision_event_id` and backing settled assertion IDs, discloses unresolved claims and supplemental material, never treats source decisions or coverage as prediction evidence, and does not invoke prepare/propose/decide.

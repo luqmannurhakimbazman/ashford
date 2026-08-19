@@ -8,7 +8,7 @@ A Claude Code marketplace containing three separately installable plugins for de
 |---|---:|---|---|
 | `egg` | 1.1.0 | 5 commands, 2 agents, 12 skills, hooks | context7, git, chrome-devtools, Exa |
 | `aerion` | 1.0.0 | 1 command, 1 skill | Gmail, configurable Google Sheets |
-| `dunk` | 2.1.0 | 1 agent, 5 skills | context7, Exa |
+| `dunk` | 2.2.0 | 1 agent, 5 skills | context7, Exa |
 
 Installing one plugin does not install the other two.
 
@@ -80,7 +80,7 @@ Together they classify job-status email and synchronize application stages throu
 
 **Skills:** `dln`, `dln-dot`, `dln-linear`, `dln-network`, `dln-compress`
 
-The `dln` skill is a DLN-inspired tutoring scaffold organized as acquire/discriminate, relate/abstract, and predict/revise/compress. Dunk 2.1.0 can register the exact digest-bound ST5201X syllabus as versioned authority, preserve learner approval/correction history, and cite approved assertions without treating coverage as mastery. It records structured events locally, projects deterministic JSON and Markdown, and generates Syllabus Intake and teaching Session Receipts. Broader PDF/OCR support is not provided.
+The `dln` skill is a DLN-inspired tutoring scaffold organized as acquire/discriminate, relate/abstract, and predict/revise/compress. Dunk 2.2.0 can prepare bounded local or explicitly consented HTTPS PDF/HTML syllabi, retain original and normalized content in a content-addressed store, seal portable proposals, record complete learner decisions, and cite accepted assertions without treating coverage as mastery. It records structured events locally, projects deterministic JSON and Markdown, and generates Syllabus Intake and teaching Session Receipts. PDF extraction is pinned to `pypdf==6.14.2`; OCR is not provided.
 
 Set `DLN_VAULT_ROOT` to the directory that should contain `domains/`, or pass `--root` to the store CLI. When Claude Code exposes `${CLAUDE_PLUGIN_DATA}` to the parent Bash environment, Dunk otherwise defaults to `${CLAUDE_PLUGIN_DATA}/dln-vault`; if it does not, the CLI stops with an actionable configuration error rather than choosing an implicit home directory.
 
@@ -106,7 +106,7 @@ Egg registers:
 - Two `PreCompact` hooks: snapshot active LeetCode and markets sessions.
 - Two `Stop` hooks: require profile/ledger write-back after substantive teaching sessions.
 
-Dunk has no persistence hook. Its canonical per-domain files are user-owned `profile.yaml` and append-only `events.jsonl`; generated `state.json`, `dashboard.md`, `syllabus/<source-version-id>.md`, and `sessions/<session-id>.md` can be rebuilt at any time.
+Dunk has no persistence hook. Its canonical per-domain data is user-owned `profile.yaml`, append-only `events.jsonl`, retained `sources/sha256/` bytes, and normalized `prepared/sha256/` documents; generated `state.json`, `dashboard.md`, `syllabus/<source-version-id>.md`, and `sessions/<session-id>.md` can be rebuilt at any time.
 
 Persistent learner files must live outside the replaceable `${CLAUDE_PLUGIN_ROOT}` install cache. Dunk uses an explicit `DLN_VAULT_ROOT` when configured and can use `${CLAUDE_PLUGIN_DATA}/dln-vault` when that variable is available to the invoking Bash process. Egg performs a one-time, non-overwriting migration of its LeetCode and markets files from the legacy `~/.local/share/claude/` path.
 

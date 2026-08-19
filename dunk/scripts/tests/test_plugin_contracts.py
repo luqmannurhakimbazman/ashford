@@ -103,7 +103,7 @@ def test_phase_skills_link_shared_local_contracts_and_operations() -> None:
         assert "session_completed" in text
         assert "Session Receipt" in text
         assert "state.grounding" in text
-        assert "approval_event_id" in text
+        assert "decision_event_id" in text
         assert "assertion_ids" in text
         assert "supplemental" in text
         assert "unresolved" in text
@@ -125,16 +125,20 @@ def test_orchestrator_uses_context_routing_local_cli_and_receipt() -> None:
     assert "sole canonical summary" in text
     assert "spacing was not measured" in text
     assert "stable across retries" in text
+    for runtime_token in ("uv run", "--project", "--python 3.10.20", "--frozen"):
+        assert runtime_token in text
     for token in (
-        "ingest-syllabus",
-        "approve-syllabus",
+        "prepare-syllabus",
+        "syllabus-content",
+        "propose-syllabus",
+        "decide-syllabus",
         "state.grounding",
         "transient attachment",
         "do not patch `profile.syllabus`",
         "ungrounded curriculum",
         "both new and existing domains",
         "approved_update_pending",
-        "pending-source assertions",
+        "pending-source proposals",
     ):
         assert token in text
 
@@ -144,6 +148,7 @@ def test_syllabus_agent_is_return_only_and_has_no_remote_write_tool() -> None:
     frontmatter = text.split("---", 2)[1]
     assert "Notion" not in frontmatter
     assert "notion-" not in frontmatter.casefold()
+    assert "tools: []" in frontmatter
     assert "profile_patch" in text
     assert '"research_availability"' in text
     assert '"grounding_status": "ungrounded"' in text
@@ -186,28 +191,38 @@ def test_shared_contracts_cover_storage_evidence_and_receipt_boundaries() -> Non
         assert token in schema
 
     persistence = read(DLN_REFS / "local-persistence-protocol.md")
+    for runtime_token in ("uv run", "--project", "--python 3.10.20", "--frozen"):
+        assert runtime_token in persistence
     for token in (
         "--expected-revision",
         "Exit `3`",
         "Retry once",
         "doctor --recover",
-        "ingest-syllabus",
-        "approve-syllabus",
+        "prepare-syllabus",
+        "syllabus-content",
+        "propose-syllabus",
+        "decide-syllabus",
     ):
         assert token.casefold() in persistence.casefold()
 
+    storage = read(DUNK / "LOCAL_STORAGE.md")
+    for runtime_token in ("uv sync", "uv run", "--project", "--python 3.10.20", "--frozen", "pypdf.__version__ == '6.14.2'"):
+        assert runtime_token in storage
+
     grounding = read(DLN_REFS / "syllabus-grounding-protocol.md")
     for token in (
-        "st5201x-2026-v1",
-        "53909df562e2658ab3e1327eb8c33120fa12b37489178dc87bb4d632e4f15376",
-        "approval_required",
-        "planning_topics",
-        "approval_event_id",
-        "unresolved",
-        "supplemental",
-        "never assessments",
+        "prepare-syllabus",
+        "syllabus-content",
+        "propose-syllabus",
+        "decide-syllabus",
+        "decision_required",
+        "decision_event_id",
+        "ambiguous",
+        "supplement",
+        "never learner evidence",
     ):
         assert token in grounding
+    assert "st5201x" not in grounding.casefold()
 
     evidence = read(DLN_REFS / "evidence-protocol.md")
     for operation in ("acquire", "discriminate", "relate", "abstract", "predict"):

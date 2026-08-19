@@ -2,6 +2,20 @@
 
 All notable changes to this plugin will be documented in this file.
 
+## [2.2.0] - 2026-08-19
+
+### Added
+
+- Added generic local and explicit-consent HTTPS acquisition for PDF/HTML with stable failure codes, injected offline security tests, and retained content-addressed source/prepared data outside the plugin.
+- Added bounded stdlib HTML extraction and an isolated, fixed-argument PDF worker pinned exactly to `pypdf==6.14.2`, with page/text/time/output/resource limits and golden extraction fixtures.
+- Added the generic `prepare-syllabus`, `syllabus-content`, `propose-syllabus`, and `decide-syllabus` CLI lifecycle.
+
+### Changed
+
+- Replaced fixture-specific runtime instructions with portable proposal/decision contracts. New grounding citations use `decision_event_id`; historical `approval_event_id` remains replay-compatible.
+- Authoritative updates now preserve the prior active decision until a complete superseding decision. Supplements remain visible but cannot affect authority, planning citations, or mastery.
+- Canonical backups now include bounded original bytes and normalized prepared text. Rebuild never reacquires or re-extracts them.
+
 ## [2.1.0] - 2026-08-19
 
 ### Added

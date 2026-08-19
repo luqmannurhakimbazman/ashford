@@ -39,8 +39,8 @@ Return a compact machine-readable object with only fields needed for immediate r
   "current_model": null,
   "calibration": {"status": "not-measured"},
   "grounding": {
-    "status": "ungrounded|approval_required|approved|approved_update_pending",
-    "active_approval": null,
+    "status": "ungrounded|proposal_required|decision_required|approved|approved_update_pending",
+    "active_decision": null,
     "planning_topics": [{"label": "...", "assertion_ids": [], "citable": false}],
     "unresolved_assertions": [],
     "pending_sources": []
@@ -51,7 +51,7 @@ Return a compact machine-readable object with only fields needed for immediate r
 
 Preserve event IDs and measurement status exactly when present. Omit verbose labels only if stable subject IDs remain sufficient for the immediate task.
 
-Carry `state.grounding` through under the same field names the phase skills read. Keep `status`, `active_approval.event_id`, every `planning_topics` entry with its `label`, `assertion_ids`, and `citable` flag, the `assertion_id` of each unresolved assertion, and each pending source's `receipt` path. Beyond that list, drop only the verbose `effective_assertions` citation bodies and optionally the redundant `legacy_fallback` flag, which the example above omits because every planning topic already carries `citable`. A phase skill that needs a quote reloads `dln-store context`.
+Carry `state.grounding` through under the same field names the phase skills read. Keep `status`, `active_decision.event_id`, every `planning_topics` entry with its `label`, `assertion_ids`, and `citable` flag, the `assertion_id` of each unresolved assertion, and each pending source's `receipt` path. Beyond that list, drop only the verbose `effective_assertions` citation bodies and optionally the redundant `legacy_fallback` flag, which the example above omits because every planning topic already carries `citable`. A phase skill that needs a quote reloads `dln-store context`.
 
 ## Prohibitions
 
@@ -63,6 +63,7 @@ Carry `state.grounding` through under the same field names the phase skills read
 - Do not produce a learner-facing summary or artifact.
 - Do not hide independent/supported separation or convert `not-measured` into a qualitative claim.
 - Do not drop, rename, or flatten `state.grounding`, and do not separate a planning topic from its backing `assertion_ids` or its `citable` flag.
-- Do not present legacy ungrounded topics as citable, resolve a deferred assertion, or promote a pending-source assertion into the active approval.
+- Do not present legacy ungrounded topics as citable, resolve a deferred assertion, or promote a pending-source proposal or supplement into the active decision.
+- Do not invoke or gain authority for `prepare-syllabus`, `propose-syllabus`, or `decide-syllabus`; source decisions remain separate from mastery.
 
 If required state is missing, return an explicit missing-field diagnostic and ask the caller to reload `dln-store context`. Never fill gaps from conversation memory.

@@ -4,9 +4,40 @@ from __future__ import annotations
 
 import hashlib
 import re
+from copy import deepcopy
 from typing import Any
 
 from .schema import ValidationError
+
+def normalize_legacy_syllabus_source(event: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Normalize an inline legacy-v1 source without claiming or creating CAS content."""
+    document = {
+        "prepared_schema_version": 1,
+        "media_type": event["source"]["media_type"],
+        "normalization": {"policy_id": "legacy-inline-v1", "unicode": "NFC", "line_endings": "LF"},
+        "units": [
+            {"unit_id": f"page:{page['page_number']}", "kind": "page", "label": f"Page {page['page_number']}", "text": page["text"], "text_sha256": page["text_sha256"]}
+            for page in event["pages"]
+        ],
+    }
+    proposals: list[dict[str, Any]] = []
+    for index, assertion in enumerate(event["assertions"]):
+        status = {"not_specified": "explicitly_unknown", "unresolved": "ambiguous"}.get(assertion["status"], assertion["status"])
+        proposal = {
+            "proposal_id": assertion["assertion_id"], "display_order": index,
+            "predicate": assertion["field"], "label": assertion["field"],
+            "semantic_roles": ["planning_topic"] if assertion["field"] == "coverage.topic" else ["other"],
+            "value_type": "text" if isinstance(assertion["normalized_value"], str) else "unknown",
+            "status": status, "value": None if status == "ambiguous" else deepcopy(assertion["normalized_value"]),
+            "locators": [{"unit_id": f"page:{item['page_number']}", "start_char": item["start_char"], "end_char": item["end_char"], "quote": item["quote"]} for item in assertion["evidence"]],
+        }
+        if status == "ambiguous":
+            proposal["ambiguity"] = {"reason": assertion.get("note", "legacy unresolved assertion"), "unresolved_dimensions": [assertion["field"]], "candidates": []}
+        if "note" in assertion:
+            proposal["note"] = assertion["note"]
+        proposals.append(proposal)
+    return document, proposals
+
 
 START_MARKER = "<!-- KS:start -->"
 END_MARKER = "<!-- KS:end -->"

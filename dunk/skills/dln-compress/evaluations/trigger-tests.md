@@ -32,4 +32,4 @@
 
 ### T7: No side effects
 **Context:** Valid projected state is compacted.
-**Expected:** Creates no event, profile patch, persistence write, receipt, dashboard, or learner-facing artifact and makes no readiness decision.
+**Expected:** Creates no event, profile patch, persistence write, receipt, dashboard, or learner-facing artifact; makes no readiness decision; preserves `active_decision`/`decision_event_id`; and never invokes prepare/propose/decide or promotes supplements/pending sources.

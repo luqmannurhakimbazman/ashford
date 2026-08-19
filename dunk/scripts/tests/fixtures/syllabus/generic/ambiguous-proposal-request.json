@@ -1,0 +1,15 @@
+{
+  "occurred_at": "2026-08-19T00:01:00Z",
+  "prepared_event_id": "PREPARED_EVENT_ID",
+  "producer": {"name": "fixture-proposer", "trust": "external_unverified", "version": "1"},
+  "proposals": [{
+    "ambiguity": {"candidates": [], "reason": "Column alignment does not establish milestone-to-week mapping", "unresolved_dimensions": ["week-to-milestone"]},
+    "label": "Week/milestone mapping",
+    "locators": [{"end_char": 95, "quote": "Week 4        Week 5\nDataset A     Dataset B\nMilestone X   Milestone Y", "start_char": 25, "unit_id": "page:1"}],
+    "predicate": "schedule.mapping",
+    "semantic_roles": ["schedule", "milestone"],
+    "status": "ambiguous",
+    "value": null,
+    "value_type": "object"
+  }]
+}

@@ -52,8 +52,9 @@ def _page_text_fence(text: str) -> str:
 
 
 def _citation_text(citation: dict[str, Any]) -> str:
+    unit = citation.get("unit_id") or f"page:{citation.get('page_number')}"
     return (
-        f"page {citation['page_number']}, chars {citation['start_char']}–{citation['end_char']}: "
+        f"{markdown_text(unit)}, chars {citation['start_char']}–{citation['end_char']}: "
         f"“{markdown_text(citation['quote'])}”"
     )
 
@@ -71,197 +72,93 @@ def _render_assertion(lines: list[str], assertion: dict[str, Any]) -> None:
             f"document value: {_normalized_text(assertion['document_value'])}; "
             f"rationale: {markdown_text(assertion['rationale'])}"
         )
-    for citation in assertion["citations"]:
+    for citation in assertion.get("citations", []):
         lines.append(f"  - {_citation_text(citation)}")
+    for citation in assertion.get("document_context", []):
+        lines.append(f"  - Preserved document context (not support for correction): {_citation_text(citation)}")
     note = assertion.get("note") or assertion.get("document_note")
     if note:
         lines.append(f"  - Note: {markdown_text(note)}")
 
 
-def _source_assertion_view(assertion: dict[str, Any]) -> dict[str, Any]:
-    result = {
-        "assertion_id": assertion["assertion_id"],
-        "citations": assertion["evidence"],
-        "field": assertion["field"],
-        "normalized_value": assertion["normalized_value"],
-        "origin": "document",
-        "source_assertion_id": assertion["assertion_id"],
-        "status": assertion["status"],
-    }
-    if "note" in assertion:
-        result["note"] = assertion["note"]
-    return result
-
-
-SYLLABUS_SECTION_PREFIXES = (
-    ("Course & Offering", ("course.", "offering.")),
-    ("Staff & Logistics", ("staff.", "class.", "tutorial.")),
-    ("References", ("reference.",)),
-    ("Assessment", ("assessment.", "milestone.")),
-    ("Policies", ("policy.",)),
-    ("Coverage & Schedule", ("coverage.", "schedule.")),
-)
-
-
-def render_syllabus_receipt(timeline: GroundingTimeline, source_event: dict[str, Any]) -> bytes:
-    """Render one digest-bound source version and its immutable approval history."""
-    source = source_event["source"]
-    approvals = [
-        approval
-        for approval in timeline.approvals_by_id.values()
-        if approval["source_version_id"] == source["source_version_id"]
-    ]
-    latest_view = timeline.approval_views[approvals[-1]["event_id"]] if approvals else None
-    current_view = timeline.current_view()
-    is_active = bool(
-        current_view
-        and current_view["source"]["source"]["source_version_id"] == source["source_version_id"]
-    )
-    if not approvals:
-        status = "Approval Required"
-    elif is_active:
-        status = "Approved"
+def render_syllabus_receipt(timeline: GroundingTimeline, source: dict[str, Any]) -> bytes:
+    """Render one media-neutral authoritative or supplemental source lifecycle."""
+    views = [view for view in timeline.approval_views.values() if view["source"]["event_id"] == source["event_id"]]
+    latest = views[-1] if views else None
+    current = timeline.current_view()
+    active = bool(current and current["source"]["event_id"] == source["event_id"])
+    role_label = "Authoritative" if source["role"] == "authoritative" else "Non-Authoritative Supplement"
+    if source["phase"] == "prepared":
+        phase = "Proposal Required"
+    elif source["phase"] == "proposed":
+        phase = "Decision Required"
+    elif active:
+        phase = "Approved"
+    elif source["role"] == "supplement":
+        phase = "Decided — Display Only"
     else:
-        status = "Historically Approved — Superseded"
-    extractor = source_event["extraction"]
-    lines = [
-        f"# Syllabus Intake Receipt — {status}",
-        "",
-        SYLLABUS_GENERATED_WARNING.rstrip("\n"),
-        "",
-        f"- **Source version:** `{markdown_text(source['source_version_id'])}`",
-        f"- **Source ID:** `{markdown_text(source['source_id'])}`",
-        f"- **Filename:** {markdown_text(source['original_filename'])}",
-        f"- **SHA-256:** `{source['sha256']}`",
-        f"- **Bytes/pages:** {source['byte_size']} bytes / {source['page_count']} page(s)",
-        f"- **Ingested:** {markdown_text(source_event['occurred_at'])}",
-        f"- **Retention:** `{markdown_text(source['content_retention'])}`; "
-        "original PDF bytes are not stored",
-        f"- **Extraction:** `{markdown_text(extractor['extractor_name'])}` "
-        f"`{markdown_text(extractor['extractor_version'])}` via "
-        f"`{markdown_text(extractor['method'])}`",
-        f"- **Assertion set:** `{source_event['assertion_set_sha256']}`",
-    ]
-    if approvals and not is_active and current_view:
-        current_approval = current_view["approval"]
-        current_source = current_view["source"]["source"]
-        lines.extend(
-            [
-                f"- **Superseded by approval:** `{markdown_text(current_approval['event_id'])}`",
-                f"- **Current source version:** "
-                f"`{markdown_text(current_source['source_version_id'])}`",
-            ]
-        )
-
-    if latest_view:
-        rendered_assertions = latest_view["effective_assertions"]
+        phase = "Historically Approved — Superseded"
+    lines = [f"# Syllabus Receipt — {role_label} — {phase}", "", SYLLABUS_GENERATED_WARNING.rstrip("\n"), "",
+             f"- **Role:** `{source['role']}`", f"- **Storage:** `{source['storage']}`",
+             f"- **Source version:** `{markdown_text(source['source_version_id'])}`",
+             f"- **Filename:** {markdown_text(source['display_name'])}", f"- **Media type:** `{markdown_text(source['media_type'])}`",
+             f"- **Source SHA-256:** `{source['sha256']}`", f"- **Prepared SHA-256:** `{source.get('prepared_document_sha256') or 'legacy-inline-only'}`",
+             f"- **Recorded:** {markdown_text(source['occurred_at'])}"]
+    if source["role"] == "supplement":
+        lines.extend(["", "> [!important] This supplement is permanently non-authoritative and cannot drive active grounding, planning topics, or eligible learning citations."])
+    proposals = (latest or {}).get("proposals") or timeline.proposals_by_source_event.get(source["event_id"], {}).get("proposals", [])
+    rendered = latest["effective_assertions"] if latest else [_proposal_preview(item) for item in proposals]
+    lines.extend(["", "## Assertions", ""])
+    if rendered:
+        for assertion in rendered:
+            _render_assertion(lines, assertion)
     else:
-        rendered_assertions = [
-            _source_assertion_view(assertion)
-            for assertion in source_event["assertions"]
-            if assertion["status"] == "specified"
-        ]
-
-    for heading, prefixes in SYLLABUS_SECTION_PREFIXES:
-        lines.extend(["", f"## {heading}", ""])
-        section = [
-            assertion
-            for assertion in rendered_assertions
-            if assertion["status"] == "specified" and assertion["field"].startswith(prefixes)
-        ]
-        if section:
-            for assertion in section:
-                _render_assertion(lines, assertion)
-        else:
-            lines.append("No settled assertion in this section.")
-
-    if latest_view:
-        unresolved = [
-            assertion
-            for assertion in latest_view["effective_assertions"]
-            if assertion["status"] != "specified"
-        ] + latest_view["unresolved_assertions"]
-        source_order = {
-            assertion["assertion_id"]: index
-            for index, assertion in enumerate(source_event["assertions"])
-        }
-        unresolved.sort(key=lambda assertion: source_order[assertion["source_assertion_id"]])
-    else:
-        unresolved = [
-            _source_assertion_view(assertion)
-            for assertion in source_event["assertions"]
-            if assertion["status"] != "specified"
-        ]
-    lines.extend(["", "## Unresolved / Not Specified", ""])
+        lines.append("No proposal set has been recorded.")
+    unresolved = latest["unresolved_assertions"] if latest else [_proposal_preview(item) for item in proposals if item["status"] != "specified"]
+    lines.extend(["", "## Deferred / Ambiguous / Unknown", ""])
     if unresolved:
         for assertion in unresolved:
             _render_assertion(lines, assertion)
-            if "disposition" in assertion:
-                lines.append(f"  - Disposition: `{markdown_text(assertion['disposition'])}`")
     else:
-        lines.append("No unresolved, deferred, or not-specified assertions.")
-
-    lines.extend(["", "## Approval History", ""])
-    if approvals:
-        for approval in approvals:
-            accepted = ", ".join(
-                f"`{markdown_text(item)}`" for item in approval["accepted_assertion_ids"]
-            )
-            deferred = ", ".join(
-                f"`{markdown_text(item)}`" for item in approval["deferred_assertion_ids"]
-            )
-            lines.extend(
-                [
-                    f"### `{markdown_text(approval['event_id'])}`",
-                    "",
-                    f"- **Occurred:** {markdown_text(approval['occurred_at'])}",
-                    f"- **Actor:** `{markdown_text(approval['actor']['type'])}:"
-                    f"{markdown_text(approval['actor']['id'])}`",
-                    f"- **Approval set:** `{approval['approval_set_sha256']}`",
-                    f"- **Supersedes:** "
-                    f"`{markdown_text(approval['supersedes_approval_event_id'] or 'none')}`",
-                    f"- **Accepted:** {accepted or 'none'}",
-                    f"- **Deferred:** {deferred or 'none'}",
-                ]
-            )
-            if approval["corrections"]:
-                lines.append("- **Corrections:**")
-                source_by_id = {
-                    assertion["assertion_id"]: assertion for assertion in source_event["assertions"]
-                }
-                for correction in approval["corrections"]:
-                    target = source_by_id[correction["target_assertion_id"]]
-                    lines.append(
-                        f"  - `{markdown_text(correction['correction_assertion_id'])}` replaces "
-                        f"`{markdown_text(target['assertion_id'])}` value "
-                        f"{_normalized_text(target['normalized_value'])} with "
-                        f"{_normalized_text(correction['normalized_value'])}; "
-                        f"{markdown_text(correction['rationale'])}"
-                    )
-                    for citation in target["evidence"]:
-                        lines.append(
-                            f"    - Preserved document citation: {_citation_text(citation)}"
-                        )
+        lines.append("None.")
+    rejected = latest.get("rejected_assertions", []) if latest else []
+    lines.extend(["", "## Rejected", ""])
+    if rejected:
+        for assertion in rejected:
+            _render_assertion(lines, assertion)
+    else:
+        lines.append("None.")
+    lines.extend(["", "## Decision History", ""])
+    if views:
+        for view in views:
+            decision = view["decision"]
+            lines.extend([f"- `{decision['event_id']}` at {markdown_text(decision['occurred_at'])} — `{view['reference_field']}`"])
+            if decision["kind"] == "syllabus_decision_recorded":
+                lines.extend([
+                    f"  - Accepted: {', '.join(decision['accepted_proposal_ids']) or 'none'}",
+                    f"  - Deferred: {', '.join(decision['deferred_proposal_ids']) or 'none'}",
+                    f"  - Rejected: {', '.join(decision['rejected_proposal_ids']) or 'none'}",
+                    f"  - Corrected: {', '.join(item['target_proposal_id'] for item in decision['corrections']) or 'none'}",
+                ])
             else:
-                lines.append("- **Corrections:** none")
-            lines.append("")
+                lines.extend([
+                    f"  - Accepted: {', '.join(decision['accepted_assertion_ids']) or 'none'}",
+                    f"  - Deferred: {', '.join(decision['deferred_assertion_ids']) or 'none'}",
+                    f"  - Corrected: {', '.join(item['target_assertion_id'] for item in decision['corrections']) or 'none'}",
+                ])
     else:
-        lines.append("No approval has been recorded for this source version.")
-
-    lines.extend(["", "## Canonical Page Text", ""])
-    for page in source_event["pages"]:
-        fence = _page_text_fence(page["text"])
-        lines.extend(
-            [
-                f"### Page {page['page_number']}",
-                "",
-                f"{fence}text",
-                page["text"],
-                fence,
-                "",
-            ]
-        )
+        lines.append("No learner decision has been recorded.")
+    lines.extend(["", "## Canonical Prepared Text", ""])
+    for unit in source["document"]["units"]:
+        fence = _page_text_fence(unit["text"])
+        lines.extend([f"### {markdown_text(unit.get('label') or unit['unit_id'])}", "", f"{fence}text", unit["text"], fence, ""])
     return ("\n".join(lines).rstrip() + "\n").encode("utf-8")
+
+
+def _proposal_preview(proposal: dict[str, Any]) -> dict[str, Any]:
+    return {"assertion_id": proposal["proposal_id"], "source_assertion_id": proposal["proposal_id"],
+            "field": proposal["predicate"], "normalized_value": proposal["value"], "status": proposal["status"],
+            "origin": "document", "citations": proposal["locators"]}
 
 
 def render_all_syllabus_receipts(
@@ -274,7 +171,7 @@ def render_all_syllabus_receipts(
         f"syllabus/{version_id}.md": render_syllabus_receipt(
             timeline, timeline.sources_by_version[version_id]
         )
-        for version_id in timeline.source_order
+        for version_id in timeline.source_order + timeline.supplement_order
     }
 
 
@@ -297,19 +194,21 @@ def _dashboard_grounding_lines(grounding: dict[str, Any]) -> list[str]:
                 f"- **Active source:** {markdown_text(active['filename'])}",
                 f"- **Version:** `{markdown_text(active['source_version_id'])}`",
                 f"- **SHA-256:** `{active['sha256']}`",
-                f"- **Approval:** `{markdown_text(approval['event_id'])}`",
+                f"- **Decision/approval:** `{markdown_text(approval['event_id'])}`",
                 f"- **Unresolved/deferred:** {len(grounding['unresolved_assertions'])}",
                 f"- **Receipt:** [[{markdown_text(active['receipt'])}|Syllabus Intake Receipt]]",
             ]
         )
     if grounding["pending_sources"]:
-        label = "Pending update" if active else "Approval required"
+        label = "Pending update" if active else "Decision required"
         for pending in grounding["pending_sources"]:
             lines.append(
                 f"- **{label}:** {markdown_text(pending['filename'])} "
                 f"(`{markdown_text(pending['source_version_id'])}`) — "
                 f"[[{markdown_text(pending['receipt'])}|review intake receipt]]"
             )
+    for supplement in grounding.get("supplements", []):
+        lines.append(f"- **Non-authoritative supplement:** {markdown_text(supplement['filename'])} (`{markdown_text(supplement['phase'])}`) — [[{markdown_text(supplement['receipt'])}|view supplement]]")
     return lines
 
 
@@ -589,7 +488,8 @@ def render_receipt(
         if grounding is None:
             continue
         for assertion_id in grounding["assertion_ids"]:
-            key = (grounding["approval_event_id"], assertion_id)
+            authority_id = grounding.get("decision_event_id") or grounding.get("approval_event_id")
+            key = (authority_id, assertion_id)
             if key not in seen_references:
                 seen_references.add(key)
                 references.append(key)
@@ -599,14 +499,14 @@ def render_receipt(
             view = timeline.approval_views[approval_id]
             if approval_id != current_approval_id:
                 approval = view["approval"]
-                source = view["source"]["source"]
+                source = view["source"]
                 lines.extend(
                     [
-                        f"### Approval `{markdown_text(approval_id)}`",
+                        f"### Decision/Approval `{markdown_text(approval_id)}`",
                         "",
                         f"- **Source version:** `{markdown_text(source['source_version_id'])}`",
                         f"- **Source SHA-256:** `{source['sha256']}`",
-                        f"- **Approved:** {markdown_text(approval['occurred_at'])}",
+                        f"- **Decided:** {markdown_text(approval['occurred_at'])}",
                     ]
                 )
                 current_approval_id = approval_id

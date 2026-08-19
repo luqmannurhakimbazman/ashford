@@ -49,4 +49,4 @@
 
 ### T11: Approved course grounding
 **Context:** `state.grounding` is approved and a citable planning topic selects the task.
-**Expected:** Uses the active approval and backing settled assertion IDs on the assessment/completion events, keeps unresolved Week 7–13 mapping unresolved, labels outside material supplemental, and never treats syllabus coverage as evidence.
+**Expected:** Uses the active decision and backing settled assertion IDs on assessment/completion events via `decision_event_id`, keeps unresolved ambiguity unresolved, labels outside material supplemental, and never treats syllabus coverage as evidence. It does not invoke prepare/propose/decide or promote supplements/pending sources.

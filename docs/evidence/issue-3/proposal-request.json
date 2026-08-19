@@ -1,0 +1,27 @@
+{
+  "occurred_at": "2026-08-19T00:01:00Z",
+  "prepared_event_id": "PREPARED_EVENT_ID",
+  "producer": {
+    "name": "portable-evidence-proposer",
+    "trust": "external_unverified",
+    "version": "1"
+  },
+  "proposals": [
+    {
+      "label": "Week 1 planning topic",
+      "locators": [
+        {
+          "end_char": 56,
+          "quote": "Week 1 Foundations",
+          "start_char": 38,
+          "unit_id": "page:2"
+        }
+      ],
+      "predicate": "coverage.topic",
+      "semantic_roles": ["planning_topic"],
+      "status": "specified",
+      "value": "Week 1 Foundations",
+      "value_type": "text"
+    }
+  ]
+}

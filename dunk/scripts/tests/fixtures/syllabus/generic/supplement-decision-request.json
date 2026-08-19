@@ -1,0 +1,10 @@
+{
+  "accepted_proposal_ids": ["SUPPLEMENT_PROPOSAL_ID"],
+  "actor": {"id": "learner", "type": "learner"},
+  "corrections": [],
+  "deferred_proposal_ids": [],
+  "occurred_at": "2026-08-19T00:04:00Z",
+  "proposal_event_id": "SUPPLEMENT_PROPOSAL_EVENT_ID",
+  "rejected_proposal_ids": [],
+  "supersedes_decision_event_id": null
+}
