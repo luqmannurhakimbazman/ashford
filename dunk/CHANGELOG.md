@@ -15,6 +15,8 @@ All notable changes to this plugin will be documented in this file.
 - Replaced fixture-specific runtime instructions with portable proposal/decision contracts. New grounding citations use `decision_event_id`; historical `approval_event_id` remains replay-compatible.
 - Authoritative updates now preserve the prior active decision until a complete superseding decision. Supplements remain visible but cannot affect authority, planning citations, or mastery.
 - Canonical backups now include bounded original bytes and normalized prepared text. Rebuild never reacquires or re-extracts them.
+- `state.json` now carries a `grounding` object, `dashboard.md` gains a Course Grounding section, and each canonical syllabus source event generates a Syllabus Intake Receipt. Canonical `profile.yaml` and `events.jsonl` still load without migration, but projections written by 2.0/2.1 are stale: run `rebuild` once per existing domain after upgrading, before `validate`.
+- Only `prepare-syllabus --media-type application/pdf` requires the frozen `pypdf` environment; every other command stays stdlib-only, and `uv` must be pointed outside `${CLAUDE_PLUGIN_ROOT}` with `UV_PROJECT_ENVIRONMENT`.
 
 ## [2.1.0] - 2026-08-19
 

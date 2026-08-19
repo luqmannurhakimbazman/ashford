@@ -4,21 +4,33 @@ The parent orchestrator is the only authority allowed to invoke `dln-store.py`. 
 
 ## Commands
 
+Every command below is stdlib-only:
+
 ```bash
-uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen python "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" init --domain "$DOMAIN" --goal "$GOAL"
-uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen python "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" list
-uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen python "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" context --domain-id "$DOMAIN_ID"
-uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen python "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" commit --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --request "$REQUEST_FILE"
-uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen python "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" prepare-syllabus --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --file "$DOCUMENT" --media-type application/pdf --role authoritative --display-name syllabus.pdf --occurred-at "$TIMESTAMP"
-uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen python "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" syllabus-content --domain-id "$DOMAIN_ID" --source-event-id "$SOURCE_EVENT_ID"
-uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen python "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" propose-syllabus --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --request "$PROPOSAL_FILE"
-uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen python "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" decide-syllabus --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --request "$DECISION_FILE"
-uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen python "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" validate --domain-id "$DOMAIN_ID"
-uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen python "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" doctor --domain-id "$DOMAIN_ID" --recover
-uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen python "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" rebuild --domain-id "$DOMAIN_ID"
+STORE="${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py"
+
+python3 "$STORE" init --domain "$DOMAIN" --goal "$GOAL"
+python3 "$STORE" list
+python3 "$STORE" context --domain-id "$DOMAIN_ID"
+python3 "$STORE" commit --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --request "$REQUEST_FILE"
+python3 "$STORE" prepare-syllabus --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --file "$DOCUMENT" --media-type text/html --role authoritative --display-name syllabus.html --occurred-at "$TIMESTAMP"
+python3 "$STORE" syllabus-content --domain-id "$DOMAIN_ID" --source-event-id "$SOURCE_EVENT_ID"
+python3 "$STORE" propose-syllabus --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --request "$PROPOSAL_FILE"
+python3 "$STORE" decide-syllabus --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --request "$DECISION_FILE"
+python3 "$STORE" validate --domain-id "$DOMAIN_ID"
+python3 "$STORE" doctor --domain-id "$DOMAIN_ID" --recover
+python3 "$STORE" rebuild --domain-id "$DOMAIN_ID"
 ```
 
-PDF preparation must run in the frozen environment containing exactly `pypdf==6.14.2`. HTTPS replaces `--file` with an explicit `--url` and requires `--network-consent`; redirects additionally require `--allow-redirects` and are capped/revalidated.
+PDF preparation is the only command with a third-party dependency and must run in the frozen environment containing exactly `pypdf==6.14.2`. Point `UV_PROJECT_ENVIRONMENT` outside `${CLAUDE_PLUGIN_ROOT}`, which plugin updates replace:
+
+```bash
+DLN_ROOT="${DLN_VAULT_ROOT:-${CLAUDE_PLUGIN_DATA:?set DLN_VAULT_ROOT}/dln-vault}"
+export UV_PROJECT_ENVIRONMENT="$DLN_ROOT/.uv/pypdf-6.14.2"
+uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen python "$STORE" prepare-syllabus --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --file "$DOCUMENT" --media-type application/pdf --role authoritative --display-name syllabus.pdf --occurred-at "$TIMESTAMP"
+```
+
+If `uv` or the frozen environment is unavailable, report `extractor_unavailable` for PDF preparation only; never route the remaining commands through `uv` and never write a virtual environment into the plugin directory. HTTPS replaces `--file` with an explicit `--url` and requires `--network-consent`; redirects additionally require `--allow-redirects` and are capped/revalidated.
 
 ## Optimistic revision and recovery
 

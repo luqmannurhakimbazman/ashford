@@ -493,6 +493,26 @@ def syllabus_approval_set_sha256(event: dict[str, Any]) -> str:
     return sha256_bytes(canonical_json(payload, newline=False))
 
 
+def validate_sealable_items(
+    value: Any, path: str, *, limit: int = 2048, minimum: int = 0
+) -> list[dict[str, Any]]:
+    """Type-check an externally supplied array of JSON objects before the store seals it."""
+    items = _list(value, path)
+    if not minimum <= len(items) <= limit:
+        _fail(path, f"must contain {minimum} through {limit} items")
+    return [_object(item, f"{path}[{index}]") for index, item in enumerate(items)]
+
+
+def validate_proposal_id_list(value: Any, path: str, *, limit: int = 2048) -> list[str]:
+    """Type-check an externally supplied proposal-ID partition before the store sorts it."""
+    items = _string_list(value, path, unique=True)
+    if len(items) > limit:
+        _fail(path, f"must contain at most {limit} proposal IDs")
+    for index, item in enumerate(items):
+        _identifier(item, f"{path}[{index}]")
+    return items
+
+
 def _bounded_json(value: Any, path: str, limit: int = 65536) -> Any:
     data = canonical_json(value, newline=False)
     if len(data) > limit:

@@ -100,10 +100,6 @@ def _verify_media(acquired: AcquiredSource, media_type: str) -> str:
         meta_charset = meta.group(1).lower().replace("_", "-")
         if meta_charset not in {"utf-8", "utf8", "us-ascii", "ascii"}:
             raise _error("unsupported_charset", "HTML meta charset is not supported", phase="media")
-        normalized_meta = "utf-8" if meta_charset in {"utf-8", "utf8"} else "ascii"
-        normalized_header = "utf-8" if charset == "utf-8" else "ascii"
-        if acquired.content_type and normalized_meta != normalized_header:
-            raise _error("unsupported_charset", "HTML header and meta charsets disagree", phase="media")
     lead = preview.lstrip().lower()
     if not any(marker in lead[:4096] for marker in ("<!doctype html", "<html", "<head", "<body")):
         raise _error("media_mismatch", "HTML source lacks recognizable document markup", phase="media")

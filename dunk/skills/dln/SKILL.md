@@ -39,11 +39,19 @@ The files `init-template.md`, `merge-payload-schema.md`, and `merge-protocol.md`
 
 ## Local authority
 
-Run the authoritative CLI in the frozen Python 3.10 environment for PDF preparation (other commands remain stdlib-compatible):
+Run the authoritative CLI on stdlib `python3`:
 
 ```bash
-uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen \
-  python "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" <command>
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" <command>
+```
+
+Only `prepare-syllabus --media-type application/pdf` needs the frozen Python 3.10 environment holding exactly `pypdf==6.14.2`. Direct `uv` at an environment outside the replaceable plugin directory before using it, and keep every other command on `python3`:
+
+```bash
+DLN_ROOT="${DLN_VAULT_ROOT:-${CLAUDE_PLUGIN_DATA:?set DLN_VAULT_ROOT}/dln-vault}"
+UV_PROJECT_ENVIRONMENT="$DLN_ROOT/.uv/pypdf-6.14.2" \
+  uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen \
+  python "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" prepare-syllabus ...
 ```
 
 Root discovery is `--root`, then `DLN_VAULT_ROOT`, then `${CLAUDE_PLUGIN_DATA}/dln-vault`. If the CLI says the root is unconfigured, ask the user to set `DLN_VAULT_ROOT`; do not choose an implicit directory.
@@ -86,7 +94,7 @@ For both new and existing domains, resolve supplied-document status before routi
 4. Validate the returned media-neutral locators and run `propose-syllabus`. Status becomes `decision_required`; ambiguous proposals remain unresolved and cannot be accepted.
 5. Present every immutable proposal and collect a complete learner accept/correct/defer/reject partition. Write the private request and run `decide-syllabus`, then reload `context`. New citations use `decision_event_id` plus `assertion_ids`.
 6. While `approved_update_pending`, the prior `active_source` and `active_decision` remain authoritative. pending-source proposals and supplements cannot drive planning topics, teaching citations, or mastery.
-7. On explicit failure/refusal, offer retry or the separate generated `ungrounded curriculum` path. Only that path may commit learner-approved `profile_patch.syllabus`; on the grounded path, do not patch `profile.syllabus`.
+7. On explicit failure/refusal, offer retry or the separate generated `ungrounded curriculum` path. That path is internal-knowledge only: `dln-syllabus` holds no research or document tools, so state plainly that its topics are unresearched and non-citable. Only that path may commit learner-approved `profile_patch.syllabus`; on the grounded path, do not patch `profile.syllabus`.
 
 The four generic commands are `prepare-syllabus`, `syllabus-content`, `propose-syllabus`, and `decide-syllabus`. Stable acquisition/extraction error codes are safe to present without source contents. A syllabus decision is planning authority, never mastery or evidence.
 

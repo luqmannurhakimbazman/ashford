@@ -11,7 +11,7 @@ Return structured content to the parent only. Parent owns all persistence, CLI c
 
 ## Mode 1: generated ungrounded curriculum
 
-When no authoritative source has been prepared, return a bounded proposal containing `profile_patch`, a generated topic sequence, `"research_availability"`, and `"grounding_status": "ungrounded"`. This no-tool agent reports research availability as unavailable; research is never document-derived authority. The learner may choose this fallback explicitly.
+When no authoritative source has been prepared, return a bounded proposal containing `profile_patch`, a generated topic sequence, `"research_availability"`, and `"grounding_status": "ungrounded"`. This agent holds no tools because Mode 2 reads untrusted document text, and a network or fetch tool in the same context would be an injection-driven exfiltration channel. It therefore reports research availability as unavailable and returns internal-knowledge topics only; research is never document-derived authority. The learner may choose this fallback explicitly.
 
 ## Mode 2: verified prepared-document proposals
 

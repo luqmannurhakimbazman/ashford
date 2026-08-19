@@ -169,14 +169,20 @@ import subprocess
 import sys
 from pathlib import Path
 
+import dln_store.extraction as extraction
 from dln_store.store import LocalStore
 
 def forbidden(*args, **kwargs):
     raise AssertionError("offline rebuild attempted an external dependency")
 
+socket.socket = forbidden
 socket.getaddrinfo = forbidden
 subprocess.run = forbidden
 subprocess.Popen = forbidden
+extraction.acquire_local = forbidden
+extraction.acquire_https = forbidden
+extraction.extract_pdf = forbidden
+extraction.extract_html = forbidden
 store = LocalStore(Path(sys.argv[1]))
 assert store.syllabus_content(sys.argv[2], sys.argv[3])["storage"] == "cas"
 store.context(sys.argv[2])

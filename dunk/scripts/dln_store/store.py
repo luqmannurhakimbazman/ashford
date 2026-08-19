@@ -49,6 +49,8 @@ from .schema import (
     validate_prepared_document,
     validate_commit_request,
     validate_profile,
+    validate_proposal_id_list,
+    validate_sealable_items,
 )
 
 TXN_NAME = ".dln-transaction"
@@ -570,6 +572,8 @@ def _verified_prepared_documents(
     paths: DomainPaths,
     events: list[dict[str, Any]],
     pending_targets: dict[str, bytes] | None = None,
+    *,
+    position_offset: int = 0,
 ) -> tuple[dict[str, dict[str, Any]], set[str], set[str]]:
     """Verify every CAS reference before reduction; legacy inline events need no CAS."""
     pending_targets = pending_targets or {}
@@ -590,9 +594,10 @@ def _verified_prepared_documents(
             raise ValidationError(f"canonical syllabus content exceeds its bound: {relative_text}")
         return target.read_bytes()
 
-    for position, event in enumerate(events):
+    for index, event in enumerate(events):
         if event["kind"] != "syllabus_source_prepared":
             continue
+        position = index + position_offset
         source = event["source"]
         prepared = event["prepared"]
         source_path = source["cas_path"]
@@ -621,12 +626,15 @@ def _verified_prepared_documents(
     return documents, source_paths, prepared_paths
 
 
-def _canonical_content_diagnostics(paths: DomainPaths, events: list[dict[str, Any]]) -> dict[str, list[str]]:
-    """Collect deterministic CAS integrity diagnostics without stopping at the first object."""
+def _canonical_content_diagnostics(
+    paths: DomainPaths, events: list[dict[str, Any]]
+) -> tuple[dict[str, list[str]], dict[str, dict[str, Any]], set[str], set[str]]:
+    """Collect deterministic CAS diagnostics and the documents verified by the same pass."""
     missing: list[str] = []
     corrupt: list[str] = []
     referenced_sources: set[str] = set()
     referenced_prepared: set[str] = set()
+    documents: dict[str, dict[str, Any]] = {}
     for event in events:
         if event["kind"] != "syllabus_source_prepared":
             continue
@@ -660,6 +668,8 @@ def _canonical_content_diagnostics(paths: DomainPaths, events: list[dict[str, An
                     text_size = sum(len(unit["text"].encode("utf-8")) for unit in document["units"])
                     if prepared_document_bytes(document) != data or document["media_type"] != event["source"]["media_type"] or len(document["units"]) != event["prepared"]["unit_count"] or text_size != event["prepared"]["text_byte_size"]:
                         corrupt.append(relative_text)
+                    else:
+                        documents[event["event_id"]] = {"document": document, "bytes": data}
             except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValidationError):
                 corrupt.append(relative_text)
     orphaned: list[str] = []
@@ -674,7 +684,8 @@ def _canonical_content_diagnostics(paths: DomainPaths, events: list[dict[str, An
                 relative = entry.relative_to(paths.directory).as_posix()
                 if relative not in referenced:
                     orphaned.append(relative)
-    return {"missing": sorted(set(missing)), "corrupt": sorted(set(corrupt)), "orphaned": sorted(set(orphaned))}
+    diagnostics = {"missing": sorted(set(missing)), "corrupt": sorted(set(corrupt)), "orphaned": sorted(set(orphaned))}
+    return diagnostics, documents, referenced_sources, referenced_prepared
 
 
 def _projection_targets(
@@ -883,9 +894,12 @@ class LocalStore:
                 target = paths.directory / relative
                 if target.exists() and (target.is_symlink() or not target.is_file() or target.read_bytes() != candidate_bytes):
                     raise ValidationError(f"content-addressed path collision/corruption: {relative_text}")
-            candidate_documents, candidate_source_refs, candidate_prepared_refs = _verified_prepared_documents(
-                paths, candidate_events, canonical_content
+            appended_documents, appended_source_refs, appended_prepared_refs = _verified_prepared_documents(
+                paths, new_events, canonical_content, position_offset=len(events)
             )
+            candidate_documents = {**prepared_documents, **appended_documents}
+            candidate_source_refs = source_refs | appended_source_refs
+            candidate_prepared_refs = prepared_refs | appended_prepared_refs
             projection_targets, state = _projection_targets(
                 candidate_profile,
                 candidate_profile_bytes,
@@ -1090,7 +1104,7 @@ class LocalStore:
             raise ValidationError("prepared_event_id must reference syllabus_source_prepared")
         sealed: list[dict[str, Any]] = []
         proposal_bytes_total = 0
-        for index, request in enumerate(proposals):
+        for index, request in enumerate(validate_sealable_items(proposals, "proposals", minimum=1)):
             core = dict(request)
             core.pop("proposal_id", None)
             core.pop("display_order", None)
@@ -1133,9 +1147,12 @@ class LocalStore:
         proposal_event = self._event_by_id(domain_id, proposal_event_id)
         if proposal_event["kind"] != "syllabus_assertions_proposed":
             raise ValidationError("proposal_event_id must reference syllabus_assertions_proposed")
+        accepted = validate_proposal_id_list(accepted_proposal_ids, "accepted_proposal_ids")
+        deferred = validate_proposal_id_list(deferred_proposal_ids, "deferred_proposal_ids")
+        rejected = validate_proposal_id_list(rejected_proposal_ids, "rejected_proposal_ids")
         sealed_corrections = []
         correction_bytes_total = 0
-        for request in corrections:
+        for request in validate_sealable_items(corrections, "corrections"):
             core = dict(request)
             core.pop("correction_id", None)
             core_bytes = canonical_json(core, newline=False)
@@ -1152,8 +1169,8 @@ class LocalStore:
             "prepared_document_sha256": proposal_event["prepared_document_sha256"],
             "proposal_event_id": proposal_event["event_id"], "proposal_set_sha256": proposal_event["proposal_set_sha256"],
             "actor": actor or {"type": "learner", "id": "learner"},
-            "accepted_proposal_ids": sorted(accepted_proposal_ids), "deferred_proposal_ids": sorted(deferred_proposal_ids),
-            "rejected_proposal_ids": sorted(rejected_proposal_ids), "corrections": sealed_corrections,
+            "accepted_proposal_ids": sorted(accepted), "deferred_proposal_ids": sorted(deferred),
+            "rejected_proposal_ids": sorted(rejected), "corrections": sealed_corrections,
             "supersedes_decision_event_id": supersedes_decision_event_id, "decision_set_sha256": "0" * 64,
         }
         digest = syllabus_decision_set_sha256(event)
@@ -1247,11 +1264,10 @@ class LocalStore:
                     f"interrupted transaction at {paths.transaction}; run doctor --recover"
                 )
             profile, profile_bytes, events, events_bytes = _load_sources(paths)
-            content_diagnostics = _canonical_content_diagnostics(paths, events)
+            content_diagnostics, prepared_documents, source_refs, prepared_refs = _canonical_content_diagnostics(paths, events)
             if any(content_diagnostics.values()):
                 details = [f"{key} canonical syllabus content: {', '.join(values)}" for key, values in content_diagnostics.items() if values]
                 raise ValidationError("; ".join(details))
-            prepared_documents, source_refs, prepared_refs = _verified_prepared_documents(paths, events)
             targets, _ = _projection_targets(profile, profile_bytes, events, events_bytes, prepared_documents)
             drift: list[str] = []
             for relative, expected in targets.items():
@@ -1263,16 +1279,6 @@ class LocalStore:
             }
             orphan_sessions: list[str] = []
             orphan_syllabus: list[str] = []
-            orphan_content: list[str] = []
-            for directory, referenced in ((paths.sources, source_refs), (paths.prepared, prepared_refs)):
-                if directory.exists():
-                    if directory.is_symlink() or not directory.is_dir():
-                        raise ValidationError(f"canonical content namespace is invalid: {directory}")
-                    for entry in directory.rglob("*"):
-                        if entry.is_file() or entry.is_symlink():
-                            relative = entry.relative_to(paths.directory).as_posix()
-                            if relative not in referenced:
-                                orphan_content.append(relative)
             for generated_directory, orphans in (
                 (paths.sessions, orphan_sessions),
                 (paths.syllabus, orphan_syllabus),
@@ -1306,8 +1312,6 @@ class LocalStore:
                     + ", ".join(sorted(set(orphan_syllabus)))
                     + "; every receipt must correspond to a canonical syllabus source event"
                 )
-            if orphan_content:
-                problems.append("orphaned canonical syllabus content: " + ", ".join(sorted(set(orphan_content))))
             if problems:
                 raise ValidationError("; ".join(problems))
             return {

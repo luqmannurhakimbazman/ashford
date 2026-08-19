@@ -127,6 +127,8 @@ def test_orchestrator_uses_context_routing_local_cli_and_receipt() -> None:
     assert "stable across retries" in text
     for runtime_token in ("uv run", "--project", "--python 3.10.20", "--frozen"):
         assert runtime_token in text
+    assert 'python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py"' in text
+    assert "UV_PROJECT_ENVIRONMENT" in text
     for token in (
         "prepare-syllabus",
         "syllabus-content",
@@ -208,6 +210,19 @@ def test_shared_contracts_cover_storage_evidence_and_receipt_boundaries() -> Non
     storage = read(DUNK / "LOCAL_STORAGE.md")
     for runtime_token in ("uv sync", "uv run", "--project", "--python 3.10.20", "--frozen", "pypdf.__version__ == '6.14.2'"):
         assert runtime_token in storage
+    for token in (
+        "Obsidian vault", ".DS_Store", ".locks/", "doctor --domain-id",
+        "import-legacy-ks", "--root <path>", "rebuild` once per existing domain",
+    ):
+        assert token in storage
+    for document in (persistence, storage):
+        assert "UV_PROJECT_ENVIRONMENT" in document
+        assert 'python3 "$STORE" validate' in document
+        assert "CLAUDE_PLUGIN_ROOT}/scripts/.venv" not in document
+        for command in document.replace("\\\n", " ").splitlines():
+            if "uv run" not in command:
+                continue
+            assert "prepare-syllabus" in command or "import pypdf" in command, command
 
     grounding = read(DLN_REFS / "syllabus-grounding-protocol.md")
     for token in (

@@ -30,7 +30,7 @@ from dln_store.acquisition import (
 from dln_store.cli import MAX_REQUEST_BYTES, _read_bounded_object, build_parser, main
 import dln_store.extraction as extraction_module
 import dln_store.pdf_worker as pdf_worker
-from dln_store.extraction import PYPDF_VERSION, PreparationService, extract_html, extract_pdf
+from dln_store.extraction import PYPDF_VERSION, PreparationService, _verify_media, extract_html, extract_pdf
 from dln_store.schema import SyllabusIntakeError, ValidationError
 from dln_store.store import LocalStore
 
@@ -369,7 +369,7 @@ def test_cli_exposes_generic_lifecycle_and_stable_intake_envelope(tmp_path: Path
     choices = build_parser()._subparsers._group_actions[0].choices
     assert {"prepare-syllabus", "propose-syllabus", "decide-syllabus", "syllabus-content"} <= set(choices)
     assert "ingest-syllabus" not in choices and "approve-syllabus" not in choices
-    store, domain_id, _ = initialized(tmp_path)
+    store, domain_id, directory = initialized(tmp_path)
     code = main([
         "prepare-syllabus", "--root", str(store.root), "--domain-id", domain_id,
         "--expected-revision", "0", "--url", "https://example.com/a.pdf",
@@ -382,6 +382,57 @@ def test_cli_exposes_generic_lifecycle_and_stable_intake_envelope(tmp_path: Path
         "code": "network_consent_required", "error": "SyllabusIntakeError",
         "message": "HTTPS acquisition requires --network-consent", "phase": "acquisition",
     }
+
+    source_file = tmp_path / "syllabus.html"
+    source_file.write_bytes((GENERIC / "adversarial-syllabus.html").read_bytes())
+    prepared = store.prepare_syllabus(
+        domain_id, 0, source=LocalFileSource(source_file), media_type="text/html", role="authoritative",
+        display_name="syllabus.html", occurred_at="2026-08-19T00:00:00Z",
+    )
+    capsys.readouterr()
+    before_malformed = tree(directory)
+    request_file = tmp_path / "proposal-request.json"
+    for malformed in ([1], "abc", {"a": 1}, [[]]):
+        request_file.write_text(json.dumps({
+            "prepared_event_id": prepared["source_event_id"], "occurred_at": "2026-08-19T00:01:00Z",
+            "producer": {"trust": "external_unverified", "name": "t", "version": "1"},
+            "proposals": malformed,
+        }))
+        code = main([
+            "propose-syllabus", "--root", str(store.root), "--domain-id", domain_id,
+            "--expected-revision", "1", "--request", str(request_file),
+        ])
+        error = json.loads(capsys.readouterr().err)
+        assert code == 2
+        assert error["error"] == "ValidationError" and error["code"] == "validation_error"
+        assert error["message"].startswith("proposals")
+    assert tree(directory) == before_malformed
+
+    content = store.syllabus_content(domain_id, prepared["source_event_id"])
+    proposal = store.propose_syllabus(
+        domain_id, 1, prepared_event_id=prepared["source_event_id"],
+        occurred_at="2026-08-19T00:01:00Z",
+        producer={"trust": "external_unverified", "name": "t", "version": "1"},
+        proposals=[located_proposal(content["prepared_document"], "Generic Systems & Reliability")],
+    )
+    after_proposal = tree(directory)
+    decision_file = tmp_path / "decision-request.json"
+    malformed_fields = (("accepted_proposal_ids", 5), ("deferred_proposal_ids", [1]), ("corrections", "n"))
+    for field, malformed in malformed_fields:
+        payload: dict[str, object] = {
+            "proposal_event_id": proposal["proposal_event_id"], "occurred_at": "2026-08-19T00:02:00Z",
+            "accepted_proposal_ids": [], "deferred_proposal_ids": [], "rejected_proposal_ids": [], "corrections": [],
+        }
+        payload[field] = malformed
+        decision_file.write_text(json.dumps(payload))
+        code = main([
+            "decide-syllabus", "--root", str(store.root), "--domain-id", domain_id,
+            "--expected-revision", "2", "--request", str(decision_file),
+        ])
+        error = json.loads(capsys.readouterr().err)
+        assert code == 2
+        assert error["code"] == "validation_error" and error["message"].startswith(field)
+    assert tree(directory) == after_proposal
 
 
 def test_https_requires_explicit_consent() -> None:
@@ -671,6 +722,29 @@ def test_scripted_https_html_completes_lifecycle_without_subresources(tmp_path: 
     )
     assert "Ignore template" not in content["prepared_document"]["units"][0]["text"]
     assert len(transport.requests) == 1
+
+    source = HttpsSource("https://example.com/syllabus.html", network_consent=True)
+    ascii_body = body.replace(b'charset="utf-8"', b'charset="us-ascii"')
+    for header_charset in ("", "; charset=utf-8", "; charset=US-ASCII"):
+        header = ("Content-Type", f"text/html{header_charset}")
+        acquired = acquire_https(
+            source,
+            resolver=ScriptedResolver(),
+            transport=ScriptedTransport([ScriptedResponse(200, (header,), body=ascii_body)]),
+        )
+        assert _verify_media(acquired, "text/html") in {"utf-8-sig", "ascii"}
+
+    non_ascii = body.replace(b"Ada Rivera", "Ada Rivera\u00e9".encode())
+    mislabeled = ScriptedTransport([
+        ScriptedResponse(200, (("Content-Type", "text/html; charset=us-ascii"),), body=non_ascii),
+    ])
+    with pytest.raises(SyllabusIntakeError) as caught:
+        _verify_media(
+            acquire_https(source, resolver=ScriptedResolver(), transport=mislabeled),
+            "text/html",
+        )
+    assert caught.value.code == "unsupported_charset"
+    assert str(caught.value) == "HTML bytes do not match the declared charset"
 
 
 def test_ambiguous_fixture_cannot_be_accepted(tmp_path: Path) -> None:
