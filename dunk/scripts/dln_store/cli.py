@@ -18,7 +18,9 @@ MAX_REQUEST_BYTES = 2 * 1024 * 1024
 
 
 def _add_root(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--root", help="DLN vault root (overrides DLN_VAULT_ROOT and CLAUDE_PLUGIN_DATA)")
+    parser.add_argument(
+        "--root", help="DLN vault root (overrides DLN_VAULT_ROOT and CLAUDE_PLUGIN_DATA)"
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -41,13 +43,17 @@ def build_parser() -> argparse.ArgumentParser:
     _add_root(command)
     command.add_argument("--domain-id", required=True)
 
-    command = subparsers.add_parser("commit", help="append events and atomically publish projections")
+    command = subparsers.add_parser(
+        "commit", help="append events and atomically publish projections"
+    )
     _add_root(command)
     command.add_argument("--domain-id", required=True)
     command.add_argument("--expected-revision", required=True, type=int)
     command.add_argument("--request", required=True, type=Path)
 
-    command = subparsers.add_parser("prepare-syllabus", help="acquire, extract, and atomically prepare a syllabus")
+    command = subparsers.add_parser(
+        "prepare-syllabus", help="acquire, extract, and atomically prepare a syllabus"
+    )
     _add_root(command)
     command.add_argument("--domain-id", required=True)
     command.add_argument("--expected-revision", required=True, type=int)
@@ -62,7 +68,9 @@ def build_parser() -> argparse.ArgumentParser:
     command.add_argument("--occurred-at", required=True)
     command.add_argument("--supersedes-source-version-id")
 
-    command = subparsers.add_parser("propose-syllabus", help="seal bounded proposals against prepared content")
+    command = subparsers.add_parser(
+        "propose-syllabus", help="seal bounded proposals against prepared content"
+    )
     _add_root(command)
     command.add_argument("--domain-id", required=True)
     command.add_argument("--expected-revision", required=True, type=int)
@@ -74,7 +82,9 @@ def build_parser() -> argparse.ArgumentParser:
     command.add_argument("--expected-revision", required=True, type=int)
     command.add_argument("--request", required=True, type=Path)
 
-    command = subparsers.add_parser("syllabus-content", help="return verified canonical prepared content")
+    command = subparsers.add_parser(
+        "syllabus-content", help="return verified canonical prepared content"
+    )
     _add_root(command)
     command.add_argument("--domain-id", required=True)
     command.add_argument("--source-event-id", required=True)
@@ -83,7 +93,9 @@ def build_parser() -> argparse.ArgumentParser:
     _add_root(command)
     command.add_argument("--domain-id", required=True)
 
-    command = subparsers.add_parser("validate", help="validate canonical sources and projection drift")
+    command = subparsers.add_parser(
+        "validate", help="validate canonical sources and projection drift"
+    )
     _add_root(command)
     command.add_argument("--domain-id", required=True)
 
@@ -93,7 +105,9 @@ def build_parser() -> argparse.ArgumentParser:
     command.add_argument("--recover", action="store_true")
     command.add_argument("--break-stale-lock", action="store_true")
 
-    command = subparsers.add_parser("import-legacy-ks", help="import one manually exported marker-delimited legacy KS")
+    command = subparsers.add_parser(
+        "import-legacy-ks", help="import one manually exported marker-delimited legacy KS"
+    )
     _add_root(command)
     command.add_argument("--domain", required=True)
     command.add_argument("--input", required=True, type=Path)
@@ -136,7 +150,9 @@ def _read_bounded_object(path: Path, label: str) -> dict[str, Any]:
     return request
 
 
-def _bounded_request(path: Path, label: str, required: set[str], optional: set[str] | None = None) -> dict[str, Any]:
+def _bounded_request(
+    path: Path, label: str, required: set[str], optional: set[str] | None = None
+) -> dict[str, Any]:
     request = _read_bounded_object(path, label)
     keys = set(request)
     unknown = keys - required - (optional or set())
@@ -147,7 +163,9 @@ def _bounded_request(path: Path, label: str, required: set[str], optional: set[s
 
 
 def _content_view(content: dict[str, Any]) -> dict[str, Any]:
-    result = {key: value for key, value in content.items() if key not in {"raw_bytes", "prepared_bytes"}}
+    result = {
+        key: value for key, value in content.items() if key not in {"raw_bytes", "prepared_bytes"}
+    }
     raw = content.get("raw_bytes")
     if isinstance(raw, bytes):
         source = content.get("source", {})
@@ -179,8 +197,15 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         else:
             if not args.network_consent:
                 from .schema import SyllabusIntakeError
-                raise SyllabusIntakeError("network_consent_required", "HTTPS acquisition requires --network-consent", phase="acquisition")
-            source = HttpsSource(args.url, network_consent=True, allow_redirects=args.allow_redirects)
+
+                raise SyllabusIntakeError(
+                    "network_consent_required",
+                    "HTTPS acquisition requires --network-consent",
+                    phase="acquisition",
+                )
+            source = HttpsSource(
+                args.url, network_consent=True, allow_redirects=args.allow_redirects
+            )
         return store.prepare_syllabus(
             args.domain_id,
             args.expected_revision,
@@ -192,11 +217,27 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
             supersedes_source_version_id=args.supersedes_source_version_id,
         )
     if args.command == "propose-syllabus":
-        request = _bounded_request(args.request, "syllabus proposal request", {"prepared_event_id", "occurred_at", "producer", "proposals"})
+        request = _bounded_request(
+            args.request,
+            "syllabus proposal request",
+            {"prepared_event_id", "occurred_at", "producer", "proposals"},
+        )
         return store.propose_syllabus(args.domain_id, args.expected_revision, **request)
     if args.command == "decide-syllabus":
-        required = {"proposal_event_id", "occurred_at", "accepted_proposal_ids", "deferred_proposal_ids", "rejected_proposal_ids", "corrections"}
-        request = _bounded_request(args.request, "syllabus decision request", required, {"actor", "supersedes_decision_event_id"})
+        required = {
+            "proposal_event_id",
+            "occurred_at",
+            "accepted_proposal_ids",
+            "deferred_proposal_ids",
+            "rejected_proposal_ids",
+            "corrections",
+        }
+        request = _bounded_request(
+            args.request,
+            "syllabus decision request",
+            required,
+            {"actor", "supersedes_decision_event_id"},
+        )
         return store.decide_syllabus(args.domain_id, args.expected_revision, **request)
     if args.command == "syllabus-content":
         return _content_view(store.syllabus_content(args.domain_id, args.source_event_id))
@@ -205,7 +246,9 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     if args.command == "validate":
         return store.validate(args.domain_id)
     if args.command == "doctor":
-        return store.doctor(args.domain_id, recover=args.recover, break_stale_lock=args.break_stale_lock)
+        return store.doctor(
+            args.domain_id, recover=args.recover, break_stale_lock=args.break_stale_lock
+        )
     if args.command == "import-legacy-ks":
         return store.import_legacy(args.domain, args.input)
     raise ValidationError(f"unknown command: {args.command}")
@@ -223,13 +266,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         result = _run(args)
     except StoreError as exc:
-        payload: dict[str, Any] = {"error": exc.__class__.__name__, "code": exc.code, "message": str(exc)}
+        payload: dict[str, Any] = {
+            "error": exc.__class__.__name__,
+            "code": exc.code,
+            "message": str(exc),
+        }
         if hasattr(exc, "phase"):
             payload["phase"] = exc.phase
         _emit(payload, sys.stderr)
         return exc.exit_code
     except (OSError, RuntimeError) as exc:
-        _emit({"error": exc.__class__.__name__, "code": "runtime_error", "message": str(exc)}, sys.stderr)
+        _emit(
+            {"error": exc.__class__.__name__, "code": "runtime_error", "message": str(exc)},
+            sys.stderr,
+        )
         return 1
     _emit(result, sys.stdout)
     return 0

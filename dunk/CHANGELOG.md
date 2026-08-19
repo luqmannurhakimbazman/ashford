@@ -20,6 +20,8 @@ All notable changes to this plugin will be documented in this file.
 
 ## [2.1.0] - 2026-08-19
 
+Superseded by 2.2.0 before publication; no 2.1.0 release was distributed. Its digest-bound ST5201X adapter no longer exists in any shipped version, and the entries below remain only as the development record for the invariants 2.2.0 generalized.
+
 ### Added
 
 - Added a digest-bound `st5201x-2026-v1` intake adapter for the exact supplied ST5201X syllabus, immutable extraction/assertion and learner approval history, bounded approved grounding, deterministic Syllabus Intake Receipts, and stable grounding citations in teaching receipts.

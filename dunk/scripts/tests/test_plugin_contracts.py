@@ -208,11 +208,23 @@ def test_shared_contracts_cover_storage_evidence_and_receipt_boundaries() -> Non
         assert token.casefold() in persistence.casefold()
 
     storage = read(DUNK / "LOCAL_STORAGE.md")
-    for runtime_token in ("uv sync", "uv run", "--project", "--python 3.10.20", "--frozen", "pypdf.__version__ == '6.14.2'"):
+    for runtime_token in (
+        "uv sync",
+        "uv run",
+        "--project",
+        "--python 3.10.20",
+        "--frozen",
+        "pypdf.__version__ == '6.14.2'",
+    ):
         assert runtime_token in storage
     for token in (
-        "Obsidian vault", ".DS_Store", ".locks/", "doctor --domain-id",
-        "import-legacy-ks", "--root <path>", "rebuild` once per existing domain",
+        "Obsidian vault",
+        ".DS_Store",
+        ".locks/",
+        "doctor --domain-id",
+        "import-legacy-ks",
+        "--root <path>",
+        "rebuild` once per existing domain",
     ):
         assert token in storage
     for document in (persistence, storage):

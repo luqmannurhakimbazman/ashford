@@ -146,8 +146,8 @@ claude plugin validate ./egg --strict
 claude plugin validate ./aerion --strict
 claude plugin validate ./dunk --strict
 
-uv run --project dunk/scripts --python 3.10 --frozen pytest dunk/scripts/tests
-uv run --project dunk/scripts --python 3.10 --frozen pytest tools/dunk-migrations/test_migrate_docker.py
+uv run --project dunk/scripts --python 3.10.20 --frozen pytest dunk/scripts/tests
+uv run --project dunk/scripts --python 3.10.20 --frozen pytest tools/dunk-migrations/test_migrate_docker.py
 ```
 
 ## License

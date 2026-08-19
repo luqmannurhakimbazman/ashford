@@ -7,7 +7,13 @@ from datetime import date, datetime
 from typing import Any
 
 from .grounding import GroundingTimeline, reduce_grounding_timeline
-from .schema import RESERVED_SYLLABUS_EVENT_KINDS, ValidationError, sha256_bytes, validate_event, validate_profile
+from .schema import (
+    RESERVED_SYLLABUS_EVENT_KINDS,
+    ValidationError,
+    sha256_bytes,
+    validate_event,
+    validate_profile,
+)
 
 OUTCOME_LABEL = {
     "pass": "independent-pass",
@@ -66,7 +72,9 @@ def project_state(
 ) -> dict[str, Any]:
     """Validate references and reduce sources to a byte-stable state object."""
     validate_profile(profile)
-    grounding_timeline = timeline if timeline is not None else reduce_grounding_timeline(events, prepared_documents)
+    grounding_timeline = (
+        timeline if timeline is not None else reduce_grounding_timeline(events, prepared_documents)
+    )
     event_index: dict[str, dict[str, Any]] = {}
     event_generation: dict[str, int] = {}
     session_identities: dict[str, str] = {}

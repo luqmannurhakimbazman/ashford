@@ -33,12 +33,27 @@ STAGES = {"acquire", "relate", "revise"}
 OPERATIONS = {"acquire", "discriminate", "relate", "abstract", "predict"}
 SYLLABUS_ROLES = {"authoritative", "supplement"}
 SYLLABUS_SEMANTIC_ROLES = {
-    "planning_topic", "course_identity", "schedule", "assessment", "policy",
-    "logistics", "reference", "milestone", "other",
+    "planning_topic",
+    "course_identity",
+    "schedule",
+    "assessment",
+    "policy",
+    "logistics",
+    "reference",
+    "milestone",
+    "other",
 }
 SYLLABUS_VALUE_TYPES = {
-    "text", "integer", "decimal", "boolean", "date", "time", "percentage",
-    "list", "object", "unknown",
+    "text",
+    "integer",
+    "decimal",
+    "boolean",
+    "date",
+    "time",
+    "percentage",
+    "list",
+    "object",
+    "unknown",
 }
 
 
@@ -55,6 +70,7 @@ class SyllabusIntakeError(StoreError):
     exit_code = 2
 
     def __init__(self, code: str, message: str, *, phase: str) -> None:
+        """Bind the stable machine-readable failure code and the phase that produced it."""
         super().__init__(message)
         self.code = code
         self.phase = phase
@@ -520,7 +536,9 @@ def _bounded_json(value: Any, path: str, limit: int = 65536) -> Any:
     return value
 
 
-def _validate_typed_value(value: Any, value_type: str, path: str, *, allow_null: bool = False) -> None:
+def _validate_typed_value(
+    value: Any, value_type: str, path: str, *, allow_null: bool = False
+) -> None:
     if value is None:
         if allow_null:
             return
@@ -551,8 +569,11 @@ def _validate_typed_value(value: Any, value_type: str, path: str, *, allow_null:
 
 
 def validate_prepared_document(value: Any, path: str = "prepared_document") -> dict[str, Any]:
+    """Validate one prepared document against the unit, normalization, and size bounds."""
     document = _object(value, path)
-    _keys(document, {"prepared_schema_version", "media_type", "normalization", "units"}, set(), path)
+    _keys(
+        document, {"prepared_schema_version", "media_type", "normalization", "units"}, set(), path
+    )
     if _integer(document["prepared_schema_version"], f"{path}.prepared_schema_version") != 1:
         _fail(f"{path}.prepared_schema_version", "unsupported version; expected 1")
     _enum(document["media_type"], {"application/pdf", "text/html"}, f"{path}.media_type")
@@ -584,7 +605,9 @@ def validate_prepared_document(value: Any, path: str = "prepared_document") -> d
             _fail(f"{unit_path}.text", "must be NFC text with LF line endings")
         total += len(text.encode("utf-8"))
         nonblank = nonblank or bool(text.strip())
-        if _sha256(unit["text_sha256"], f"{unit_path}.text_sha256") != sha256_bytes(text.encode("utf-8")):
+        if _sha256(unit["text_sha256"], f"{unit_path}.text_sha256") != sha256_bytes(
+            text.encode("utf-8")
+        ):
             _fail(f"{unit_path}.text_sha256", "does not match unit text")
     if total > 8 * 1024 * 1024:
         _fail(f"{path}.units", "normalized text exceeds 8 MiB")
@@ -595,6 +618,7 @@ def validate_prepared_document(value: Any, path: str = "prepared_document") -> d
 
 
 def prepared_document_bytes(value: Any) -> bytes:
+    """Return the canonical bounded JSON encoding of one validated prepared document."""
     encoded = canonical_json(validate_prepared_document(value), newline=False)
     if len(encoded) > 16 * 1024 * 1024:
         _fail("prepared_document", "canonical prepared JSON exceeds 16 MiB")
@@ -602,6 +626,7 @@ def prepared_document_bytes(value: Any) -> bytes:
 
 
 def prepared_document_sha256(value: Any) -> str:
+    """Return the SHA-256 of one prepared document's canonical encoding."""
     return sha256_bytes(prepared_document_bytes(value))
 
 
@@ -616,7 +641,10 @@ def _validate_locator(value: Any, path: str) -> None:
     _bounded_string(locator["quote"], f"{path}.quote", 16384)
 
 
-def validate_locator_against_document(locator: dict[str, Any], document: dict[str, Any], path: str = "locator") -> None:
+def validate_locator_against_document(
+    locator: dict[str, Any], document: dict[str, Any], path: str = "locator"
+) -> None:
+    """Require the locator quote to equal the exact prepared-unit slice it names."""
     _validate_locator(locator, path)
     units = {unit["unit_id"]: unit for unit in document["units"]}
     unit = units.get(locator["unit_id"])
@@ -624,7 +652,7 @@ def validate_locator_against_document(locator: dict[str, Any], document: dict[st
         _fail(f"{path}.unit_id", "references an unknown prepared unit")
     if locator["end_char"] > len(unit["text"]):
         _fail(path, "character interval is outside the prepared unit")
-    if unit["text"][locator["start_char"]:locator["end_char"]] != locator["quote"]:
+    if unit["text"][locator["start_char"] : locator["end_char"]] != locator["quote"]:
         _fail(path, "quote must equal the exact prepared-text slice")
 
 
@@ -642,17 +670,36 @@ def _validate_producer(value: Any, path: str, *, store_invoked: bool = False) ->
 
 def _validate_proposal(value: Any, path: str) -> None:
     proposal = _object(value, path)
-    _keys(proposal, {"proposal_id", "display_order", "predicate", "label", "semantic_roles", "value_type", "status", "value", "locators"}, {"ambiguity", "note"}, path)
+    _keys(
+        proposal,
+        {
+            "proposal_id",
+            "display_order",
+            "predicate",
+            "label",
+            "semantic_roles",
+            "value_type",
+            "status",
+            "value",
+            "locators",
+        },
+        {"ambiguity", "note"},
+        path,
+    )
     _identifier(proposal["proposal_id"], f"{path}.proposal_id")
     _integer(proposal["display_order"], f"{path}.display_order", minimum=0)
     _identifier(proposal["predicate"], f"{path}.predicate")
     if len(_string(proposal["label"], f"{path}.label")) > 256:
         _fail(f"{path}.label", "must be at most 256 characters")
-    roles = _string_list(proposal["semantic_roles"], f"{path}.semantic_roles", unique=True, nonempty=True)
+    roles = _string_list(
+        proposal["semantic_roles"], f"{path}.semantic_roles", unique=True, nonempty=True
+    )
     if not 1 <= len(roles) <= 8 or any(role not in SYLLABUS_SEMANTIC_ROLES for role in roles):
         _fail(f"{path}.semantic_roles", "contains an unsupported or excessive semantic role")
     value_type = _enum(proposal["value_type"], SYLLABUS_VALUE_TYPES, f"{path}.value_type")
-    status = _enum(proposal["status"], {"specified", "explicitly_unknown", "ambiguous"}, f"{path}.status")
+    status = _enum(
+        proposal["status"], {"specified", "explicitly_unknown", "ambiguous"}, f"{path}.status"
+    )
     if "planning_topic" in roles and value_type != "text":
         _fail(path, "planning_topic proposals must use text values")
     locators = _list(proposal["locators"], f"{path}.locators")
@@ -671,9 +718,15 @@ def _validate_proposal(value: Any, path: str) -> None:
         if proposal["value"] is not None or "ambiguity" not in proposal:
             _fail(path, "ambiguous requires null value and an ambiguity object")
         ambiguity = _object(proposal["ambiguity"], f"{path}.ambiguity")
-        _keys(ambiguity, {"reason", "unresolved_dimensions", "candidates"}, set(), f"{path}.ambiguity")
+        _keys(
+            ambiguity, {"reason", "unresolved_dimensions", "candidates"}, set(), f"{path}.ambiguity"
+        )
         _bounded_string(ambiguity["reason"], f"{path}.ambiguity.reason")
-        dimensions = _string_list(ambiguity["unresolved_dimensions"], f"{path}.ambiguity.unresolved_dimensions", unique=True)
+        dimensions = _string_list(
+            ambiguity["unresolved_dimensions"],
+            f"{path}.ambiguity.unresolved_dimensions",
+            unique=True,
+        )
         candidates = _list(ambiguity["candidates"], f"{path}.ambiguity.candidates")
         if not dimensions and not candidates:
             _fail(f"{path}.ambiguity", "requires an unresolved dimension or candidate")
@@ -683,7 +736,9 @@ def _validate_proposal(value: Any, path: str) -> None:
             candidate_path = f"{path}.ambiguity.candidates[{index}]"
             candidate = _object(candidate_value, candidate_path)
             _keys(candidate, {"value_type", "value", "locators"}, set(), candidate_path)
-            candidate_type = _enum(candidate["value_type"], SYLLABUS_VALUE_TYPES, f"{candidate_path}.value_type")
+            candidate_type = _enum(
+                candidate["value_type"], SYLLABUS_VALUE_TYPES, f"{candidate_path}.value_type"
+            )
             _validate_typed_value(candidate["value"], candidate_type, f"{candidate_path}.value")
             candidate_locators = _list(candidate["locators"], f"{candidate_path}.locators")
             if not 1 <= len(candidate_locators) <= 16:
@@ -695,12 +750,40 @@ def _validate_proposal(value: Any, path: str) -> None:
 
 
 def syllabus_proposal_set_sha256(event: dict[str, Any]) -> str:
-    payload = {key: event[key] for key in ("role", "prepared_event_id", "source_version_id", "prepared_document_sha256", "producer", "proposals")}
+    """Return the canonical digest that seals one immutable proposal set to its source."""
+    payload = {
+        key: event[key]
+        for key in (
+            "role",
+            "prepared_event_id",
+            "source_version_id",
+            "prepared_document_sha256",
+            "producer",
+            "proposals",
+        )
+    }
     return sha256_bytes(canonical_json(payload, newline=False))
 
 
 def syllabus_decision_set_sha256(event: dict[str, Any]) -> str:
-    payload = {key: event[key] for key in ("role", "prepared_event_id", "source_version_id", "prepared_document_sha256", "proposal_event_id", "proposal_set_sha256", "actor", "accepted_proposal_ids", "deferred_proposal_ids", "rejected_proposal_ids", "corrections", "supersedes_decision_event_id")}
+    """Return the canonical digest that pins one complete learner decision to its proposals."""
+    payload = {
+        key: event[key]
+        for key in (
+            "role",
+            "prepared_event_id",
+            "source_version_id",
+            "prepared_document_sha256",
+            "proposal_event_id",
+            "proposal_set_sha256",
+            "actor",
+            "accepted_proposal_ids",
+            "deferred_proposal_ids",
+            "rejected_proposal_ids",
+            "corrections",
+            "supersedes_decision_event_id",
+        )
+    }
     return sha256_bytes(canonical_json(payload, newline=False))
 
 
@@ -718,14 +801,37 @@ def _validate_grounding_reference(value: Any, path: str) -> None:
         _identifier(assertion_id, f"{path}.assertion_ids[{index}]")
 
 
-def _validate_new_syllabus_event(event: dict[str, Any], kind: str, common: set[str], path: str) -> None:
+def _validate_new_syllabus_event(
+    event: dict[str, Any], kind: str, common: set[str], path: str
+) -> None:
     if kind == "syllabus_source_prepared":
-        _keys(event, common | {"role", "source", "prepared", "acquisition", "extraction", "supersedes_source_version_id"}, set(), path)
+        _keys(
+            event,
+            common
+            | {
+                "role",
+                "source",
+                "prepared",
+                "acquisition",
+                "extraction",
+                "supersedes_source_version_id",
+            },
+            set(),
+            path,
+        )
         role = _enum(event["role"], SYLLABUS_ROLES, f"{path}.role")
         source = _object(event["source"], f"{path}.source")
-        _keys(source, {"source_version_id", "display_name", "media_type", "byte_size", "sha256", "cas_path"}, set(), f"{path}.source")
+        _keys(
+            source,
+            {"source_version_id", "display_name", "media_type", "byte_size", "sha256", "cas_path"},
+            set(),
+            f"{path}.source",
+        )
         digest = _sha256(source["sha256"], f"{path}.source.sha256")
-        if _identifier(source["source_version_id"], f"{path}.source.source_version_id") != f"sha256-{digest}":
+        if (
+            _identifier(source["source_version_id"], f"{path}.source.source_version_id")
+            != f"sha256-{digest}"
+        ):
             _fail(f"{path}.source.source_version_id", "must be sha256-<source digest>")
         name = _string(source["display_name"], f"{path}.source.display_name")
         if Path(name).name != name or name in {".", ".."}:
@@ -737,21 +843,43 @@ def _validate_new_syllabus_event(event: dict[str, Any], kind: str, common: set[s
         if source["cas_path"] != f"sources/sha256/{digest}":
             _fail(f"{path}.source.cas_path", "must be derived from source.sha256")
         prepared = _object(event["prepared"], f"{path}.prepared")
-        _keys(prepared, {"prepared_document_sha256", "cas_path", "unit_count", "text_byte_size"}, set(), f"{path}.prepared")
-        prepared_digest = _sha256(prepared["prepared_document_sha256"], f"{path}.prepared.prepared_document_sha256")
+        _keys(
+            prepared,
+            {"prepared_document_sha256", "cas_path", "unit_count", "text_byte_size"},
+            set(),
+            f"{path}.prepared",
+        )
+        prepared_digest = _sha256(
+            prepared["prepared_document_sha256"], f"{path}.prepared.prepared_document_sha256"
+        )
         if prepared["cas_path"] != f"prepared/sha256/{prepared_digest}.json":
             _fail(f"{path}.prepared.cas_path", "must be derived from prepared_document_sha256")
         _integer(prepared["unit_count"], f"{path}.prepared.unit_count", minimum=1)
-        text_size = _integer(prepared["text_byte_size"], f"{path}.prepared.text_byte_size", minimum=1)
+        text_size = _integer(
+            prepared["text_byte_size"], f"{path}.prepared.text_byte_size", minimum=1
+        )
         if text_size > 8 * 1024 * 1024:
             _fail(f"{path}.prepared.text_byte_size", "must not exceed 8 MiB")
-        if event["event_id"] != f"syllabus-prepared-{digest}" or event["session_id"] != f"session-syllabus-prepared-{digest}":
+        if (
+            event["event_id"] != f"syllabus-prepared-{digest}"
+            or event["session_id"] != f"session-syllabus-prepared-{digest}"
+        ):
             _fail(path, "prepared event/session IDs must be derived from source digest")
-        predecessor = _nullable_identifier(event["supersedes_source_version_id"], f"{path}.supersedes_source_version_id")
+        predecessor = _nullable_identifier(
+            event["supersedes_source_version_id"], f"{path}.supersedes_source_version_id"
+        )
         if role == "supplement" and predecessor is not None:
-            _fail(f"{path}.supersedes_source_version_id", "supplements cannot supersede authoritative sources")
+            _fail(
+                f"{path}.supersedes_source_version_id",
+                "supplements cannot supersede authoritative sources",
+            )
         acquisition = _object(event["acquisition"], f"{path}.acquisition")
-        _keys(acquisition, {"kind", "policy_id", "trust", "declared_source"}, {"provenance"}, f"{path}.acquisition")
+        _keys(
+            acquisition,
+            {"kind", "policy_id", "trust", "declared_source"},
+            {"provenance"},
+            f"{path}.acquisition",
+        )
         _identifier(acquisition["kind"], f"{path}.acquisition.kind")
         _identifier(acquisition["policy_id"], f"{path}.acquisition.policy_id")
         if acquisition["trust"] not in {"external_unverified", "store_invoked"}:
@@ -762,10 +890,17 @@ def _validate_new_syllabus_event(event: dict[str, Any], kind: str, common: set[s
         if "provenance" in acquisition:
             _bounded_json(acquisition["provenance"], f"{path}.acquisition.provenance")
         extraction = _object(event["extraction"], f"{path}.extraction")
-        _keys(extraction, {"kind", "policy_id", "producer", "warnings"}, {"provenance"}, f"{path}.extraction")
+        _keys(
+            extraction,
+            {"kind", "policy_id", "producer", "warnings"},
+            {"provenance"},
+            f"{path}.extraction",
+        )
         _identifier(extraction["kind"], f"{path}.extraction.kind")
         _identifier(extraction["policy_id"], f"{path}.extraction.policy_id")
-        _validate_producer(extraction["producer"], f"{path}.extraction.producer", store_invoked=True)
+        _validate_producer(
+            extraction["producer"], f"{path}.extraction.producer", store_invoked=True
+        )
         if extraction["producer"]["trust"] == "store_invoked" and "provenance" not in extraction:
             _fail(f"{path}.extraction.provenance", "is required for store-invoked extraction")
         if "provenance" in extraction:
@@ -776,7 +911,21 @@ def _validate_new_syllabus_event(event: dict[str, Any], kind: str, common: set[s
         if len(warnings) > 32:
             _fail(f"{path}.extraction.warnings", "must contain at most 32 warnings")
     elif kind == "syllabus_assertions_proposed":
-        _keys(event, common | {"role", "prepared_event_id", "source_version_id", "prepared_document_sha256", "producer", "proposals", "proposal_set_sha256"}, set(), path)
+        _keys(
+            event,
+            common
+            | {
+                "role",
+                "prepared_event_id",
+                "source_version_id",
+                "prepared_document_sha256",
+                "producer",
+                "proposals",
+                "proposal_set_sha256",
+            },
+            set(),
+            path,
+        )
         _enum(event["role"], SYLLABUS_ROLES, f"{path}.role")
         _identifier(event["prepared_event_id"], f"{path}.prepared_event_id")
         _identifier(event["source_version_id"], f"{path}.source_version_id")
@@ -796,10 +945,33 @@ def _validate_new_syllabus_event(event: dict[str, Any], kind: str, common: set[s
         digest = syllabus_proposal_set_sha256(event)
         if _sha256(event["proposal_set_sha256"], f"{path}.proposal_set_sha256") != digest:
             _fail(f"{path}.proposal_set_sha256", "does not match canonical proposals")
-        if event["event_id"] != f"syllabus-proposals-{digest}" or event["session_id"] != f"session-syllabus-proposals-{digest}":
+        if (
+            event["event_id"] != f"syllabus-proposals-{digest}"
+            or event["session_id"] != f"session-syllabus-proposals-{digest}"
+        ):
             _fail(path, "proposal event/session IDs must be derived from proposal-set digest")
     else:
-        _keys(event, common | {"role", "prepared_event_id", "source_version_id", "prepared_document_sha256", "proposal_event_id", "proposal_set_sha256", "actor", "accepted_proposal_ids", "deferred_proposal_ids", "rejected_proposal_ids", "corrections", "supersedes_decision_event_id", "decision_set_sha256"}, set(), path)
+        _keys(
+            event,
+            common
+            | {
+                "role",
+                "prepared_event_id",
+                "source_version_id",
+                "prepared_document_sha256",
+                "proposal_event_id",
+                "proposal_set_sha256",
+                "actor",
+                "accepted_proposal_ids",
+                "deferred_proposal_ids",
+                "rejected_proposal_ids",
+                "corrections",
+                "supersedes_decision_event_id",
+                "decision_set_sha256",
+            },
+            set(),
+            path,
+        )
         _enum(event["role"], SYLLABUS_ROLES, f"{path}.role")
         for key in ("prepared_event_id", "source_version_id", "proposal_event_id"):
             _identifier(event[key], f"{path}.{key}")
@@ -816,43 +988,88 @@ def _validate_new_syllabus_event(event: dict[str, Any], kind: str, common: set[s
                 _fail(f"{path}.{key}", "must be sorted")
             partitions.append(set(items))
         corrections = _list(event["corrections"], f"{path}.corrections")
-        if len(corrections) > 2048 or sum(len(items) for items in partitions) + len(corrections) > 2048:
+        if (
+            len(corrections) > 2048
+            or sum(len(items) for items in partitions) + len(corrections) > 2048
+        ):
             _fail(path, "decision partitions/corrections must cover at most 2048 proposals")
         targets: set[str] = set()
         correction_ids: list[str] = []
         for index, correction_value in enumerate(corrections):
             correction_path = f"{path}.corrections[{index}]"
             correction = _object(correction_value, correction_path)
-            _keys(correction, {"correction_id", "target_proposal_id", "predicate", "semantic_roles", "value_type", "status", "value", "rationale", "origin"}, set(), correction_path)
-            correction_ids.append(_identifier(correction["correction_id"], f"{correction_path}.correction_id"))
-            target = _identifier(correction["target_proposal_id"], f"{correction_path}.target_proposal_id")
+            _keys(
+                correction,
+                {
+                    "correction_id",
+                    "target_proposal_id",
+                    "predicate",
+                    "semantic_roles",
+                    "value_type",
+                    "status",
+                    "value",
+                    "rationale",
+                    "origin",
+                },
+                set(),
+                correction_path,
+            )
+            correction_ids.append(
+                _identifier(correction["correction_id"], f"{correction_path}.correction_id")
+            )
+            target = _identifier(
+                correction["target_proposal_id"], f"{correction_path}.target_proposal_id"
+            )
             if target in targets:
                 _fail(f"{correction_path}.target_proposal_id", "must be unique")
             targets.add(target)
             _identifier(correction["predicate"], f"{correction_path}.predicate")
-            roles = _string_list(correction["semantic_roles"], f"{correction_path}.semantic_roles", unique=True, nonempty=True)
+            roles = _string_list(
+                correction["semantic_roles"],
+                f"{correction_path}.semantic_roles",
+                unique=True,
+                nonempty=True,
+            )
             if any(role not in SYLLABUS_SEMANTIC_ROLES for role in roles):
                 _fail(f"{correction_path}.semantic_roles", "contains an unsupported role")
-            value_type = _enum(correction["value_type"], SYLLABUS_VALUE_TYPES, f"{correction_path}.value_type")
+            value_type = _enum(
+                correction["value_type"], SYLLABUS_VALUE_TYPES, f"{correction_path}.value_type"
+            )
             if "planning_topic" in roles and value_type != "text":
                 _fail(correction_path, "planning_topic corrections must use text values")
-            status = _enum(correction["status"], {"specified", "explicitly_unknown"}, f"{correction_path}.status")
-            _validate_typed_value(correction["value"], value_type, f"{correction_path}.value", allow_null=status == "explicitly_unknown")
+            status = _enum(
+                correction["status"],
+                {"specified", "explicitly_unknown"},
+                f"{correction_path}.status",
+            )
+            _validate_typed_value(
+                correction["value"],
+                value_type,
+                f"{correction_path}.value",
+                allow_null=status == "explicitly_unknown",
+            )
             if status == "explicitly_unknown" and correction["value"] is not None:
                 _fail(f"{correction_path}.value", "must be null when explicitly_unknown")
             _bounded_string(correction["rationale"], f"{correction_path}.rationale")
             if correction["origin"] != "learner_correction":
                 _fail(f"{correction_path}.origin", "must be learner_correction")
-        if correction_ids != sorted(correction_ids) or len(correction_ids) != len(set(correction_ids)):
+        if correction_ids != sorted(correction_ids) or len(correction_ids) != len(
+            set(correction_ids)
+        ):
             _fail(f"{path}.corrections", "must be uniquely sorted by correction_id")
         partitions.append(targets)
         if any(partitions[i] & partitions[j] for i in range(4) for j in range(i + 1, 4)):
             _fail(path, "accepted, deferred, rejected, and corrected IDs must be disjoint")
-        _nullable_identifier(event["supersedes_decision_event_id"], f"{path}.supersedes_decision_event_id")
+        _nullable_identifier(
+            event["supersedes_decision_event_id"], f"{path}.supersedes_decision_event_id"
+        )
         digest = syllabus_decision_set_sha256(event)
         if _sha256(event["decision_set_sha256"], f"{path}.decision_set_sha256") != digest:
             _fail(f"{path}.decision_set_sha256", "does not match canonical decision")
-        if event["event_id"] != f"syllabus-decision-{digest}" or event["session_id"] != f"session-syllabus-decision-{digest}":
+        if (
+            event["event_id"] != f"syllabus-decision-{digest}"
+            or event["session_id"] != f"session-syllabus-decision-{digest}"
+        ):
             _fail(path, "decision event/session IDs must be derived from decision-set digest")
     if len(canonical_json(event, newline=False)) > 2 * 1024 * 1024:
         _fail(path, "syllabus lifecycle event exceeds 2 MiB canonical limit")
@@ -1004,7 +1221,11 @@ def validate_event(value: Any, path: str = "event") -> dict[str, Any]:
         if "self_reported_outcome" in event:
             _string(event["self_reported_outcome"], f"{path}.self_reported_outcome")
 
-    elif kind in {"syllabus_source_prepared", "syllabus_assertions_proposed", "syllabus_decision_recorded"}:
+    elif kind in {
+        "syllabus_source_prepared",
+        "syllabus_assertions_proposed",
+        "syllabus_decision_recorded",
+    }:
         _validate_new_syllabus_event(event, kind, common, path)
 
     elif kind == "syllabus_source_ingested":

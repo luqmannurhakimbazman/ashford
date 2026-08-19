@@ -15,6 +15,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import dln_store.acquisition as acquisition_module
+import dln_store.extraction as extraction_module
+import dln_store.pdf_worker as pdf_worker
 from dln_store.acquisition import (
     MAX_DNS_ANSWERS,
     MAX_SOURCE_BYTES,
@@ -28,9 +30,13 @@ from dln_store.acquisition import (
     acquire_local,
 )
 from dln_store.cli import MAX_REQUEST_BYTES, _read_bounded_object, build_parser, main
-import dln_store.extraction as extraction_module
-import dln_store.pdf_worker as pdf_worker
-from dln_store.extraction import PYPDF_VERSION, PreparationService, _verify_media, extract_html, extract_pdf
+from dln_store.extraction import (
+    PYPDF_VERSION,
+    PreparationService,
+    _verify_media,
+    extract_html,
+    extract_pdf,
+)
 from dln_store.schema import SyllabusIntakeError, ValidationError
 from dln_store.store import LocalStore
 
@@ -41,6 +47,8 @@ GLOBAL_IP = "93.184.216.34"
 
 @dataclass
 class ScriptedResponse:
+    """Bounded scripted HTTPS response double with an optional injected read failure."""
+
     status: int = 200
     headers: tuple[tuple[str, str], ...] = (("Content-Type", "application/pdf"),)
     connected_peer: str = GLOBAL_IP
@@ -48,10 +56,12 @@ class ScriptedResponse:
     read_error: Exception | None = None
 
     def __post_init__(self) -> None:
+        """Start the body cursor at zero and record that the response is still open."""
         self.offset = 0
         self.closed = False
 
     def read(self, size: int) -> bytes:
+        """Return the next scripted chunk, or raise the injected read failure."""
         if self.read_error is not None:
             raise self.read_error
         chunk = self.body[self.offset : self.offset + size]
@@ -59,36 +69,52 @@ class ScriptedResponse:
         return chunk
 
     def close(self) -> None:
+        """Record that the caller closed the response."""
         self.closed = True
 
 
 class ScriptedResolver:
+    """Resolver double returning one scripted answer list per call, with no real DNS."""
+
     def __init__(self, answers: list[list[str]] | None = None) -> None:
+        """Record the scripted answer lists and prepare the observed call log."""
         self.answers = answers or [[GLOBAL_IP]]
         self.calls: list[tuple[str, int]] = []
         self.timeouts: list[float] = []
 
     def resolve(self, hostname: str, port: int, timeout: float) -> list[ResolvedAddress]:
+        """Return the scripted answers for this call and record the hostname/port/timeout."""
         self.calls.append((hostname, port))
         self.timeouts.append(timeout)
         values = self.answers[min(len(self.calls) - 1, len(self.answers) - 1)]
-        return [ResolvedAddress(socket.AF_INET6 if ":" in value else socket.AF_INET, value) for value in values]
+        return [
+            ResolvedAddress(socket.AF_INET6 if ":" in value else socket.AF_INET, value)
+            for value in values
+        ]
 
 
 class ScriptedTransport:
-    def __init__(self, responses: list[ScriptedResponse] | None = None, error: Exception | None = None) -> None:
+    """Transport double replaying scripted responses in order without opening a socket."""
+
+    def __init__(
+        self, responses: list[ScriptedResponse] | None = None, error: Exception | None = None
+    ) -> None:
+        """Record the scripted responses, an optional open failure, and the request log."""
         self.responses = responses or []
         self.error = error
         self.requests: list[HttpsRequest] = []
 
     def open(self, request: HttpsRequest) -> ScriptedResponse:
+        """Record the validated request and return the next scripted response."""
         self.requests.append(request)
         if self.error is not None:
             raise self.error
         return self.responses[len(self.requests) - 1]
 
 
-def initialized(tmp_path: Path, *, service: PreparationService | None = None) -> tuple[LocalStore, str, Path]:
+def initialized(
+    tmp_path: Path, *, service: PreparationService | None = None
+) -> tuple[LocalStore, str, Path]:
     root = tmp_path / "vault"
     store = LocalStore(root, _preparation_service=service)
     result = store.init("Generic Systems", "Learn portable systems")
@@ -100,7 +126,11 @@ def tree(path: Path) -> dict[str, bytes | str]:
     result: dict[str, bytes | str] = {}
     for item in sorted(path.rglob("*")):
         relative = item.relative_to(path).as_posix()
-        result[relative] = f"symlink:{item.readlink()}" if item.is_symlink() else (item.read_bytes() if item.is_file() else "dir")
+        result[relative] = (
+            f"symlink:{item.readlink()}"
+            if item.is_symlink()
+            else (item.read_bytes() if item.is_file() else "dir")
+        )
     return result
 
 
@@ -114,11 +144,24 @@ def located_proposal(document: dict[str, object], needle: str) -> dict[str, obje
         "value_type": "text",
         "status": "specified",
         "value": needle,
-        "locators": [{"unit_id": unit["unit_id"], "start_char": start, "end_char": start + len(needle), "quote": needle}],
+        "locators": [
+            {
+                "unit_id": unit["unit_id"],
+                "start_char": start,
+                "end_char": start + len(needle),
+                "quote": needle,
+            }
+        ],
     }
 
 
-def complete_lifecycle(store: LocalStore, domain_id: str, source: LocalFileSource | HttpsSource, media: str, needle: str) -> tuple[dict[str, object], dict[str, object]]:
+def complete_lifecycle(
+    store: LocalStore,
+    domain_id: str,
+    source: LocalFileSource | HttpsSource,
+    media: str,
+    needle: str,
+) -> tuple[dict[str, object], dict[str, object]]:
     prepared = store.prepare_syllabus(
         domain_id,
         0,
@@ -167,7 +210,11 @@ def test_pinned_pdf_golden_extraction_and_generic_ambiguity() -> None:
 
 def test_st5201x_is_only_an_adversarial_input_to_the_same_extractor() -> None:
     document, extraction = extract_pdf((FIXTURES / "st5201x" / "syllabus2026.pdf").read_bytes())
-    assert extraction["producer"] == {"trust": "store_invoked", "name": "pypdf", "version": PYPDF_VERSION}
+    assert extraction["producer"] == {
+        "trust": "store_invoked",
+        "name": "pypdf",
+        "version": PYPDF_VERSION,
+    }
     text = document["units"][0]["text"]
     assert "Week7" in text and "Week13" in text
     assert "assertion" not in json.dumps(document).lower()
@@ -177,11 +224,16 @@ def test_local_pdf_and_html_complete_lifecycles_and_rebuild_offline(tmp_path: Pa
     local_pdf = tmp_path / "copy.pdf"
     local_pdf.write_bytes((GENERIC / "two-page-syllabus.pdf").read_bytes())
     store, domain_id, directory = initialized(tmp_path / "pdf")
-    prepared, content = complete_lifecycle(store, domain_id, LocalFileSource(local_pdf), "application/pdf", "Week 1 Foundations")
+    prepared, content = complete_lifecycle(
+        store, domain_id, LocalFileSource(local_pdf), "application/pdf", "Week 1 Foundations"
+    )
     assert store.context(domain_id)["state"]["grounding"]["status"] == "approved"
     local_pdf.unlink()
     before = tree(directory)
-    assert store.syllabus_content(domain_id, prepared["source_event_id"])["prepared_document"] == content["prepared_document"]
+    assert (
+        store.syllabus_content(domain_id, prepared["source_event_id"])["prepared_document"]
+        == content["prepared_document"]
+    )
     assert store.validate(domain_id)["status"] == "valid"
     store.rebuild(domain_id)
     first = tree(directory)
@@ -192,7 +244,13 @@ def test_local_pdf_and_html_complete_lifecycles_and_rebuild_offline(tmp_path: Pa
     local_html = tmp_path / "copy.html"
     local_html.write_bytes((GENERIC / "adversarial-syllabus.html").read_bytes())
     html_store, html_domain, _ = initialized(tmp_path / "html")
-    _, html_content = complete_lifecycle(html_store, html_domain, LocalFileSource(local_html), "text/html", "Generic Systems & Reliability")
+    _, html_content = complete_lifecycle(
+        html_store,
+        html_domain,
+        LocalFileSource(local_html),
+        "text/html",
+        "Generic Systems & Reliability",
+    )
     visible = html_content["prepared_document"]["units"][0]["text"]
     assert "fetch(" not in visible and "Ignore template" not in visible
 
@@ -203,15 +261,20 @@ def test_prepare_preflight_rejects_stale_revision_before_acquisition(tmp_path: P
             raise AssertionError("preparation must not run for stale input")
 
     store, domain_id, directory = initialized(
-        tmp_path, service=MustNotPrepare()  # type: ignore[arg-type]
+        tmp_path,
+        service=MustNotPrepare(),  # type: ignore[arg-type]
     )
     before = tree(directory)
     from dln_store.schema import StaleRevisionError
 
     with pytest.raises(StaleRevisionError):
         store.prepare_syllabus(
-            domain_id, 1, source=LocalFileSource(tmp_path / "missing.pdf"),
-            media_type="application/pdf", role="authoritative", display_name="missing.pdf",
+            domain_id,
+            1,
+            source=LocalFileSource(tmp_path / "missing.pdf"),
+            media_type="application/pdf",
+            role="authoritative",
+            display_name="missing.pdf",
             occurred_at="2026-08-19T00:00:00Z",
         )
     assert tree(directory) == before
@@ -281,6 +344,7 @@ def test_request_files_are_descriptor_bounded_regular_and_nofollow(tmp_path: Pat
         return descriptor
 
     from dln_store import cli as cli_module
+
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(cli_module.os, "open", swap_after_open)
         assert _read_bounded_object(valid, "request") == {"ok": True}
@@ -299,8 +363,13 @@ def test_precommit_local_failures_leave_domain_byte_identical(tmp_path: Path) ->
     before = tree(directory)
     with pytest.raises(SyllabusIntakeError) as caught:
         store.prepare_syllabus(
-            domain_id, 0, source=LocalFileSource(wrong), media_type="application/pdf", role="authoritative",
-            display_name="wrong.pdf", occurred_at="2026-08-19T00:00:00Z"
+            domain_id,
+            0,
+            source=LocalFileSource(wrong),
+            media_type="application/pdf",
+            role="authoritative",
+            display_name="wrong.pdf",
+            occurred_at="2026-08-19T00:00:00Z",
         )
     assert caught.value.code == "media_mismatch"
     assert tree(directory) == before
@@ -309,8 +378,13 @@ def test_precommit_local_failures_leave_domain_byte_identical(tmp_path: Path) ->
     link.symlink_to(wrong)
     with pytest.raises(SyllabusIntakeError) as caught:
         store.prepare_syllabus(
-            domain_id, 0, source=LocalFileSource(link), media_type="application/pdf", role="authoritative",
-            display_name="link.pdf", occurred_at="2026-08-19T00:00:00Z"
+            domain_id,
+            0,
+            source=LocalFileSource(link),
+            media_type="application/pdf",
+            role="authoritative",
+            display_name="link.pdf",
+            occurred_at="2026-08-19T00:00:00Z",
         )
     assert caught.value.code in {"unsafe_local_source", "source_unreadable"}
     assert tree(directory) == before
@@ -347,61 +421,117 @@ def test_local_reader_accepts_exact_limit_and_stops_above_it(tmp_path: Path) -> 
     before = tree(directory)
     with pytest.raises(SyllabusIntakeError) as caught:
         store.prepare_syllabus(
-            domain_id, 0, source=LocalFileSource(oversized), media_type="application/pdf", role="authoritative",
-            display_name="oversized.pdf", occurred_at="2026-08-19T00:00:00Z"
+            domain_id,
+            0,
+            source=LocalFileSource(oversized),
+            media_type="application/pdf",
+            role="authoritative",
+            display_name="oversized.pdf",
+            occurred_at="2026-08-19T00:00:00Z",
         )
     assert caught.value.code == "source_too_large"
     assert tree(directory) == before
 
 
-@pytest.mark.parametrize("url", [
-    "http://example.com/a.pdf", "https://user@example.com/a.pdf", "https://example.com/a.pdf?q=secret",
-    "https://example.com/a.pdf#part", "https://example.com:444/a.pdf", "https://example.com\\a.pdf",
-    "https://example.com/%ZZ.pdf",
-])
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://example.com/a.pdf",
+        "https://user@example.com/a.pdf",
+        "https://example.com/a.pdf?q=secret",
+        "https://example.com/a.pdf#part",
+        "https://example.com:444/a.pdf",
+        "https://example.com\\a.pdf",
+        "https://example.com/%ZZ.pdf",
+    ],
+)
 def test_https_rejects_forbidden_url_forms(url: str) -> None:
     with pytest.raises(SyllabusIntakeError) as caught:
-        acquire_https(HttpsSource(url, network_consent=True), resolver=ScriptedResolver(), transport=ScriptedTransport())
+        acquire_https(
+            HttpsSource(url, network_consent=True),
+            resolver=ScriptedResolver(),
+            transport=ScriptedTransport(),
+        )
     assert caught.value.code == "unsafe_url"
 
 
-def test_cli_exposes_generic_lifecycle_and_stable_intake_envelope(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_exposes_generic_lifecycle_and_stable_intake_envelope(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     choices = build_parser()._subparsers._group_actions[0].choices
-    assert {"prepare-syllabus", "propose-syllabus", "decide-syllabus", "syllabus-content"} <= set(choices)
+    assert {"prepare-syllabus", "propose-syllabus", "decide-syllabus", "syllabus-content"} <= set(
+        choices
+    )
     assert "ingest-syllabus" not in choices and "approve-syllabus" not in choices
     store, domain_id, directory = initialized(tmp_path)
-    code = main([
-        "prepare-syllabus", "--root", str(store.root), "--domain-id", domain_id,
-        "--expected-revision", "0", "--url", "https://example.com/a.pdf",
-        "--media-type", "application/pdf", "--role", "authoritative",
-        "--display-name", "a.pdf", "--occurred-at", "2026-08-19T00:00:00Z",
-    ])
+    code = main(
+        [
+            "prepare-syllabus",
+            "--root",
+            str(store.root),
+            "--domain-id",
+            domain_id,
+            "--expected-revision",
+            "0",
+            "--url",
+            "https://example.com/a.pdf",
+            "--media-type",
+            "application/pdf",
+            "--role",
+            "authoritative",
+            "--display-name",
+            "a.pdf",
+            "--occurred-at",
+            "2026-08-19T00:00:00Z",
+        ]
+    )
     error = json.loads(capsys.readouterr().err)
     assert code == 2
     assert error == {
-        "code": "network_consent_required", "error": "SyllabusIntakeError",
-        "message": "HTTPS acquisition requires --network-consent", "phase": "acquisition",
+        "code": "network_consent_required",
+        "error": "SyllabusIntakeError",
+        "message": "HTTPS acquisition requires --network-consent",
+        "phase": "acquisition",
     }
 
     source_file = tmp_path / "syllabus.html"
     source_file.write_bytes((GENERIC / "adversarial-syllabus.html").read_bytes())
     prepared = store.prepare_syllabus(
-        domain_id, 0, source=LocalFileSource(source_file), media_type="text/html", role="authoritative",
-        display_name="syllabus.html", occurred_at="2026-08-19T00:00:00Z",
+        domain_id,
+        0,
+        source=LocalFileSource(source_file),
+        media_type="text/html",
+        role="authoritative",
+        display_name="syllabus.html",
+        occurred_at="2026-08-19T00:00:00Z",
     )
     capsys.readouterr()
     before_malformed = tree(directory)
     request_file = tmp_path / "proposal-request.json"
     for malformed in ([1], "abc", {"a": 1}, [[]]):
-        request_file.write_text(json.dumps({
-            "prepared_event_id": prepared["source_event_id"], "occurred_at": "2026-08-19T00:01:00Z",
-            "producer": {"trust": "external_unverified", "name": "t", "version": "1"},
-            "proposals": malformed,
-        }))
-        code = main([
-            "propose-syllabus", "--root", str(store.root), "--domain-id", domain_id,
-            "--expected-revision", "1", "--request", str(request_file),
-        ])
+        request_file.write_text(
+            json.dumps(
+                {
+                    "prepared_event_id": prepared["source_event_id"],
+                    "occurred_at": "2026-08-19T00:01:00Z",
+                    "producer": {"trust": "external_unverified", "name": "t", "version": "1"},
+                    "proposals": malformed,
+                }
+            )
+        )
+        code = main(
+            [
+                "propose-syllabus",
+                "--root",
+                str(store.root),
+                "--domain-id",
+                domain_id,
+                "--expected-revision",
+                "1",
+                "--request",
+                str(request_file),
+            ]
+        )
         error = json.loads(capsys.readouterr().err)
         assert code == 2
         assert error["error"] == "ValidationError" and error["code"] == "validation_error"
@@ -410,25 +540,44 @@ def test_cli_exposes_generic_lifecycle_and_stable_intake_envelope(tmp_path: Path
 
     content = store.syllabus_content(domain_id, prepared["source_event_id"])
     proposal = store.propose_syllabus(
-        domain_id, 1, prepared_event_id=prepared["source_event_id"],
+        domain_id,
+        1,
+        prepared_event_id=prepared["source_event_id"],
         occurred_at="2026-08-19T00:01:00Z",
         producer={"trust": "external_unverified", "name": "t", "version": "1"},
         proposals=[located_proposal(content["prepared_document"], "Generic Systems & Reliability")],
     )
     after_proposal = tree(directory)
     decision_file = tmp_path / "decision-request.json"
-    malformed_fields = (("accepted_proposal_ids", 5), ("deferred_proposal_ids", [1]), ("corrections", "n"))
+    malformed_fields = (
+        ("accepted_proposal_ids", 5),
+        ("deferred_proposal_ids", [1]),
+        ("corrections", "n"),
+    )
     for field, malformed in malformed_fields:
         payload: dict[str, object] = {
-            "proposal_event_id": proposal["proposal_event_id"], "occurred_at": "2026-08-19T00:02:00Z",
-            "accepted_proposal_ids": [], "deferred_proposal_ids": [], "rejected_proposal_ids": [], "corrections": [],
+            "proposal_event_id": proposal["proposal_event_id"],
+            "occurred_at": "2026-08-19T00:02:00Z",
+            "accepted_proposal_ids": [],
+            "deferred_proposal_ids": [],
+            "rejected_proposal_ids": [],
+            "corrections": [],
         }
         payload[field] = malformed
         decision_file.write_text(json.dumps(payload))
-        code = main([
-            "decide-syllabus", "--root", str(store.root), "--domain-id", domain_id,
-            "--expected-revision", "2", "--request", str(decision_file),
-        ])
+        code = main(
+            [
+                "decide-syllabus",
+                "--root",
+                str(store.root),
+                "--domain-id",
+                domain_id,
+                "--expected-revision",
+                "2",
+                "--request",
+                str(decision_file),
+            ]
+        )
         error = json.loads(capsys.readouterr().err)
         assert code == 2
         assert error["code"] == "validation_error" and error["message"].startswith(field)
@@ -437,11 +586,17 @@ def test_cli_exposes_generic_lifecycle_and_stable_intake_envelope(tmp_path: Path
 
 def test_https_requires_explicit_consent() -> None:
     with pytest.raises(SyllabusIntakeError) as caught:
-        acquire_https(HttpsSource("https://example.com/a.pdf"), resolver=ScriptedResolver(), transport=ScriptedTransport())
+        acquire_https(
+            HttpsSource("https://example.com/a.pdf"),
+            resolver=ScriptedResolver(),
+            transport=ScriptedTransport(),
+        )
     assert caught.value.code == "network_consent_required"
 
 
-def test_system_resolver_deadline_terminates_and_reaps_worker(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_system_resolver_deadline_terminates_and_reaps_worker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     observed: dict[str, object] = {}
 
     class Parent:
@@ -473,11 +628,13 @@ def test_system_resolver_deadline_terminates_and_reaps_worker(monkeypatch: pytes
             raise AssertionError("terminated resolver must not need a kill")
 
     class Context:
-        def Pipe(self, *, duplex: bool) -> tuple[Parent, Child]:
+        """Double for `multiprocessing.get_context()`; method names mirror that stdlib API."""
+
+        def Pipe(self, *, duplex: bool) -> tuple[Parent, Child]:  # noqa: N802
             assert duplex is False
             return Parent(), Child()
 
-        def Process(self, **kwargs: object) -> Process:
+        def Process(self, **kwargs: object) -> Process:  # noqa: N802
             assert kwargs["target"] is acquisition_module._resolve_worker
             assert kwargs["daemon"] is True
             return Process()
@@ -498,9 +655,9 @@ def test_system_resolver_deadline_terminates_and_reaps_worker(monkeypatch: pytes
 
 def test_https_propagates_bounded_resolver_and_request_deadlines() -> None:
     resolver = ScriptedResolver()
-    transport = ScriptedTransport([
-        ScriptedResponse(body=(GENERIC / "two-page-syllabus.pdf").read_bytes())
-    ])
+    transport = ScriptedTransport(
+        [ScriptedResponse(body=(GENERIC / "two-page-syllabus.pdf").read_bytes())]
+    )
     acquire_https(
         HttpsSource("https://example.com/a.pdf", network_consent=True),
         resolver=resolver,
@@ -514,7 +671,19 @@ def test_https_propagates_bounded_resolver_and_request_deadlines() -> None:
     assert 0 < request.total_timeout <= 30.0
 
 
-@pytest.mark.parametrize("answers", [[], ["127.0.0.1"], ["10.0.0.1"], ["169.254.169.254"], ["::1"], ["fc00::1"], [GLOBAL_IP, "10.0.0.1"], [GLOBAL_IP] * (MAX_DNS_ANSWERS + 1)])
+@pytest.mark.parametrize(
+    "answers",
+    [
+        [],
+        ["127.0.0.1"],
+        ["10.0.0.1"],
+        ["169.254.169.254"],
+        ["::1"],
+        ["fc00::1"],
+        [GLOBAL_IP, "10.0.0.1"],
+        [GLOBAL_IP] * (MAX_DNS_ANSWERS + 1),
+    ],
+)
 def test_https_rejects_empty_non_global_and_mixed_dns(answers: list[str]) -> None:
     with pytest.raises(SyllabusIntakeError) as caught:
         acquire_https(
@@ -567,8 +736,13 @@ def test_production_transport_dials_selected_ip_uses_sni_and_bounds_headers() ->
 
     transport = DirectHttpsTransport(socket_factory=socket_factory, ssl_context_factory=Context)
     request = HttpsRequest(
-        "https://example.com/a.pdf", "example.com", GLOBAL_IP, "/a.pdf",
-        (("Host", "example.com"), ("Connection", "close")), 5.0, 10.0,
+        "https://example.com/a.pdf",
+        "example.com",
+        GLOBAL_IP,
+        "/a.pdf",
+        (("Host", "example.com"), ("Connection", "close")),
+        5.0,
+        10.0,
     )
     response = transport.open(request)
     assert calls == [((GLOBAL_IP, 443), 5.0), (raw, "example.com")]
@@ -579,7 +753,9 @@ def test_production_transport_dials_selected_ip_uses_sni_and_bounds_headers() ->
     oversized_tls = TLS(b"HTTP/1.1 200 OK\r\nX: " + b"a" * 66000 + b"\r\n\r\n")
     transport = DirectHttpsTransport(
         socket_factory=lambda address, timeout: Raw(),
-        ssl_context_factory=lambda: type("C", (), {"wrap_socket": lambda self, raw, server_hostname: oversized_tls})(),
+        ssl_context_factory=lambda: type(
+            "C", (), {"wrap_socket": lambda self, raw, server_hostname: oversized_tls}
+        )(),
     )
     with pytest.raises(SyllabusIntakeError) as caught:
         transport.open(request)
@@ -592,7 +768,9 @@ def test_production_transport_dials_selected_ip_uses_sni_and_bounds_headers() ->
     timed_out_tls = HeaderTimeoutTLS(b"")
     transport = DirectHttpsTransport(
         socket_factory=lambda address, timeout: Raw(),
-        ssl_context_factory=lambda: type("C", (), {"wrap_socket": lambda self, raw, server_hostname: timed_out_tls})(),
+        ssl_context_factory=lambda: type(
+            "C", (), {"wrap_socket": lambda self, raw, server_hostname: timed_out_tls}
+        )(),
     )
     with pytest.raises(SyllabusIntakeError) as caught:
         transport.open(request)
@@ -621,7 +799,11 @@ def test_https_ipv6_host_and_non_ascii_path_are_canonicalized() -> None:
 
 def test_https_peer_redirect_and_redirect_revalidation() -> None:
     first = ScriptedResponse(302, (("Location", "https://cdn.example.com/final.pdf"),), body=b"")
-    second = ScriptedResponse(200, (("Content-Type", "application/pdf"),), body=(GENERIC / "two-page-syllabus.pdf").read_bytes())
+    second = ScriptedResponse(
+        200,
+        (("Content-Type", "application/pdf"),),
+        body=(GENERIC / "two-page-syllabus.pdf").read_bytes(),
+    )
     resolver = ScriptedResolver([[GLOBAL_IP], ["93.184.216.35"]])
     second.connected_peer = "93.184.216.35"
     transport = ScriptedTransport([first, second])
@@ -632,56 +814,112 @@ def test_https_peer_redirect_and_redirect_revalidation() -> None:
     )
     assert acquired.acquisition["provenance"]["redirects_followed"] == 1
     assert resolver.calls == [("example.com", 443), ("cdn.example.com", 443)]
-    assert [request.selected_address for request in transport.requests] == [GLOBAL_IP, "93.184.216.35"]
+    assert [request.selected_address for request in transport.requests] == [
+        GLOBAL_IP,
+        "93.184.216.35",
+    ]
 
 
 def test_https_redirect_without_consent_and_overflow() -> None:
-    redirect = lambda: ScriptedResponse(302, (("Location", "https://example.com/next.pdf"),), body=b"")
+    def redirect() -> ScriptedResponse:
+        return ScriptedResponse(302, (("Location", "https://example.com/next.pdf"),), body=b"")
+
     with pytest.raises(SyllabusIntakeError) as caught:
         acquire_https(
             HttpsSource("https://example.com/a.pdf", network_consent=True),
-            resolver=ScriptedResolver(), transport=ScriptedTransport([redirect()]),
+            resolver=ScriptedResolver(),
+            transport=ScriptedTransport([redirect()]),
         )
     assert caught.value.code == "redirect_not_allowed"
     with pytest.raises(SyllabusIntakeError) as caught:
         acquire_https(
             HttpsSource("https://example.com/a.pdf", network_consent=True, allow_redirects=True),
-            resolver=ScriptedResolver(), transport=ScriptedTransport([redirect(), redirect(), redirect(), redirect()]),
+            resolver=ScriptedResolver(),
+            transport=ScriptedTransport([redirect(), redirect(), redirect(), redirect()]),
         )
     assert caught.value.code == "redirect_limit"
 
 
-@pytest.mark.parametrize(("response", "transport_error", "code"), [
-    (ScriptedResponse(200, (("Content-Type", "application/pdf"),), connected_peer="93.184.216.35"), None, "peer_mismatch"),
-    (ScriptedResponse(200, tuple((f"X-{i}", "v") for i in range(101))), None, "header_limit"),
-    (ScriptedResponse(200, (("Content-Encoding", "gzip"),)), None, "unsupported_content_encoding"),
-    (ScriptedResponse(200, (("Transfer-Encoding", "chunked"),)), None, "unsupported_transfer_encoding"),
-    (ScriptedResponse(200, (("Transfer-Encoding", "identity"), ("Content-Length", "0"))), None, "unsupported_transfer_encoding"),
-    (ScriptedResponse(200, (("Content-Length", str(MAX_SOURCE_BYTES + 1)),)), None, "source_too_large"),
-    (ScriptedResponse(200, (("Content-Length", "1"), ("Content-Length", "1"))), None, "invalid_content_length"),
-    (ScriptedResponse(503, ()), None, "http_status"),
-    (ScriptedResponse(200, (("Content-Type", "application/pdf"),), read_error=TimeoutError()), None, "read_timeout"),
-    (None, TimeoutError(), "connect_timeout"),
-    (None, RuntimeError("unstable transport detail"), "tls_error"),
-])
-def test_https_stable_peer_header_body_encoding_status_and_timeout_codes(response: ScriptedResponse | None, transport_error: Exception | None, code: str) -> None:
+@pytest.mark.parametrize(
+    ("response", "transport_error", "code"),
+    [
+        (
+            ScriptedResponse(
+                200, (("Content-Type", "application/pdf"),), connected_peer="93.184.216.35"
+            ),
+            None,
+            "peer_mismatch",
+        ),
+        (ScriptedResponse(200, tuple((f"X-{i}", "v") for i in range(101))), None, "header_limit"),
+        (
+            ScriptedResponse(200, (("Content-Encoding", "gzip"),)),
+            None,
+            "unsupported_content_encoding",
+        ),
+        (
+            ScriptedResponse(200, (("Transfer-Encoding", "chunked"),)),
+            None,
+            "unsupported_transfer_encoding",
+        ),
+        (
+            ScriptedResponse(200, (("Transfer-Encoding", "identity"), ("Content-Length", "0"))),
+            None,
+            "unsupported_transfer_encoding",
+        ),
+        (
+            ScriptedResponse(200, (("Content-Length", str(MAX_SOURCE_BYTES + 1)),)),
+            None,
+            "source_too_large",
+        ),
+        (
+            ScriptedResponse(200, (("Content-Length", "1"), ("Content-Length", "1"))),
+            None,
+            "invalid_content_length",
+        ),
+        (ScriptedResponse(503, ()), None, "http_status"),
+        (
+            ScriptedResponse(
+                200, (("Content-Type", "application/pdf"),), read_error=TimeoutError()
+            ),
+            None,
+            "read_timeout",
+        ),
+        (None, TimeoutError(), "connect_timeout"),
+        (None, RuntimeError("unstable transport detail"), "tls_error"),
+    ],
+)
+def test_https_stable_peer_header_body_encoding_status_and_timeout_codes(
+    response: ScriptedResponse | None, transport_error: Exception | None, code: str
+) -> None:
     responses = [] if response is None else [response]
     with pytest.raises(SyllabusIntakeError) as caught:
         acquire_https(
             HttpsSource("https://example.com/a.pdf", network_consent=True),
-            resolver=ScriptedResolver(), transport=ScriptedTransport(responses, transport_error),
+            resolver=ScriptedResolver(),
+            transport=ScriptedTransport(responses, transport_error),
         )
     assert caught.value.code == code
 
 
 def test_https_streamed_body_limit_and_total_timeout() -> None:
-    response = ScriptedResponse(200, (("Content-Type", "application/pdf"),), body=b"x" * (MAX_SOURCE_BYTES + 1))
+    response = ScriptedResponse(
+        200, (("Content-Type", "application/pdf"),), body=b"x" * (MAX_SOURCE_BYTES + 1)
+    )
     with pytest.raises(SyllabusIntakeError) as caught:
-        acquire_https(HttpsSource("https://example.com/a.pdf", network_consent=True), resolver=ScriptedResolver(), transport=ScriptedTransport([response]))
+        acquire_https(
+            HttpsSource("https://example.com/a.pdf", network_consent=True),
+            resolver=ScriptedResolver(),
+            transport=ScriptedTransport([response]),
+        )
     assert caught.value.code == "source_too_large"
     ticks = iter((0.0, 31.0))
     with pytest.raises(SyllabusIntakeError) as caught:
-        acquire_https(HttpsSource("https://example.com/a.pdf", network_consent=True), resolver=ScriptedResolver(), transport=ScriptedTransport(), monotonic=lambda: next(ticks))
+        acquire_https(
+            HttpsSource("https://example.com/a.pdf", network_consent=True),
+            resolver=ScriptedResolver(),
+            transport=ScriptedTransport(),
+            monotonic=lambda: next(ticks),
+        )
     assert caught.value.code == "total_timeout"
 
 
@@ -701,7 +939,10 @@ def test_https_transfer_encoding_errors_are_stable_and_bounded() -> None:
 
 
 def test_html_suppression_uses_matching_stack_and_self_closing_semantics() -> None:
-    mismatched = b"<!doctype html><html><body>Visible<template><div>SECRET</template>LEAK</div>ALSO LEAK</body></html>"
+    mismatched = (
+        b"<!doctype html><html><body>Visible<template><div>SECRET</template>"
+        b"LEAK</div>ALSO LEAK</body></html>"
+    )
     document, _ = extract_html(mismatched, "utf-8")
     text = document["units"][0]["text"]
     assert text == "Visible"
@@ -714,11 +955,18 @@ def test_html_suppression_uses_matching_stack_and_self_closing_semantics() -> No
 
 def test_scripted_https_html_completes_lifecycle_without_subresources(tmp_path: Path) -> None:
     body = (GENERIC / "adversarial-syllabus.html").read_bytes()
-    transport = ScriptedTransport([ScriptedResponse(200, (("Content-Type", "text/html; charset=utf-8"),), body=body)])
-    store, domain_id, _ = initialized(tmp_path, service=PreparationService(resolver=ScriptedResolver(), transport=transport))
+    transport = ScriptedTransport(
+        [ScriptedResponse(200, (("Content-Type", "text/html; charset=utf-8"),), body=body)]
+    )
+    store, domain_id, _ = initialized(
+        tmp_path, service=PreparationService(resolver=ScriptedResolver(), transport=transport)
+    )
     _, content = complete_lifecycle(
-        store, domain_id, HttpsSource("https://example.com/syllabus.html", network_consent=True),
-        "text/html", "Generic Systems & Reliability",
+        store,
+        domain_id,
+        HttpsSource("https://example.com/syllabus.html", network_consent=True),
+        "text/html",
+        "Generic Systems & Reliability",
     )
     assert "Ignore template" not in content["prepared_document"]["units"][0]["text"]
     assert len(transport.requests) == 1
@@ -735,9 +983,13 @@ def test_scripted_https_html_completes_lifecycle_without_subresources(tmp_path: 
         assert _verify_media(acquired, "text/html") in {"utf-8-sig", "ascii"}
 
     non_ascii = body.replace(b"Ada Rivera", "Ada Rivera\u00e9".encode())
-    mislabeled = ScriptedTransport([
-        ScriptedResponse(200, (("Content-Type", "text/html; charset=us-ascii"),), body=non_ascii),
-    ])
+    mislabeled = ScriptedTransport(
+        [
+            ScriptedResponse(
+                200, (("Content-Type", "text/html; charset=us-ascii"),), body=non_ascii
+            ),
+        ]
+    )
     with pytest.raises(SyllabusIntakeError) as caught:
         _verify_media(
             acquire_https(source, resolver=ScriptedResolver(), transport=mislabeled),
@@ -752,20 +1004,33 @@ def test_ambiguous_fixture_cannot_be_accepted(tmp_path: Path) -> None:
     source_file.write_bytes((GENERIC / "ambiguous-columns.pdf").read_bytes())
     store, domain_id, _ = initialized(tmp_path / "domain")
     prepared = store.prepare_syllabus(
-        domain_id, 0, source=LocalFileSource(source_file), media_type="application/pdf", role="authoritative",
-        display_name="ambiguous.pdf", occurred_at="2026-08-19T00:00:00Z",
+        domain_id,
+        0,
+        source=LocalFileSource(source_file),
+        media_type="application/pdf",
+        role="authoritative",
+        display_name="ambiguous.pdf",
+        occurred_at="2026-08-19T00:00:00Z",
     )
     request = json.loads((GENERIC / "ambiguous-proposal-request.json").read_text())
     request["prepared_event_id"] = prepared["source_event_id"]
     proposal = store.propose_syllabus(domain_id, 1, **request)
     with pytest.raises(ValidationError, match="ambiguous"):
         store.decide_syllabus(
-            domain_id, 2, proposal_event_id=proposal["proposal_event_id"], occurred_at="2026-08-19T00:02:00Z",
-            accepted_proposal_ids=proposal["proposal_ids"], deferred_proposal_ids=[], rejected_proposal_ids=[], corrections=[],
+            domain_id,
+            2,
+            proposal_event_id=proposal["proposal_event_id"],
+            occurred_at="2026-08-19T00:02:00Z",
+            accepted_proposal_ids=proposal["proposal_ids"],
+            deferred_proposal_ids=[],
+            rejected_proposal_ids=[],
+            corrections=[],
         )
 
 
-def test_pdf_parent_reaps_timed_out_child_and_handles_short_input_writes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_pdf_parent_reaps_timed_out_child_and_handles_short_input_writes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     class HungProcess:
         pid = 424242
         returncode: int | None = None
@@ -807,7 +1072,9 @@ def test_pdf_parent_reaps_timed_out_child_and_handles_short_input_writes(tmp_pat
     assert len(document["units"]) == 2
 
 
-def test_pdf_worker_output_handles_short_and_zero_progress_writes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_pdf_worker_output_handles_short_and_zero_progress_writes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     original_write = os.write
     output = tmp_path / "worker.json"
 
@@ -863,16 +1130,22 @@ def test_scripted_https_lifecycle_and_local_https_hash_equivalence(tmp_path: Pat
     local = tmp_path / "same.pdf"
     local.write_bytes(body)
     local_store, local_domain, _ = initialized(tmp_path / "local")
-    local_prepared, _ = complete_lifecycle(local_store, local_domain, LocalFileSource(local), "application/pdf", "Week 1 Foundations")
+    local_prepared, _ = complete_lifecycle(
+        local_store, local_domain, LocalFileSource(local), "application/pdf", "Week 1 Foundations"
+    )
 
     resolver = ScriptedResolver()
-    transport = ScriptedTransport([ScriptedResponse(200, (("Content-Type", "application/pdf"),), body=body)])
+    transport = ScriptedTransport(
+        [ScriptedResponse(200, (("Content-Type", "application/pdf"),), body=body)]
+    )
     service = PreparationService(resolver=resolver, transport=transport)
     https_store, https_domain, _ = initialized(tmp_path / "https", service=service)
     https_prepared, _ = complete_lifecycle(
-        https_store, https_domain,
+        https_store,
+        https_domain,
         HttpsSource("https://example.com/generic.pdf", network_consent=True),
-        "application/pdf", "Week 1 Foundations",
+        "application/pdf",
+        "Week 1 Foundations",
     )
     assert local_prepared["source_sha256"] == https_prepared["source_sha256"]
     assert local_prepared["prepared_document_sha256"] == https_prepared["prepared_document_sha256"]

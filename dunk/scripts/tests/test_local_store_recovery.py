@@ -515,7 +515,14 @@ def test_generic_prepare_caught_failures_restore_cas_canonical_and_projections(
         "prepared_schema_version": 1,
         "media_type": "application/pdf",
         "normalization": {"policy_id": "test-v1", "unicode": "NFC", "line_endings": "LF"},
-        "units": [{"unit_id": "page:1", "kind": "page", "text": text, "text_sha256": sha256_bytes(text.encode())}],
+        "units": [
+            {
+                "unit_id": "page:1",
+                "kind": "page",
+                "text": text,
+                "text_sha256": sha256_bytes(text.encode()),
+            }
+        ],
     }
     raw = b"atomic-generic-source"
     raw_digest = sha256_bytes(raw)
@@ -530,8 +537,13 @@ def test_generic_prepare_caught_failures_restore_cas_canonical_and_projections(
     monkeypatch.setenv("DLN_STORE_FAIL_AT", fail_at)
     with pytest.raises(OSError, match="injected failure"):
         store._install_prepared_syllabus(
-            domain_id, 0, raw_bytes=raw, prepared_document=document, role="authoritative",
-            display_name="generic.pdf", occurred_at="2026-08-19T00:00:00Z",
+            domain_id,
+            0,
+            raw_bytes=raw,
+            prepared_document=document,
+            role="authoritative",
+            display_name="generic.pdf",
+            occurred_at="2026-08-19T00:00:00Z",
         )
     assert files(directory) == before
     assert not directory.joinpath(".dln-transaction").exists()
@@ -539,24 +551,28 @@ def test_generic_prepare_caught_failures_restore_cas_canonical_and_projections(
 
 def test_generic_prepare_installing_crash_rolls_forward_all_targets(tmp_path: Path) -> None:
     domain_id, directory = init_domain(tmp_path)
-    code = r'''from pathlib import Path
+    code = r"""from pathlib import Path
 from dln_store.schema import sha256_bytes
 from dln_store.store import LocalStore
 root=Path({root!r})
 text='Topic: Trees\n'
 doc={{'prepared_schema_version':1,'media_type':'application/pdf','normalization':{{'policy_id':'test-v1','unicode':'NFC','line_endings':'LF'}},'units':[{{'unit_id':'page:1','kind':'page','text':text,'text_sha256':sha256_bytes(text.encode())}}]}}
 LocalStore(root)._install_prepared_syllabus({domain!r},0,raw_bytes=b'crash-source',prepared_document=doc,role='authoritative',display_name='generic.pdf',occurred_at='2026-08-19T00:00:00Z')
-'''.format(root=str(tmp_path), domain=domain_id)
+""".format(root=str(tmp_path), domain=domain_id)
     env = os.environ.copy()
     env["DLN_STORE_CRASH_AT"] = "install:events.jsonl"
     crashed = subprocess.run([sys.executable, "-c", code], cwd=SCRIPTS, env=env)
     assert crashed.returncode == 91
     blocked = run_cli(tmp_path, "context", "--domain-id", domain_id)
     assert blocked.returncode == 5
-    recovered = run_cli(tmp_path, "doctor", "--domain-id", domain_id, "--break-stale-lock", "--recover")
+    recovered = run_cli(
+        tmp_path, "doctor", "--domain-id", domain_id, "--break-stale-lock", "--recover"
+    )
     assert recovered.returncode == 0, recovered.stderr
     assert output(recovered)["recovery"] == "rolled-forward"
-    events = [json.loads(line) for line in directory.joinpath("events.jsonl").read_text().splitlines()]
+    events = [
+        json.loads(line) for line in directory.joinpath("events.jsonl").read_text().splitlines()
+    ]
     assert events[0]["kind"] == "syllabus_source_prepared"
     source = events[0]
     assert directory.joinpath(source["source"]["cas_path"]).is_file()
@@ -606,7 +622,13 @@ def test_concurrent_commits_admit_exactly_one_winner(tmp_path: Path) -> None:
     validated = run_cli(tmp_path, "validate", "--domain-id", domain_id)
     assert validated.returncode == 0, validated.stderr
     assert output(validated) == {
-        "canonical_content": {"corrupt": [], "missing": [], "orphaned": [], "referenced_prepared_documents": 0, "referenced_sources": 0},
+        "canonical_content": {
+            "corrupt": [],
+            "missing": [],
+            "orphaned": [],
+            "referenced_prepared_documents": 0,
+            "referenced_sources": 0,
+        },
         "derived_drift": [],
         "domain_id": domain_id,
         "event_count": 0,

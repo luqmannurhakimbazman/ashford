@@ -75,7 +75,10 @@ def _render_assertion(lines: list[str], assertion: dict[str, Any]) -> None:
     for citation in assertion.get("citations", []):
         lines.append(f"  - {_citation_text(citation)}")
     for citation in assertion.get("document_context", []):
-        lines.append(f"  - Preserved document context (not support for correction): {_citation_text(citation)}")
+        lines.append(
+            "  - Preserved document context (not support for correction): "
+            f"{_citation_text(citation)}"
+        )
     note = assertion.get("note") or assertion.get("document_note")
     if note:
         lines.append(f"  - Note: {markdown_text(note)}")
@@ -83,11 +86,17 @@ def _render_assertion(lines: list[str], assertion: dict[str, Any]) -> None:
 
 def render_syllabus_receipt(timeline: GroundingTimeline, source: dict[str, Any]) -> bytes:
     """Render one media-neutral authoritative or supplemental source lifecycle."""
-    views = [view for view in timeline.approval_views.values() if view["source"]["event_id"] == source["event_id"]]
+    views = [
+        view
+        for view in timeline.approval_views.values()
+        if view["source"]["event_id"] == source["event_id"]
+    ]
     latest = views[-1] if views else None
     current = timeline.current_view()
     active = bool(current and current["source"]["event_id"] == source["event_id"])
-    role_label = "Authoritative" if source["role"] == "authoritative" else "Non-Authoritative Supplement"
+    role_label = (
+        "Authoritative" if source["role"] == "authoritative" else "Non-Authoritative Supplement"
+    )
     if source["phase"] == "prepared":
         phase = "Proposal Required"
     elif source["phase"] == "proposed":
@@ -98,23 +107,49 @@ def render_syllabus_receipt(timeline: GroundingTimeline, source: dict[str, Any])
         phase = "Decided — Display Only"
     else:
         phase = "Historically Approved — Superseded"
-    lines = [f"# Syllabus Receipt — {role_label} — {phase}", "", SYLLABUS_GENERATED_WARNING.rstrip("\n"), "",
-             f"- **Role:** `{source['role']}`", f"- **Storage:** `{source['storage']}`",
-             f"- **Source version:** `{markdown_text(source['source_version_id'])}`",
-             f"- **Filename:** {markdown_text(source['display_name'])}", f"- **Media type:** `{markdown_text(source['media_type'])}`",
-             f"- **Source SHA-256:** `{source['sha256']}`", f"- **Prepared SHA-256:** `{source.get('prepared_document_sha256') or 'legacy-inline-only'}`",
-             f"- **Recorded:** {markdown_text(source['occurred_at'])}"]
+    lines = [
+        f"# Syllabus Receipt — {role_label} — {phase}",
+        "",
+        SYLLABUS_GENERATED_WARNING.rstrip("\n"),
+        "",
+        f"- **Role:** `{source['role']}`",
+        f"- **Storage:** `{source['storage']}`",
+        f"- **Source version:** `{markdown_text(source['source_version_id'])}`",
+        f"- **Filename:** {markdown_text(source['display_name'])}",
+        f"- **Media type:** `{markdown_text(source['media_type'])}`",
+        f"- **Source SHA-256:** `{source['sha256']}`",
+        "- **Prepared SHA-256:** "
+        f"`{source.get('prepared_document_sha256') or 'legacy-inline-only'}`",
+        f"- **Recorded:** {markdown_text(source['occurred_at'])}",
+    ]
     if source["role"] == "supplement":
-        lines.extend(["", "> [!important] This supplement is permanently non-authoritative and cannot drive active grounding, planning topics, or eligible learning citations."])
-    proposals = (latest or {}).get("proposals") or timeline.proposals_by_source_event.get(source["event_id"], {}).get("proposals", [])
-    rendered = latest["effective_assertions"] if latest else [_proposal_preview(item) for item in proposals]
+        lines.extend(
+            [
+                "",
+                "> [!important] This supplement is permanently non-authoritative and "
+                "cannot drive active grounding, planning topics, or eligible learning "
+                "citations.",
+            ]
+        )
+    proposals = (latest or {}).get("proposals") or timeline.proposals_by_source_event.get(
+        source["event_id"], {}
+    ).get("proposals", [])
+    rendered = (
+        latest["effective_assertions"]
+        if latest
+        else [_proposal_preview(item) for item in proposals]
+    )
     lines.extend(["", "## Assertions", ""])
     if rendered:
         for assertion in rendered:
             _render_assertion(lines, assertion)
     else:
         lines.append("No proposal set has been recorded.")
-    unresolved = latest["unresolved_assertions"] if latest else [_proposal_preview(item) for item in proposals if item["status"] != "specified"]
+    unresolved = (
+        latest["unresolved_assertions"]
+        if latest
+        else [_proposal_preview(item) for item in proposals if item["status"] != "specified"]
+    )
     lines.extend(["", "## Deferred / Ambiguous / Unknown", ""])
     if unresolved:
         for assertion in unresolved:
@@ -132,33 +167,63 @@ def render_syllabus_receipt(timeline: GroundingTimeline, source: dict[str, Any])
     if views:
         for view in views:
             decision = view["decision"]
-            lines.extend([f"- `{decision['event_id']}` at {markdown_text(decision['occurred_at'])} — `{view['reference_field']}`"])
+            lines.extend(
+                [
+                    f"- `{decision['event_id']}` at "
+                    f"{markdown_text(decision['occurred_at'])} — `{view['reference_field']}`"
+                ]
+            )
             if decision["kind"] == "syllabus_decision_recorded":
-                lines.extend([
-                    f"  - Accepted: {', '.join(decision['accepted_proposal_ids']) or 'none'}",
-                    f"  - Deferred: {', '.join(decision['deferred_proposal_ids']) or 'none'}",
-                    f"  - Rejected: {', '.join(decision['rejected_proposal_ids']) or 'none'}",
-                    f"  - Corrected: {', '.join(item['target_proposal_id'] for item in decision['corrections']) or 'none'}",
-                ])
+                corrected = ", ".join(
+                    item["target_proposal_id"] for item in decision["corrections"]
+                )
+                lines.extend(
+                    [
+                        f"  - Accepted: {', '.join(decision['accepted_proposal_ids']) or 'none'}",
+                        f"  - Deferred: {', '.join(decision['deferred_proposal_ids']) or 'none'}",
+                        f"  - Rejected: {', '.join(decision['rejected_proposal_ids']) or 'none'}",
+                        f"  - Corrected: {corrected or 'none'}",
+                    ]
+                )
             else:
-                lines.extend([
-                    f"  - Accepted: {', '.join(decision['accepted_assertion_ids']) or 'none'}",
-                    f"  - Deferred: {', '.join(decision['deferred_assertion_ids']) or 'none'}",
-                    f"  - Corrected: {', '.join(item['target_assertion_id'] for item in decision['corrections']) or 'none'}",
-                ])
+                corrected = ", ".join(
+                    item["target_assertion_id"] for item in decision["corrections"]
+                )
+                lines.extend(
+                    [
+                        f"  - Accepted: {', '.join(decision['accepted_assertion_ids']) or 'none'}",
+                        f"  - Deferred: {', '.join(decision['deferred_assertion_ids']) or 'none'}",
+                        f"  - Corrected: {corrected or 'none'}",
+                    ]
+                )
     else:
         lines.append("No learner decision has been recorded.")
     lines.extend(["", "## Canonical Prepared Text", ""])
     for unit in source["document"]["units"]:
         fence = _page_text_fence(unit["text"])
-        lines.extend([f"### {markdown_text(unit.get('label') or unit['unit_id'])}", "", f"{fence}text", unit["text"], fence, ""])
+        lines.extend(
+            [
+                f"### {markdown_text(unit.get('label') or unit['unit_id'])}",
+                "",
+                f"{fence}text",
+                unit["text"],
+                fence,
+                "",
+            ]
+        )
     return ("\n".join(lines).rstrip() + "\n").encode("utf-8")
 
 
 def _proposal_preview(proposal: dict[str, Any]) -> dict[str, Any]:
-    return {"assertion_id": proposal["proposal_id"], "source_assertion_id": proposal["proposal_id"],
-            "field": proposal["predicate"], "normalized_value": proposal["value"], "status": proposal["status"],
-            "origin": "document", "citations": proposal["locators"]}
+    return {
+        "assertion_id": proposal["proposal_id"],
+        "source_assertion_id": proposal["proposal_id"],
+        "field": proposal["predicate"],
+        "normalized_value": proposal["value"],
+        "status": proposal["status"],
+        "origin": "document",
+        "citations": proposal["locators"],
+    }
 
 
 def render_all_syllabus_receipts(
@@ -208,7 +273,11 @@ def _dashboard_grounding_lines(grounding: dict[str, Any]) -> list[str]:
                 f"[[{markdown_text(pending['receipt'])}|review intake receipt]]"
             )
     for supplement in grounding.get("supplements", []):
-        lines.append(f"- **Non-authoritative supplement:** {markdown_text(supplement['filename'])} (`{markdown_text(supplement['phase'])}`) — [[{markdown_text(supplement['receipt'])}|view supplement]]")
+        lines.append(
+            f"- **Non-authoritative supplement:** {markdown_text(supplement['filename'])} "
+            f"(`{markdown_text(supplement['phase'])}`) — "
+            f"[[{markdown_text(supplement['receipt'])}|view supplement]]"
+        )
     return lines
 
 

@@ -133,7 +133,7 @@ Use `$ARGUMENTS`, `$1`, and `$2` for command arguments. Use absolute plugin path
 
 ## Validation
 
-The CI workflow in `.github/workflows/validate.yml` validates JSON, shell syntax and ShellCheck, the marketplace, every plugin independently, Dunk's complete local-store/contract/recovery/projection/syllabus-grounding/legacy suite, deterministic fixture rebuilds, and repository migration tests.
+The CI workflow in `.github/workflows/validate.yml` validates JSON, shell syntax and ShellCheck, the marketplace, every plugin independently, the exact pinned `pypdf==6.14.2` extractor, Dunk's complete local-store/contract/recovery/projection/syllabus-acquisition/syllabus-grounding/legacy suite, deterministic fixture rebuilds, and repository migration tests.
 
 Run relevant checks locally:
 

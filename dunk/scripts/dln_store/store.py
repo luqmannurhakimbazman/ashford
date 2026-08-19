@@ -45,9 +45,9 @@ from .schema import (
     sha256_bytes,
     syllabus_decision_set_sha256,
     syllabus_proposal_set_sha256,
+    validate_commit_request,
     validate_event,
     validate_prepared_document,
-    validate_commit_request,
     validate_profile,
     validate_proposal_id_list,
     validate_sealable_items,
@@ -309,7 +309,8 @@ def _load_journal(paths: DomainPaths) -> dict[str, Any]:
         raise RecoveryRequiredError("transaction journal has an unsupported schema")
     preconditions = value.get("source_preconditions")
     if not isinstance(preconditions, dict) or not all(
-        isinstance(path, str) and (digest is None or isinstance(digest, str)) for path, digest in preconditions.items()
+        isinstance(path, str) and (digest is None or isinstance(digest, str))
+        for path, digest in preconditions.items()
     ):
         raise RecoveryRequiredError("transaction journal has invalid source preconditions")
     for source_path in preconditions:
@@ -607,18 +608,25 @@ def _verified_prepared_documents(
             raise ValidationError(f"events[{position}].source: canonical source bytes are corrupt")
         encoded = content(prepared_path, "prepared CAS object", 16 * 1024 * 1024)
         if sha256_bytes(encoded) != prepared["prepared_document_sha256"]:
-            raise ValidationError(f"events[{position}].prepared: canonical prepared bytes are corrupt")
+            raise ValidationError(
+                f"events[{position}].prepared: canonical prepared bytes are corrupt"
+            )
         try:
             value = json.loads(encoded.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ValidationError(f"events[{position}].prepared: invalid canonical JSON: {exc}") from exc
+            raise ValidationError(
+                f"events[{position}].prepared: invalid canonical JSON: {exc}"
+            ) from exc
         document = validate_prepared_document(value, f"events[{position}].prepared_document")
         if prepared_document_bytes(document) != encoded:
             raise ValidationError(f"events[{position}].prepared: stored JSON is not canonical")
         if document["media_type"] != source["media_type"]:
             raise ValidationError(f"events[{position}].prepared: media type does not match source")
         text_size = sum(len(unit["text"].encode("utf-8")) for unit in document["units"])
-        if len(document["units"]) != prepared["unit_count"] or text_size != prepared["text_byte_size"]:
+        if (
+            len(document["units"]) != prepared["unit_count"]
+            or text_size != prepared["text_byte_size"]
+        ):
             raise ValidationError(f"events[{position}].prepared: summary does not match document")
         documents[event["event_id"]] = {"document": document, "bytes": encoded}
         source_paths.add(source_path)
@@ -638,7 +646,10 @@ def _canonical_content_diagnostics(
     for event in events:
         if event["kind"] != "syllabus_source_prepared":
             continue
-        for key, namespace, referenced in (("source", "source", referenced_sources), ("prepared", "prepared", referenced_prepared)):
+        for key, namespace, referenced in (
+            ("source", "source", referenced_sources),
+            ("prepared", "prepared", referenced_prepared),
+        ):
             relative_text = event[key]["cas_path"]
             referenced.add(relative_text)
             relative = _safe_relative(relative_text)
@@ -651,13 +662,18 @@ def _canonical_content_diagnostics(
                 if target.is_symlink() or not target.is_file():
                     corrupt.append(relative_text)
                     continue
-                size_limit = event["source"]["byte_size"] if namespace == "source" else 16 * 1024 * 1024
+                size_limit = (
+                    event["source"]["byte_size"] if namespace == "source" else 16 * 1024 * 1024
+                )
                 if target.stat().st_size > size_limit:
                     corrupt.append(relative_text)
                     continue
                 data = target.read_bytes()
                 if namespace == "source":
-                    if len(data) != event["source"]["byte_size"] or sha256_bytes(data) != event["source"]["sha256"]:
+                    if (
+                        len(data) != event["source"]["byte_size"]
+                        or sha256_bytes(data) != event["source"]["sha256"]
+                    ):
                         corrupt.append(relative_text)
                 else:
                     if sha256_bytes(data) != event["prepared"]["prepared_document_sha256"]:
@@ -666,14 +682,22 @@ def _canonical_content_diagnostics(
                     value = json.loads(data.decode("utf-8"))
                     document = validate_prepared_document(value)
                     text_size = sum(len(unit["text"].encode("utf-8")) for unit in document["units"])
-                    if prepared_document_bytes(document) != data or document["media_type"] != event["source"]["media_type"] or len(document["units"]) != event["prepared"]["unit_count"] or text_size != event["prepared"]["text_byte_size"]:
+                    if (
+                        prepared_document_bytes(document) != data
+                        or document["media_type"] != event["source"]["media_type"]
+                        or len(document["units"]) != event["prepared"]["unit_count"]
+                        or text_size != event["prepared"]["text_byte_size"]
+                    ):
                         corrupt.append(relative_text)
                     else:
                         documents[event["event_id"]] = {"document": document, "bytes": data}
             except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValidationError):
                 corrupt.append(relative_text)
     orphaned: list[str] = []
-    for directory, referenced in ((paths.sources, referenced_sources), (paths.prepared, referenced_prepared)):
+    for directory, referenced in (
+        (paths.sources, referenced_sources),
+        (paths.prepared, referenced_prepared),
+    ):
         if not directory.exists():
             continue
         if directory.is_symlink() or not directory.is_dir():
@@ -684,7 +708,11 @@ def _canonical_content_diagnostics(
                 relative = entry.relative_to(paths.directory).as_posix()
                 if relative not in referenced:
                     orphaned.append(relative)
-    diagnostics = {"missing": sorted(set(missing)), "corrupt": sorted(set(corrupt)), "orphaned": sorted(set(orphaned))}
+    diagnostics = {
+        "missing": sorted(set(missing)),
+        "corrupt": sorted(set(corrupt)),
+        "orphaned": sorted(set(orphaned)),
+    }
     return diagnostics, documents, referenced_sources, referenced_prepared
 
 
@@ -754,7 +782,14 @@ class LocalStore:
             _write_fsynced(stage / "events.jsonl", events_bytes)
             _write_fsynced(stage / "state.json", pretty_json(state))
             _write_fsynced(stage / "dashboard.md", render_dashboard(state))
-            for directory in (stage / "sessions", stage / "syllabus", stage / "sources" / "sha256", stage / "prepared" / "sha256", stage / "sources", stage / "prepared"):
+            for directory in (
+                stage / "sessions",
+                stage / "syllabus",
+                stage / "sources" / "sha256",
+                stage / "prepared" / "sha256",
+                stage / "sources",
+                stage / "prepared",
+            ):
                 _fsync_directory(directory)
             _fsync_directory(stage)
             if os.path.lexists(final.directory):
@@ -813,7 +848,9 @@ class LocalStore:
         with domain_lock(paths):
             recovery = self._recover_before_write(paths)
             profile, profile_bytes, events, events_bytes = _load_sources(paths)
-            prepared_documents, source_refs, prepared_refs = _verified_prepared_documents(paths, events)
+            prepared_documents, source_refs, prepared_refs = _verified_prepared_documents(
+                paths, events
+            )
             if profile["domain_id"] != domain_id:
                 raise ValidationError("profile domain_id does not match its directory")
             if profile["revision"] != expected_revision:
@@ -892,10 +929,18 @@ class LocalStore:
                 relative = _safe_relative(relative_text)
                 _reject_target_symlinks(paths.directory, relative)
                 target = paths.directory / relative
-                if target.exists() and (target.is_symlink() or not target.is_file() or target.read_bytes() != candidate_bytes):
-                    raise ValidationError(f"content-addressed path collision/corruption: {relative_text}")
-            appended_documents, appended_source_refs, appended_prepared_refs = _verified_prepared_documents(
-                paths, new_events, canonical_content, position_offset=len(events)
+                if target.exists() and (
+                    target.is_symlink()
+                    or not target.is_file()
+                    or target.read_bytes() != candidate_bytes
+                ):
+                    raise ValidationError(
+                        f"content-addressed path collision/corruption: {relative_text}"
+                    )
+            appended_documents, appended_source_refs, appended_prepared_refs = (
+                _verified_prepared_documents(
+                    paths, new_events, canonical_content, position_offset=len(events)
+                )
             )
             candidate_documents = {**prepared_documents, **appended_documents}
             candidate_source_refs = source_refs | appended_source_refs
@@ -983,15 +1028,21 @@ class LocalStore:
                     raise ValidationError(
                         "authoritative source must name the latest predecessor exactly"
                     )
-                if latest and datetime.fromisoformat(occurred_at[:-1] + "+00:00") <= datetime.fromisoformat(
-                    latest["occurred_at"][:-1] + "+00:00"
-                ):
+                if latest and datetime.fromisoformat(
+                    occurred_at[:-1] + "+00:00"
+                ) <= datetime.fromisoformat(latest["occurred_at"][:-1] + "+00:00"):
                     raise ValidationError("occurred_at must be later than the predecessor")
 
     def prepare_syllabus(
-        self, domain_id: str, expected_revision: int, *,
-        source: LocalFileSource | HttpsSource, media_type: str, role: str,
-        display_name: str, occurred_at: str,
+        self,
+        domain_id: str,
+        expected_revision: int,
+        *,
+        source: LocalFileSource | HttpsSource,
+        media_type: str,
+        role: str,
+        display_name: str,
+        occurred_at: str,
         supersedes_source_version_id: str | None = None,
     ) -> dict[str, Any]:
         """Acquire and extract outside the lock, then atomically install canonical content."""
@@ -1005,7 +1056,10 @@ class LocalStore:
             parsed_occurred_at = datetime.fromisoformat(occurred_at[:-1] + "+00:00")
         except ValueError as exc:
             raise ValidationError("occurred_at must be a UTC RFC 3339 timestamp") from exc
-        if parsed_occurred_at.utcoffset() is None or parsed_occurred_at.utcoffset().total_seconds() != 0:
+        if (
+            parsed_occurred_at.utcoffset() is None
+            or parsed_occurred_at.utcoffset().total_seconds() != 0
+        ):
             raise ValidationError("occurred_at must be UTC")
         if (
             not isinstance(display_name, str)
@@ -1024,7 +1078,9 @@ class LocalStore:
             or not isinstance(source.allow_redirects, bool)
         ):
             raise SyllabusIntakeError(
-                "invalid_source_options", "HTTPS consent options must be booleans", phase="acquisition"
+                "invalid_source_options",
+                "HTTPS consent options must be booleans",
+                phase="acquisition",
             )
         if role == "supplement" and supersedes_source_version_id is not None:
             raise ValidationError("supplements cannot supersede authoritative sources")
@@ -1050,13 +1106,20 @@ class LocalStore:
         )
 
     def _install_prepared_syllabus(
-        self, domain_id: str, expected_revision: int, *, raw_bytes: bytes,
-        prepared_document: dict[str, Any], role: str, display_name: str,
-        occurred_at: str, supersedes_source_version_id: str | None = None,
+        self,
+        domain_id: str,
+        expected_revision: int,
+        *,
+        raw_bytes: bytes,
+        prepared_document: dict[str, Any],
+        role: str,
+        display_name: str,
+        occurred_at: str,
+        supersedes_source_version_id: str | None = None,
         acquisition: dict[str, Any] | None = None,
         extraction: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Internal item-1 CAS/event installation primitive for validated preparation output."""
+        """Install validated preparation output as item-1 CAS plus one canonical source event."""
         if not isinstance(raw_bytes, bytes):
             raise ValidationError("raw_bytes must be bytes")
         document = validate_prepared_document(prepared_document)
@@ -1064,39 +1127,85 @@ class LocalStore:
         source_digest = sha256_bytes(raw_bytes)
         prepared_digest = prepared_document_sha256(document)
         event = {
-            "schema_version": 1, "kind": "syllabus_source_prepared",
+            "schema_version": 1,
+            "kind": "syllabus_source_prepared",
             "event_id": f"syllabus-prepared-{source_digest}",
-            "session_id": f"session-syllabus-prepared-{source_digest}", "occurred_at": occurred_at,
+            "session_id": f"session-syllabus-prepared-{source_digest}",
+            "occurred_at": occurred_at,
             "role": role,
-            "source": {"source_version_id": f"sha256-{source_digest}", "display_name": display_name,
-                       "media_type": document["media_type"], "byte_size": len(raw_bytes), "sha256": source_digest,
-                       "cas_path": f"sources/sha256/{source_digest}"},
-            "prepared": {"prepared_document_sha256": prepared_digest,
-                         "cas_path": f"prepared/sha256/{prepared_digest}.json",
-                         "unit_count": len(document["units"]),
-                         "text_byte_size": sum(len(unit["text"].encode("utf-8")) for unit in document["units"])},
-            "acquisition": acquisition or {"kind": "provided_bytes", "policy_id": "provided-bytes-v1", "trust": "external_unverified", "declared_source": "bounded prepared input"},
-            "extraction": extraction or {"kind": "provided_prepared_document", "policy_id": "provided-document-v1", "producer": {"trust": "external_unverified", "name": "caller", "version": "1"}, "warnings": []},
+            "source": {
+                "source_version_id": f"sha256-{source_digest}",
+                "display_name": display_name,
+                "media_type": document["media_type"],
+                "byte_size": len(raw_bytes),
+                "sha256": source_digest,
+                "cas_path": f"sources/sha256/{source_digest}",
+            },
+            "prepared": {
+                "prepared_document_sha256": prepared_digest,
+                "cas_path": f"prepared/sha256/{prepared_digest}.json",
+                "unit_count": len(document["units"]),
+                "text_byte_size": sum(
+                    len(unit["text"].encode("utf-8")) for unit in document["units"]
+                ),
+            },
+            "acquisition": acquisition
+            or {
+                "kind": "provided_bytes",
+                "policy_id": "provided-bytes-v1",
+                "trust": "external_unverified",
+                "declared_source": "bounded prepared input",
+            },
+            "extraction": extraction
+            or {
+                "kind": "provided_prepared_document",
+                "policy_id": "provided-document-v1",
+                "producer": {"trust": "external_unverified", "name": "caller", "version": "1"},
+                "warnings": [],
+            },
             "supersedes_source_version_id": supersedes_source_version_id,
         }
         try:
             existing = self._event_by_id(domain_id, event["event_id"])
         except ValidationError:
             existing = None
-        if existing is not None and existing["kind"] == "syllabus_source_prepared" and existing["prepared"]["prepared_document_sha256"] == prepared_digest and existing["role"] == role and existing["supersedes_source_version_id"] == supersedes_source_version_id:
+        if (
+            existing is not None
+            and existing["kind"] == "syllabus_source_prepared"
+            and existing["prepared"]["prepared_document_sha256"] == prepared_digest
+            and existing["role"] == role
+            and existing["supersedes_source_version_id"] == supersedes_source_version_id
+        ):
             event = existing
         validate_event(event)
         content = {event["source"]["cas_path"]: raw_bytes, event["prepared"]["cas_path"]: encoded}
-        result = self._commit_request(domain_id, expected_revision, {"events": [event]},
-                                      allowed_reserved_kinds={"syllabus_source_prepared"}, content_targets=content)
-        result.update({"source_event_id": event["event_id"], "source_sha256": source_digest,
-                       "source_version_id": event["source"]["source_version_id"],
-                       "prepared_document_sha256": prepared_digest, "source_phase": "prepared"})
+        result = self._commit_request(
+            domain_id,
+            expected_revision,
+            {"events": [event]},
+            allowed_reserved_kinds={"syllabus_source_prepared"},
+            content_targets=content,
+        )
+        result.update(
+            {
+                "source_event_id": event["event_id"],
+                "source_sha256": source_digest,
+                "source_version_id": event["source"]["source_version_id"],
+                "prepared_document_sha256": prepared_digest,
+                "source_phase": "prepared",
+            }
+        )
         return result
 
     def propose_syllabus(
-        self, domain_id: str, expected_revision: int, *, prepared_event_id: str,
-        occurred_at: str, producer: dict[str, Any], proposals: list[dict[str, Any]],
+        self,
+        domain_id: str,
+        expected_revision: int,
+        *,
+        prepared_event_id: str,
+        occurred_at: str,
+        producer: dict[str, Any],
+        proposals: list[dict[str, Any]],
     ) -> dict[str, Any]:
         """Seal structurally bounded, externally unverified proposals against prepared content."""
         source = self._event_by_id(domain_id, prepared_event_id)
@@ -1115,31 +1224,65 @@ class LocalStore:
             proposal_id = f"proposal-{sha256_bytes(core_bytes)}"
             sealed.append({"proposal_id": proposal_id, "display_order": index, **core})
         event = {
-            "schema_version": 1, "kind": "syllabus_assertions_proposed", "event_id": "pending",
-            "session_id": "pending", "occurred_at": occurred_at, "role": source["role"],
-            "prepared_event_id": source["event_id"], "source_version_id": source["source"]["source_version_id"],
+            "schema_version": 1,
+            "kind": "syllabus_assertions_proposed",
+            "event_id": "pending",
+            "session_id": "pending",
+            "occurred_at": occurred_at,
+            "role": source["role"],
+            "prepared_event_id": source["event_id"],
+            "source_version_id": source["source"]["source_version_id"],
             "prepared_document_sha256": source["prepared"]["prepared_document_sha256"],
-            "producer": producer, "proposals": sealed, "proposal_set_sha256": "0" * 64,
+            "producer": producer,
+            "proposals": sealed,
+            "proposal_set_sha256": "0" * 64,
         }
         digest = syllabus_proposal_set_sha256(event)
-        event.update({"event_id": f"syllabus-proposals-{digest}", "session_id": f"session-syllabus-proposals-{digest}", "proposal_set_sha256": digest})
+        event.update(
+            {
+                "event_id": f"syllabus-proposals-{digest}",
+                "session_id": f"session-syllabus-proposals-{digest}",
+                "proposal_set_sha256": digest,
+            }
+        )
         try:
             existing = self._event_by_id(domain_id, event["event_id"])
         except ValidationError:
             existing = None
-        if existing is not None and existing["kind"] == "syllabus_assertions_proposed" and existing["proposal_set_sha256"] == digest:
+        if (
+            existing is not None
+            and existing["kind"] == "syllabus_assertions_proposed"
+            and existing["proposal_set_sha256"] == digest
+        ):
             event = existing
         validate_event(event)
-        result = self._commit_request(domain_id, expected_revision, {"events": [event]},
-                                      allowed_reserved_kinds={"syllabus_assertions_proposed"})
-        result.update({"proposal_event_id": event["event_id"], "proposal_set_sha256": digest,
-                       "proposal_ids": [item["proposal_id"] for item in sealed], "source_phase": "proposed"})
+        result = self._commit_request(
+            domain_id,
+            expected_revision,
+            {"events": [event]},
+            allowed_reserved_kinds={"syllabus_assertions_proposed"},
+        )
+        result.update(
+            {
+                "proposal_event_id": event["event_id"],
+                "proposal_set_sha256": digest,
+                "proposal_ids": [item["proposal_id"] for item in sealed],
+                "source_phase": "proposed",
+            }
+        )
         return result
 
     def decide_syllabus(
-        self, domain_id: str, expected_revision: int, *, proposal_event_id: str,
-        occurred_at: str, accepted_proposal_ids: list[str], deferred_proposal_ids: list[str],
-        rejected_proposal_ids: list[str], corrections: list[dict[str, Any]],
+        self,
+        domain_id: str,
+        expected_revision: int,
+        *,
+        proposal_event_id: str,
+        occurred_at: str,
+        accepted_proposal_ids: list[str],
+        deferred_proposal_ids: list[str],
+        rejected_proposal_ids: list[str],
+        corrections: list[dict[str, Any]],
         supersedes_decision_event_id: str | None = None,
         actor: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
@@ -1163,29 +1306,58 @@ class LocalStore:
             sealed_corrections.append({"correction_id": correction_id, **core})
         sealed_corrections.sort(key=lambda item: item["correction_id"])
         event = {
-            "schema_version": 1, "kind": "syllabus_decision_recorded", "event_id": "pending", "session_id": "pending",
-            "occurred_at": occurred_at, "role": proposal_event["role"],
-            "prepared_event_id": proposal_event["prepared_event_id"], "source_version_id": proposal_event["source_version_id"],
+            "schema_version": 1,
+            "kind": "syllabus_decision_recorded",
+            "event_id": "pending",
+            "session_id": "pending",
+            "occurred_at": occurred_at,
+            "role": proposal_event["role"],
+            "prepared_event_id": proposal_event["prepared_event_id"],
+            "source_version_id": proposal_event["source_version_id"],
             "prepared_document_sha256": proposal_event["prepared_document_sha256"],
-            "proposal_event_id": proposal_event["event_id"], "proposal_set_sha256": proposal_event["proposal_set_sha256"],
+            "proposal_event_id": proposal_event["event_id"],
+            "proposal_set_sha256": proposal_event["proposal_set_sha256"],
             "actor": actor or {"type": "learner", "id": "learner"},
-            "accepted_proposal_ids": sorted(accepted), "deferred_proposal_ids": sorted(deferred),
-            "rejected_proposal_ids": sorted(rejected), "corrections": sealed_corrections,
-            "supersedes_decision_event_id": supersedes_decision_event_id, "decision_set_sha256": "0" * 64,
+            "accepted_proposal_ids": sorted(accepted),
+            "deferred_proposal_ids": sorted(deferred),
+            "rejected_proposal_ids": sorted(rejected),
+            "corrections": sealed_corrections,
+            "supersedes_decision_event_id": supersedes_decision_event_id,
+            "decision_set_sha256": "0" * 64,
         }
         digest = syllabus_decision_set_sha256(event)
-        event.update({"event_id": f"syllabus-decision-{digest}", "session_id": f"session-syllabus-decision-{digest}", "decision_set_sha256": digest})
+        event.update(
+            {
+                "event_id": f"syllabus-decision-{digest}",
+                "session_id": f"session-syllabus-decision-{digest}",
+                "decision_set_sha256": digest,
+            }
+        )
         try:
             existing = self._event_by_id(domain_id, event["event_id"])
         except ValidationError:
             existing = None
-        if existing is not None and existing["kind"] == "syllabus_decision_recorded" and existing["decision_set_sha256"] == digest:
+        if (
+            existing is not None
+            and existing["kind"] == "syllabus_decision_recorded"
+            and existing["decision_set_sha256"] == digest
+        ):
             event = existing
         validate_event(event)
-        result = self._commit_request(domain_id, expected_revision, {"events": [event]},
-                                      allowed_reserved_kinds={"syllabus_decision_recorded"})
-        result.update({"decision_event_id": event["event_id"], "decision_set_sha256": digest,
-                       "source_version_id": event["source_version_id"], "source_phase": "decided"})
+        result = self._commit_request(
+            domain_id,
+            expected_revision,
+            {"events": [event]},
+            allowed_reserved_kinds={"syllabus_decision_recorded"},
+        )
+        result.update(
+            {
+                "decision_event_id": event["event_id"],
+                "decision_set_sha256": digest,
+                "source_version_id": event["source_version_id"],
+                "source_phase": "decided",
+            }
+        )
         return result
 
     def syllabus_content(self, domain_id: str, source_event_id: str) -> dict[str, Any]:
@@ -1193,7 +1365,9 @@ class LocalStore:
         paths = self._require_domain(domain_id)
         with domain_lock(paths):
             if paths.transaction.exists():
-                raise RecoveryRequiredError(f"interrupted transaction at {paths.transaction}; run doctor --recover")
+                raise RecoveryRequiredError(
+                    f"interrupted transaction at {paths.transaction}; run doctor --recover"
+                )
             _, _, events, _ = _load_sources(paths)
             documents, _, _ = _verified_prepared_documents(paths, events)
             event = next((item for item in events if item["event_id"] == source_event_id), None)
@@ -1202,15 +1376,44 @@ class LocalStore:
             if event["kind"] == "syllabus_source_prepared":
                 raw = (paths.directory / _safe_relative(event["source"]["cas_path"])).read_bytes()
                 prepared = documents[event["event_id"]]
-                return {"storage": "cas", "source": event["source"], "prepared": event["prepared"],
-                        "acquisition": deepcopy(event["acquisition"]), "extraction": deepcopy(event["extraction"]),
-                        "raw_bytes": raw, "prepared_bytes": prepared["bytes"], "prepared_document": deepcopy(prepared["document"])}
+                return {
+                    "storage": "cas",
+                    "source": event["source"],
+                    "prepared": event["prepared"],
+                    "acquisition": deepcopy(event["acquisition"]),
+                    "extraction": deepcopy(event["extraction"]),
+                    "raw_bytes": raw,
+                    "prepared_bytes": prepared["bytes"],
+                    "prepared_document": deepcopy(prepared["document"]),
+                }
             if event["kind"] == "syllabus_source_ingested":
-                units = [{"unit_id": f"page:{page['page_number']}", "kind": "page", "label": f"Page {page['page_number']}", "text": page["text"], "text_sha256": page["text_sha256"]} for page in event["pages"]]
-                document = {"prepared_schema_version": 1, "media_type": event["source"]["media_type"],
-                            "normalization": {"policy_id": "legacy-inline-v1", "unicode": "NFC", "line_endings": "LF"}, "units": units}
-                return {"storage": "legacy_text_only", "raw_bytes": None, "prepared_bytes": None,
-                        "prepared_document": document, "derived_inline_sha256": sha256_bytes(canonical_json(document, newline=False))}
+                units = [
+                    {
+                        "unit_id": f"page:{page['page_number']}",
+                        "kind": "page",
+                        "label": f"Page {page['page_number']}",
+                        "text": page["text"],
+                        "text_sha256": page["text_sha256"],
+                    }
+                    for page in event["pages"]
+                ]
+                document = {
+                    "prepared_schema_version": 1,
+                    "media_type": event["source"]["media_type"],
+                    "normalization": {
+                        "policy_id": "legacy-inline-v1",
+                        "unicode": "NFC",
+                        "line_endings": "LF",
+                    },
+                    "units": units,
+                }
+                return {
+                    "storage": "legacy_text_only",
+                    "raw_bytes": None,
+                    "prepared_bytes": None,
+                    "prepared_document": document,
+                    "derived_inline_sha256": sha256_bytes(canonical_json(document, newline=False)),
+                }
             raise ValidationError("source_event_id must reference a syllabus source")
 
     def rebuild(self, domain_id: str) -> dict[str, Any]:
@@ -1219,15 +1422,22 @@ class LocalStore:
         with domain_lock(paths):
             recovery = self._recover_before_write(paths)
             profile, profile_bytes, events, events_bytes = _load_sources(paths)
-            prepared_documents, source_refs, prepared_refs = _verified_prepared_documents(paths, events)
-            targets, state = _projection_targets(profile, profile_bytes, events, events_bytes, prepared_documents)
+            prepared_documents, source_refs, prepared_refs = _verified_prepared_documents(
+                paths, events
+            )
+            targets, state = _projection_targets(
+                profile, profile_bytes, events, events_bytes, prepared_documents
+            )
             _install_transaction(
                 paths,
                 targets,
                 source_preconditions={
                     "events.jsonl": sha256_bytes(events_bytes),
                     "profile.yaml": sha256_bytes(profile_bytes),
-                    **{relative: _hash_file(paths.directory / _safe_relative(relative)) for relative in sorted(source_refs | prepared_refs)},
+                    **{
+                        relative: _hash_file(paths.directory / _safe_relative(relative))
+                        for relative in sorted(source_refs | prepared_refs)
+                    },
                 },
             )
             return {
@@ -1250,7 +1460,10 @@ class LocalStore:
             profile, profile_bytes, events, events_bytes = _load_sources(paths)
             prepared_documents, _, _ = _verified_prepared_documents(paths, events)
             state = project_state(
-                profile, events, profile_bytes=profile_bytes, events_bytes=events_bytes,
+                profile,
+                events,
+                profile_bytes=profile_bytes,
+                events_bytes=events_bytes,
                 prepared_documents=prepared_documents,
             )
             return {"profile": profile, "state": state}
@@ -1264,11 +1477,19 @@ class LocalStore:
                     f"interrupted transaction at {paths.transaction}; run doctor --recover"
                 )
             profile, profile_bytes, events, events_bytes = _load_sources(paths)
-            content_diagnostics, prepared_documents, source_refs, prepared_refs = _canonical_content_diagnostics(paths, events)
+            content_diagnostics, prepared_documents, source_refs, prepared_refs = (
+                _canonical_content_diagnostics(paths, events)
+            )
             if any(content_diagnostics.values()):
-                details = [f"{key} canonical syllabus content: {', '.join(values)}" for key, values in content_diagnostics.items() if values]
+                details = [
+                    f"{key} canonical syllabus content: {', '.join(values)}"
+                    for key, values in content_diagnostics.items()
+                    if values
+                ]
                 raise ValidationError("; ".join(details))
-            targets, _ = _projection_targets(profile, profile_bytes, events, events_bytes, prepared_documents)
+            targets, _ = _projection_targets(
+                profile, profile_bytes, events, events_bytes, prepared_documents
+            )
             drift: list[str] = []
             for relative, expected in targets.items():
                 actual = paths.directory / relative
@@ -1320,7 +1541,11 @@ class LocalStore:
                 "event_count": len(events),
                 "revision": profile["revision"],
                 "status": "valid",
-                "canonical_content": {"referenced_sources": len(source_refs), "referenced_prepared_documents": len(prepared_refs), **content_diagnostics},
+                "canonical_content": {
+                    "referenced_sources": len(source_refs),
+                    "referenced_prepared_documents": len(prepared_refs),
+                    **content_diagnostics,
+                },
             }
 
     def list_domains(self) -> dict[str, Any]:

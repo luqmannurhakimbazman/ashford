@@ -76,20 +76,29 @@ class HttpsResponse(Protocol):
     headers: Sequence[tuple[str, str]]
     connected_peer: str
 
-    def read(self, size: int) -> bytes: ...
-    def close(self) -> None: ...
+    def read(self, size: int) -> bytes:
+        """Return at most ``size`` further body bytes, or empty bytes at end of stream."""
+        ...
+
+    def close(self) -> None:
+        """Release the underlying connection without draining the remaining body."""
+        ...
 
 
 class Resolver(Protocol):
     """Injected hostname resolver with an explicit wall deadline."""
 
-    def resolve(self, hostname: str, port: int, timeout: float) -> Sequence[ResolvedAddress]: ...
+    def resolve(self, hostname: str, port: int, timeout: float) -> Sequence[ResolvedAddress]:
+        """Return every resolver answer for one hostname within the wall deadline."""
+        ...
 
 
 class HttpsTransport(Protocol):
     """Injected direct-IP HTTPS transport."""
 
-    def open(self, request: HttpsRequest) -> HttpsResponse: ...
+    def open(self, request: HttpsRequest) -> HttpsResponse:
+        """Open one bounded response for an already validated direct-address request."""
+        ...
 
 
 def _resolve_worker(hostname: str, port: int, connection: object) -> None:
@@ -113,13 +122,16 @@ class SystemResolver:
     """Production resolver isolated in a killable child with a wall deadline."""
 
     def resolve(self, hostname: str, port: int, timeout: float) -> Sequence[ResolvedAddress]:
+        """Resolve one hostname in a spawned child and reject empty or oversized answers."""
         parent: object | None = None
         child: object | None = None
         process: object | None = None
         try:
             context = multiprocessing.get_context("spawn")
             parent, child = context.Pipe(duplex=False)
-            process = context.Process(target=_resolve_worker, args=(hostname, port, child), daemon=True)
+            process = context.Process(
+                target=_resolve_worker, args=(hostname, port, child), daemon=True
+            )
             process.start()
         except Exception as exc:
             for endpoint in (parent, child):
@@ -129,7 +141,9 @@ class SystemResolver:
                     except Exception:
                         pass
             raise SyllabusIntakeError(
-                "dns_resolution_failed", "HTTPS hostname resolution could not be started", phase="acquisition"
+                "dns_resolution_failed",
+                "HTTPS hostname resolution could not be started",
+                phase="acquisition",
             ) from exc
         try:
             getattr(child, "close")()
@@ -137,17 +151,23 @@ class SystemResolver:
                 getattr(process, "terminate")()
                 getattr(process, "join")(timeout=1)
                 raise SyllabusIntakeError(
-                    "dns_resolution_failed", "HTTPS hostname resolution timed out", phase="acquisition"
+                    "dns_resolution_failed",
+                    "HTTPS hostname resolution timed out",
+                    phase="acquisition",
                 )
             ok, answers, failure = getattr(parent, "recv")()
             getattr(process, "join")(timeout=1)
             if not ok:
                 if failure == "answer_limit":
                     raise SyllabusIntakeError(
-                        "unsafe_dns", "HTTPS hostname returned too many addresses", phase="acquisition"
+                        "unsafe_dns",
+                        "HTTPS hostname returned too many addresses",
+                        phase="acquisition",
                     )
                 raise SyllabusIntakeError(
-                    "dns_resolution_failed", "HTTPS hostname could not be resolved", phase="acquisition"
+                    "dns_resolution_failed",
+                    "HTTPS hostname could not be resolved",
+                    phase="acquisition",
                 )
             if not isinstance(answers, list):
                 raise TypeError("resolver answers must be a list")
@@ -155,13 +175,17 @@ class SystemResolver:
                 return [ResolvedAddress(family, address) for family, address in answers]
             except (TypeError, ValueError) as exc:
                 raise SyllabusIntakeError(
-                    "dns_resolution_failed", "HTTPS hostname resolver returned an invalid result", phase="acquisition"
+                    "dns_resolution_failed",
+                    "HTTPS hostname resolver returned an invalid result",
+                    phase="acquisition",
                 ) from exc
         except SyllabusIntakeError:
             raise
         except Exception as exc:
             raise SyllabusIntakeError(
-                "dns_resolution_failed", "HTTPS hostname resolver returned an invalid result", phase="acquisition"
+                "dns_resolution_failed",
+                "HTTPS hostname resolver returned an invalid result",
+                phase="acquisition",
             ) from exc
         finally:
             try:
@@ -177,7 +201,16 @@ class SystemResolver:
 
 
 class _DirectResponse:
-    def __init__(self, sock: ssl.SSLSocket, status: int, headers: list[tuple[str, str]], peer: str, buffered: bytes, deadline: float, read_timeout: float) -> None:
+    def __init__(
+        self,
+        sock: ssl.SSLSocket,
+        status: int,
+        headers: list[tuple[str, str]],
+        peer: str,
+        buffered: bytes,
+        deadline: float,
+        read_timeout: float,
+    ) -> None:
         self._sock = sock
         self.status = status
         self.headers = headers
@@ -203,11 +236,18 @@ class _DirectResponse:
 class DirectHttpsTransport:
     """Production transport that never consults proxies or re-resolves the host."""
 
-    def __init__(self, *, socket_factory: object = socket.create_connection, ssl_context_factory: object = ssl.create_default_context) -> None:
+    def __init__(
+        self,
+        *,
+        socket_factory: object = socket.create_connection,
+        ssl_context_factory: object = ssl.create_default_context,
+    ) -> None:
+        """Store the socket and TLS context factories, which tests replace with scripted doubles."""
         self._socket_factory = socket_factory
         self._ssl_context_factory = ssl_context_factory
 
     def open(self, request: HttpsRequest) -> HttpsResponse:
+        """Connect to the pre-validated address, complete TLS/SNI, and return a bounded response."""
         started = time.monotonic()
         deadline = started + request.total_timeout
         raw = self._socket_factory((request.selected_address, 443), timeout=request.connect_timeout)  # type: ignore[operator]
@@ -251,17 +291,25 @@ class DirectHttpsTransport:
                 raise _error("http_status", "HTTPS status line is invalid")
             headers: list[tuple[str, str]] = []
             for line in lines[1:]:
-                if len(line) > MAX_HEADER_VALUE_BYTES or line[:1] in {b" ", b"\t"} or b":" not in line:
+                if (
+                    len(line) > MAX_HEADER_VALUE_BYTES
+                    or line[:1] in {b" ", b"\t"}
+                    or b":" not in line
+                ):
                     raise _error("header_limit", "HTTPS response contains an invalid header")
                 name, value = line.split(b":", 1)
                 try:
                     headers.append((name.decode("ascii"), value.decode("latin-1").strip()))
                 except UnicodeError as exc:
-                    raise _error("header_limit", "HTTPS response contains an invalid header") from exc
+                    raise _error(
+                        "header_limit", "HTTPS response contains an invalid header"
+                    ) from exc
                 if len(headers) > MAX_HEADERS:
                     raise _error("header_limit", "HTTPS response has too many headers")
             peer = tls.getpeername()[0]
-            return _DirectResponse(tls, status, headers, peer, buffered, deadline, request.read_timeout)
+            return _DirectResponse(
+                tls, status, headers, peer, buffered, deadline, request.read_timeout
+            )
         except Exception:
             if tls is not None:
                 tls.close()
@@ -321,14 +369,22 @@ def _validated_answers(answers: Sequence[ResolvedAddress]) -> list[str]:
         if ipaddress.ip_address(normalized).version != (4 if item.family == socket.AF_INET else 6):
             raise _error("unsafe_dns", "resolver address family did not match its address")
         result.add(normalized)
-    return sorted(result, key=lambda value: (ipaddress.ip_address(value).version, ipaddress.ip_address(value).packed))
+    return sorted(
+        result,
+        key=lambda value: (ipaddress.ip_address(value).version, ipaddress.ip_address(value).packed),
+    )
 
 
 def _canonical_url(value: str, *, redirect: bool = False) -> tuple[str, str, str]:
     code = "unsafe_redirect" if redirect else "unsafe_url"
-    if not isinstance(value, str) or not value or any(
-        character.isspace() or ord(character) < 32 or character == "\\" for character in value
-    ) or re.search(r"%(?![0-9A-Fa-f]{2})", value):
+    if (
+        not isinstance(value, str)
+        or not value
+        or any(
+            character.isspace() or ord(character) < 32 or character == "\\" for character in value
+        )
+        or re.search(r"%(?![0-9A-Fa-f]{2})", value)
+    ):
         raise _error(code, "HTTPS URL has forbidden syntax")
     try:
         parsed = urlsplit(value)
@@ -369,7 +425,11 @@ def _header_map(headers: Sequence[tuple[str, str]]) -> dict[str, list[str]]:
     total = 0
     mapped: dict[str, list[str]] = {}
     for name, value in headers:
-        if any(ord(character) < 32 and character != "\t" for character in name + value) or "\r" in name + value or "\n" in name + value:
+        if (
+            any(ord(character) < 32 and character != "\t" for character in name + value)
+            or "\r" in name + value
+            or "\n" in name + value
+        ):
             raise _error("header_limit", "HTTPS response contains an invalid header")
         try:
             encoded = (name + ":" + value).encode("latin-1")
@@ -392,7 +452,11 @@ def acquire_local(source: LocalFileSource, *, acquired_at: str | None = None) ->
             raise _error("unsafe_local_source", "local source must not be a symlink")
         descriptor = os.open(source.path, flags)
     except OSError as exc:
-        code = "unsafe_local_source" if getattr(exc, "errno", None) in {40, 62} else "source_unreadable"
+        code = (
+            "unsafe_local_source"
+            if getattr(exc, "errno", None) in {40, 62}
+            else "source_unreadable"
+        )
         raise _error(code, "local source could not be opened safely") from exc
     try:
         metadata = os.fstat(descriptor)
@@ -465,7 +529,9 @@ def acquire_https(
             remaining = TOTAL_TIMEOUT - (monotonic() - started)
             if remaining <= 0:
                 raise _error("total_timeout", "HTTPS acquisition exceeded its total deadline")
-            answers = _validated_answers(resolver.resolve(hostname, 443, min(CONNECT_TIMEOUT, remaining)))
+            answers = _validated_answers(
+                resolver.resolve(hostname, 443, min(CONNECT_TIMEOUT, remaining))
+            )
         except SyllabusIntakeError:
             raise
         except Exception as exc:
@@ -483,8 +549,14 @@ def acquire_https(
             ("Connection", "close"),
         )
         request = HttpsRequest(
-            current, hostname, selected, path, headers,
-            min(CONNECT_TIMEOUT, remaining), min(READ_TIMEOUT, remaining), remaining,
+            current,
+            hostname,
+            selected,
+            path,
+            headers,
+            min(CONNECT_TIMEOUT, remaining),
+            min(READ_TIMEOUT, remaining),
+            remaining,
         )
         response: HttpsResponse | None = None
         try:
@@ -503,11 +575,15 @@ def acquire_https(
             except SyllabusIntakeError as exc:
                 raise _error("peer_mismatch", "connected HTTPS peer address was invalid") from exc
             if peer != selected:
-                raise _error("peer_mismatch", "connected HTTPS peer did not match the selected address")
+                raise _error(
+                    "peer_mismatch", "connected HTTPS peer did not match the selected address"
+                )
             mapped = _header_map(response.headers)
             transfer_encodings = mapped.get("transfer-encoding", [])
             if transfer_encodings:
-                raise _error("unsupported_transfer_encoding", "HTTPS Transfer-Encoding is not supported")
+                raise _error(
+                    "unsupported_transfer_encoding", "HTTPS Transfer-Encoding is not supported"
+                )
             hop: dict[str, object] = {
                 "request_url": current,
                 "resolved_addresses": answers,
@@ -534,7 +610,9 @@ def acquire_https(
                 raise _error("http_status", "HTTPS source returned a non-success status")
             encodings = mapped.get("content-encoding", [])
             if len(encodings) > 1 or (encodings and encodings[0].lower() != "identity"):
-                raise _error("unsupported_content_encoding", "compressed HTTPS bodies are not allowed")
+                raise _error(
+                    "unsupported_content_encoding", "compressed HTTPS bodies are not allowed"
+                )
             lengths = mapped.get("content-length", [])
             if len(lengths) > 1:
                 raise _error("invalid_content_length", "HTTPS Content-Length is ambiguous")
@@ -542,7 +620,9 @@ def acquire_https(
                 try:
                     declared_length = int(lengths[0], 10)
                 except ValueError as exc:
-                    raise _error("invalid_content_length", "HTTPS Content-Length is invalid") from exc
+                    raise _error(
+                        "invalid_content_length", "HTTPS Content-Length is invalid"
+                    ) from exc
                 if declared_length < 0:
                     raise _error("invalid_content_length", "HTTPS Content-Length is invalid")
                 if declared_length > MAX_SOURCE_BYTES:
@@ -566,7 +646,9 @@ def acquire_https(
                     raise _error("source_too_large", "syllabus source exceeds 16 MiB")
             body = b"".join(chunks)
             if lengths and len(body) != declared_length:
-                raise _error("invalid_content_length", "HTTPS body length disagrees with Content-Length")
+                raise _error(
+                    "invalid_content_length", "HTTPS body length disagrees with Content-Length"
+                )
             if not body:
                 raise _error("media_mismatch", "syllabus source is empty")
             hop["status"] = response.status

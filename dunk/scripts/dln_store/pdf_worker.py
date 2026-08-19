@@ -58,6 +58,7 @@ def _write(path: Path, payload: dict[str, object]) -> None:
 
 
 def main() -> int:
+    """Extract bounded page text for one fixed-argument invocation and return its exit code."""
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("input", type=Path)
     parser.add_argument("output", type=Path)
@@ -66,23 +67,42 @@ def main() -> int:
     try:
         _limits()
     except (OSError, ValueError):
-        _write(args.output, {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "resource_limit"})
+        _write(
+            args.output,
+            {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "resource_limit"},
+        )
         return 0
     try:
         import pypdf
     except Exception:
-        _write(args.output, {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "extractor_unavailable"})
+        _write(
+            args.output,
+            {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "extractor_unavailable"},
+        )
         return 0
     if pypdf.__version__ != args.expected_version:
-        _write(args.output, {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "extractor_version_mismatch"})
+        _write(
+            args.output,
+            {
+                "protocol_version": PROTOCOL_VERSION,
+                "ok": False,
+                "code": "extractor_version_mismatch",
+            },
+        )
         return 0
     try:
         reader = pypdf.PdfReader(str(args.input), strict=False)
         if reader.is_encrypted:
-            _write(args.output, {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "encrypted"})
+            _write(
+                args.output,
+                {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "encrypted"},
+            )
             return 0
         if len(reader.pages) > MAX_PAGES:
-            _write(args.output, {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "page_limit"})
+            _write(
+                args.output,
+                {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "page_limit"},
+            )
             return 0
         pages: list[str] = []
         approximate = 0
@@ -90,14 +110,22 @@ def main() -> int:
             text = page.extract_text(extraction_mode="plain") or ""
             approximate += len(text.encode("utf-8"))
             if approximate > MAX_RESULT_BYTES - 65536:
-                _write(args.output, {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "text_limit"})
+                _write(
+                    args.output,
+                    {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "text_limit"},
+                )
                 return 0
             pages.append(text)
     except MemoryError:
-        _write(args.output, {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "resource_limit"})
+        _write(
+            args.output,
+            {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "resource_limit"},
+        )
         return 0
     except Exception:
-        _write(args.output, {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "parse_error"})
+        _write(
+            args.output, {"protocol_version": PROTOCOL_VERSION, "ok": False, "code": "parse_error"}
+        )
         return 0
     _write(
         args.output,

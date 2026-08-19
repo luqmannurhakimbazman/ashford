@@ -34,13 +34,61 @@ MAX_HTML_DEPTH = 256
 WORKER_TIMEOUT = 30.0
 WORKER_RESULT_LIMIT = 16 * 1024 * 1024
 BLOCK_TAGS = {
-    "address", "article", "aside", "blockquote", "br", "dd", "div", "dl", "dt", "fieldset",
-    "figcaption", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header",
-    "hr", "li", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot",
-    "th", "thead", "tr", "ul",
+    "address",
+    "article",
+    "aside",
+    "blockquote",
+    "br",
+    "dd",
+    "div",
+    "dl",
+    "dt",
+    "fieldset",
+    "figcaption",
+    "figure",
+    "footer",
+    "form",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "header",
+    "hr",
+    "li",
+    "main",
+    "nav",
+    "ol",
+    "p",
+    "pre",
+    "section",
+    "table",
+    "tbody",
+    "td",
+    "tfoot",
+    "th",
+    "thead",
+    "tr",
+    "ul",
 }
 SUPPRESSED_TAGS = {"script", "style", "template"}
-VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
+VOID_TAGS = {
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+}
 
 
 @dataclass(frozen=True)
@@ -69,7 +117,9 @@ def _content_type_base(value: str | None) -> str | None:
 
 def _verify_media(acquired: AcquiredSource, media_type: str) -> str:
     if media_type not in {"application/pdf", "text/html"}:
-        raise _error("media_mismatch", "media type must be application/pdf or text/html", phase="media")
+        raise _error(
+            "media_mismatch", "media type must be application/pdf or text/html", phase="media"
+        )
     header_type = _content_type_base(acquired.content_type)
     if acquired.acquisition.get("kind") == "https" and header_type is None:
         raise _error("media_mismatch", "HTTPS source omitted Content-Type", phase="media")
@@ -94,7 +144,9 @@ def _verify_media(acquired: AcquiredSource, media_type: str) -> str:
     try:
         preview = body.decode("utf-8-sig" if charset == "utf-8" else "ascii")[:4096]
     except UnicodeDecodeError as exc:
-        raise _error("unsupported_charset", "HTML bytes do not match the declared charset", phase="media") from exc
+        raise _error(
+            "unsupported_charset", "HTML bytes do not match the declared charset", phase="media"
+        ) from exc
     meta = re.search(r"<meta\s+[^>]*charset\s*=\s*[\"']?([^\s\"'/>;]+)", preview, re.I)
     if meta:
         meta_charset = meta.group(1).lower().replace("_", "-")
@@ -102,7 +154,9 @@ def _verify_media(acquired: AcquiredSource, media_type: str) -> str:
             raise _error("unsupported_charset", "HTML meta charset is not supported", phase="media")
     lead = preview.lstrip().lower()
     if not any(marker in lead[:4096] for marker in ("<!doctype html", "<html", "<head", "<body")):
-        raise _error("media_mismatch", "HTML source lacks recognizable document markup", phase="media")
+        raise _error(
+            "media_mismatch", "HTML source lacks recognizable document markup", phase="media"
+        )
     return "utf-8-sig" if charset == "utf-8" else "ascii"
 
 
@@ -183,10 +237,13 @@ def _normalize_html(parts: list[str]) -> str:
 
 
 def extract_html(body: bytes, encoding: str) -> tuple[dict[str, object], dict[str, object]]:
+    """Extract one bounded visible-text document unit and its provenance from HTML bytes."""
     try:
         text = body.decode(encoding)
     except UnicodeDecodeError as exc:
-        raise _error("unsupported_charset", "HTML bytes could not be decoded", phase="media") from exc
+        raise _error(
+            "unsupported_charset", "HTML bytes could not be decoded", phase="media"
+        ) from exc
     parser = _VisibleHtmlParser()
     try:
         parser.feed(text)
@@ -204,13 +261,29 @@ def extract_html(body: bytes, encoding: str) -> tuple[dict[str, object], dict[st
     document = {
         "prepared_schema_version": 1,
         "media_type": "text/html",
-        "normalization": {"policy_id": "html-visible-text-nfc-lf-v1", "unicode": "NFC", "line_endings": "LF"},
-        "units": [{"unit_id": "document:1", "kind": "document", "label": "HTML document", "text": normalized, "text_sha256": sha256_bytes(normalized.encode("utf-8"))}],
+        "normalization": {
+            "policy_id": "html-visible-text-nfc-lf-v1",
+            "unicode": "NFC",
+            "line_endings": "LF",
+        },
+        "units": [
+            {
+                "unit_id": "document:1",
+                "kind": "document",
+                "label": "HTML document",
+                "text": normalized,
+                "text_sha256": sha256_bytes(normalized.encode("utf-8")),
+            }
+        ],
     }
     extraction = {
         "kind": "stdlib_html",
         "policy_id": "syllabus-extraction-v1",
-        "producer": {"trust": "store_invoked", "name": "html.parser", "version": platform.python_version()},
+        "producer": {
+            "trust": "store_invoked",
+            "name": "html.parser",
+            "version": platform.python_version(),
+        },
         "warnings": [],
         "provenance": {
             "normalization_policy_id": "html-visible-text-nfc-lf-v1",
@@ -243,6 +316,7 @@ def extract_pdf(
     *,
     popen: Callable[..., subprocess.Popen[bytes]] = subprocess.Popen,
 ) -> tuple[dict[str, object], dict[str, object]]:
+    """Extract bounded page units and provenance through the isolated pinned pypdf worker."""
     worker = Path(__file__).with_name("pdf_worker.py").resolve()
     with tempfile.TemporaryDirectory(prefix="dln-pdf-") as temporary:
         directory = Path(temporary)
@@ -263,7 +337,14 @@ def extract_pdf(
         environment = {"PYTHONUTF8": "1", "LC_ALL": "C", "TMPDIR": temporary}
         try:
             process = popen(
-                [os.path.abspath(sys.executable), "-I", str(worker), str(source), str(result), PYPDF_VERSION],
+                [
+                    os.path.abspath(sys.executable),
+                    "-I",
+                    str(worker),
+                    str(source),
+                    str(result),
+                    PYPDF_VERSION,
+                ],
                 cwd=temporary,
                 env=environment,
                 stdin=subprocess.DEVNULL,
@@ -298,12 +379,25 @@ def extract_pdf(
         raise _error("worker_protocol_error", "PDF worker protocol version is invalid")
     if payload.get("ok") is not True:
         code = payload.get("code")
-        allowed = {"extractor_unavailable", "extractor_version_mismatch", "encrypted", "page_limit", "text_limit", "parse_error", "resource_limit"}
+        allowed = {
+            "extractor_unavailable",
+            "extractor_version_mismatch",
+            "encrypted",
+            "page_limit",
+            "text_limit",
+            "parse_error",
+            "resource_limit",
+        }
         if code not in allowed:
             code = "worker_protocol_error"
         raise _error(str(code), "PDF text-layer extraction failed")
     pages = payload.get("pages")
-    if payload.get("engine") != "pypdf" or payload.get("version") != PYPDF_VERSION or not isinstance(pages, list) or not all(isinstance(page, str) for page in pages):
+    if (
+        payload.get("engine") != "pypdf"
+        or payload.get("version") != PYPDF_VERSION
+        or not isinstance(pages, list)
+        or not all(isinstance(page, str) for page in pages)
+    ):
         raise _error("worker_protocol_error", "PDF worker result fields are invalid")
     units: list[dict[str, object]] = []
     total = 0
@@ -314,13 +408,25 @@ def extract_pdf(
         if total > MAX_TEXT_BYTES:
             raise _error("text_limit", "normalized syllabus text exceeds 8 MiB")
         nonblank = nonblank or bool(normalized.strip())
-        units.append({"unit_id": f"page:{index}", "kind": "page", "label": f"Page {index}", "text": normalized, "text_sha256": sha256_bytes(normalized.encode("utf-8"))})
+        units.append(
+            {
+                "unit_id": f"page:{index}",
+                "kind": "page",
+                "label": f"Page {index}",
+                "text": normalized,
+                "text_sha256": sha256_bytes(normalized.encode("utf-8")),
+            }
+        )
     if not units or not nonblank:
         raise _error("no_text", "PDF contains no extractable text layer")
     document = {
         "prepared_schema_version": 1,
         "media_type": "application/pdf",
-        "normalization": {"policy_id": "pypdf-plain-nfc-lf-v1", "unicode": "NFC", "line_endings": "LF"},
+        "normalization": {
+            "policy_id": "pypdf-plain-nfc-lf-v1",
+            "unicode": "NFC",
+            "line_endings": "LF",
+        },
         "units": units,
     }
     extraction = {
@@ -353,11 +459,13 @@ class PreparationService:
         transport: HttpsTransport | None = None,
         monotonic: Callable[[], float] | None = None,
     ) -> None:
+        """Retain the injected resolver, transport, and clock; production defaults stay lazy."""
         self.resolver = resolver
         self.transport = transport
         self.monotonic = monotonic
 
     def prepare(self, source: LocalFileSource | HttpsSource, media_type: str) -> PreparedSource:
+        """Acquire one source, confirm media agreement, and return the prepared document."""
         if isinstance(source, LocalFileSource):
             acquired = acquire_local(source)
         elif isinstance(source, HttpsSource):
@@ -366,7 +474,9 @@ class PreparationService:
                 kwargs["monotonic"] = self.monotonic
             acquired = acquire_https(source, **kwargs)  # type: ignore[arg-type]
         else:
-            raise _error("invalid_source_options", "unsupported syllabus source", phase="acquisition")
+            raise _error(
+                "invalid_source_options", "unsupported syllabus source", phase="acquisition"
+            )
         encoding = _verify_media(acquired, media_type)
         if media_type == "application/pdf":
             document, extraction = extract_pdf(acquired.body)
