@@ -1,0 +1,14 @@
+{
+  "occurred_at": "2026-08-19T00:03:00Z",
+  "prepared_event_id": "SUPPLEMENT_PREPARED_EVENT_ID",
+  "producer": {"name": "fixture-proposer", "trust": "external_unverified", "version": "1"},
+  "proposals": [{
+    "label": "Optional reference",
+    "locators": [{"end_char": 27, "quote": "Generic Distributed Systems", "start_char": 0, "unit_id": "page:1"}],
+    "predicate": "reference.optional",
+    "semantic_roles": ["reference"],
+    "status": "specified",
+    "value": "Generic Distributed Systems",
+    "value_type": "text"
+  }]
+}

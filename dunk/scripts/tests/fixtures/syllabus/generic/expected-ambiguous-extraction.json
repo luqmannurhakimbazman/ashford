@@ -1,0 +1,25 @@
+{
+  "engine_options": {
+    "extraction_mode": "plain",
+    "strict": false
+  },
+  "prepared_document": {
+    "media_type": "application/pdf",
+    "normalization": {
+      "line_endings": "LF",
+      "policy_id": "pypdf-plain-nfc-lf-v1",
+      "unicode": "NFC"
+    },
+    "prepared_schema_version": 1,
+    "units": [
+      {
+        "kind": "page",
+        "label": "Page 1",
+        "text": "Generic Analytics Studio\nWeek 4        Week 5\nDataset A     Dataset B\nMilestone X   Milestone Y\nColumn alignment is intentionally ambiguous",
+        "text_sha256": "ea77b1b3196a289cd59eb8d576b64cd7dcf11f0996f423da744fcc1f9b32c0f3",
+        "unit_id": "page:1"
+      }
+    ]
+  },
+  "pypdf_version": "6.14.2"
+}

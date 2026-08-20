@@ -1,76 +1,50 @@
-# Local Persistence Protocol (Active)
+# Local Persistence Protocol
 
-All active Dunk writes go through `${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py`. Never edit `events.jsonl`, `state.json`, `dashboard.md`, or a receipt directly. Never fall back to dialogue, notes, or generated Markdown as state.
-
-Read `@local-store-schema.md` before constructing a request and `@evidence-protocol.md` before deciding what belongs in `events`.
+The parent orchestrator is the only authority allowed to invoke `dln-store.py`. Phase skills and `dln-syllabus` return structured requests only.
 
 ## Commands
 
-```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" list
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" init --domain "$DOMAIN" --goal "$GOAL"
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" context --domain-id "$DOMAIN_ID"
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" commit --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --request "$REQUEST_FILE"
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" validate --domain-id "$DOMAIN_ID"
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py" doctor --domain-id "$DOMAIN_ID" --recover
-```
-
-The root is provided by `DLN_VAULT_ROOT` or `CLAUDE_PLUGIN_DATA`; use `--root` only when the user explicitly supplied it.
-
-## Session flow
-
-1. Run `context` and retain its `profile`, `state`, and `state.revision`.
-2. Choose the teaching operation from `state.stage`, due retrieval, current subject evidence, syllabus, and goal. Do not route from prose memory.
-3. Teach or assess. Content delivery alone produces no event.
-4. At a meaningful assessment boundary, create one request containing only observed structured evidence and any supported profile patch.
-5. Write the request to a private temporary directory with permissions restricted by the process umask. Install a cleanup trap and never print the request contents unless debugging with the user's consent.
-6. Run `commit --expected-revision <retained revision>`.
-7. On `committed`, replace the retained revision with the returned revision. On `noop`, retain the returned revision.
-8. Before ending, atomically commit any remaining evidence followed by one `session_completed` event. Then read `sessions/<session-id>.md` and present that generated Session Receipt verbatim or with only a short link/path introduction. Do not create a competing session summary.
-
-Example private request handling:
+Every command below is stdlib-only:
 
 ```bash
-DLN_TMP=$(mktemp -d "${TMPDIR:-/tmp}/dln-commit.XXXXXXXXXX")
-chmod 700 "$DLN_TMP"
-trap 'rm -rf "$DLN_TMP"' EXIT HUP INT TERM
-REQUEST_FILE="$DLN_TMP/request.json"
-# Write the already-constructed JSON request to REQUEST_FILE, then commit it.
+STORE="${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py"
+
+python3 "$STORE" init --domain "$DOMAIN" --goal "$GOAL"
+python3 "$STORE" list
+python3 "$STORE" context --domain-id "$DOMAIN_ID"
+python3 "$STORE" commit --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --request "$REQUEST_FILE"
+python3 "$STORE" prepare-syllabus --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --file "$DOCUMENT" --media-type text/html --role authoritative --display-name syllabus.html --occurred-at "$TIMESTAMP"
+python3 "$STORE" syllabus-content --domain-id "$DOMAIN_ID" --source-event-id "$SOURCE_EVENT_ID"
+python3 "$STORE" propose-syllabus --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --request "$PROPOSAL_FILE"
+python3 "$STORE" decide-syllabus --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --request "$DECISION_FILE"
+python3 "$STORE" validate --domain-id "$DOMAIN_ID"
+python3 "$STORE" doctor --domain-id "$DOMAIN_ID" --recover
+python3 "$STORE" rebuild --domain-id "$DOMAIN_ID"
 ```
 
-## Stable identity
+PDF preparation is the only command with a third-party dependency and must run in the frozen environment containing exactly `pypdf==6.14.2`. Point `UV_PROJECT_ENVIRONMENT` outside `${CLAUDE_PLUGIN_ROOT}`, which plugin updates replace:
 
-Create each `event_id` exactly once from stable session/task context before the first commit attempt. Keep the complete event body and ID unchanged across retries. Do not use a random new ID after an ambiguous result; replaying the original body is how the store proves idempotency.
+```bash
+DLN_ROOT="${DLN_VAULT_ROOT:-${CLAUDE_PLUGIN_DATA:?set DLN_VAULT_ROOT}/dln-vault}"
+export UV_PROJECT_ENVIRONMENT="$DLN_ROOT/.uv/pypdf-6.14.2"
+uv run --project "${CLAUDE_PLUGIN_ROOT}/scripts" --python 3.10.20 --frozen python "$STORE" prepare-syllabus --domain-id "$DOMAIN_ID" --expected-revision "$REVISION" --file "$DOCUMENT" --media-type application/pdf --role authoritative --display-name syllabus.pdf --occurred-at "$TIMESTAMP"
+```
 
-Use one session ID for the entire live session. Never reuse an ID after `session_completed` succeeds.
+If `uv` or the frozen environment is unavailable, report `extractor_unavailable` for PDF preparation only; never route the remaining commands through `uv` and never write a virtual environment into the plugin directory. HTTPS replaces `--file` with an explicit `--url` and requires `--network-consent`; redirects additionally require `--allow-redirects` and are capped/revalidated.
 
-## Stale revision retry
+## Optimistic revision and recovery
 
-Exit `3` means the expected revision is stale:
+Every mutation carries `--expected-revision`. Exit `3` means stale revision: reload `context`, verify the semantic request is unchanged, update the revision, and Retry once. Never blindly retry acquisition or a changed learner decision. Exit `5` means an interrupted transaction; run `doctor --recover`, reload context, and continue only from verified state.
 
-1. Run `context` again.
-2. Confirm the pending assessment still describes the learner response and that every cited prior event remains valid.
-3. Retry once with the new revision and exactly the same event IDs and bodies.
-4. If it is stale again, keep the pending request in the current conversation, clearly state that persistence stopped, and make no further writes for that boundary. Do not claim it was saved.
+Reserved syllabus kinds cannot enter generic `commit`. `prepare-syllabus`, `propose-syllabus`, and `decide-syllabus` share the same item-1 candidate projection, lock, journal, CAS, ledger, profile, and receipt transaction. Acquisition/extraction occurs before that boundary; stable failures leave the domain byte-identical.
 
-A profile patch may be re-created against the new profile only if it has the same user-approved meaning. Events themselves must not be rewritten to fit new state.
+## Portable intake rules
 
-## Exit handling
+- Local sources use no-follow descriptor checks, regular-file checks, and a 16 MiB limit.
+- HTTPS is explicit only: port 443, no userinfo/query/fragment/proxy/cookies/auth/compression/automatic redirects, all-address DNS validation, direct validated-address connection with hostname TLS/SNI, and peer match.
+- PDF uses the pinned worker, at most 500 pages and 8 MiB normalized NFC/LF text. HTML uses bounded stdlib parsing and fetches no subresources.
+- Run `syllabus-content` after preparation, obtain externally unverified proposals, then collect a complete learner decision.
+- `proposal_required`, `decision_required`, `approved`, and `approved_update_pending` are routing statuses. The prior active decision remains authoritative during an update.
+- Supplements are visible but never authoritative. Decisions never count as learning evidence.
 
-| Exit | Meaning | Required behavior |
-|---|---|---|
-| `0` | committed, initialized, valid, rebuilt, or idempotent no-op | Parse stdout JSON and continue from its revision/status. |
-| `1` | OS/runtime failure | Stop persistent writes; report the diagnostic. |
-| `2` | schema, reference, path, corruption, or integrity error | Stop. Correct an uncommitted construction error only; never patch canonical files. |
-| `3` | stale revision | Follow the single retry protocol above. |
-| `4` | writer lock unavailable/stale diagnostics | Stop writes; use `doctor` for diagnostics. Do not break a lock without explicit user approval. |
-| `5` | interrupted transaction needs recovery | Stop reads/writes and run `doctor --recover`; resume only after a successful `context`. |
-
-Never run `rebuild` as a way to erase validation failures. `rebuild` reconstructs derived files from valid canonical sources only.
-
-## Reset, syllabus, and exam metadata
-
-- Reset is a revision-checked `domain_reset` event. It preserves historic events and receipts.
-- Goal, syllabus, review preferences, annotations, and current exam configuration are `profile_patch` fields.
-- Closing an exam cycle is an `exam_cycle_closed` event; it does not delete earlier evidence.
-- A legacy import uses `import-legacy-ks` on a manually exported block and never contacts a remote service.
+On success, parse returned IDs/revision and reload context. On validation or intake error, preserve the structured request privately and report the stable `code`; do not fabricate events or receipts.

@@ -1,4 +1,4 @@
-"""Dunk's stdlib-only authoritative local learning store."""
+"""Dunk's authoritative local learning store with pinned PDF extraction."""
 
 from .schema import SCHEMA_VERSION
 

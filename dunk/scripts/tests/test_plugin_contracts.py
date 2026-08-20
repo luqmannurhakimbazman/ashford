@@ -30,6 +30,7 @@ PHASE_SKILLS = {
 SHARED_REFERENCES = (
     "local-store-schema.md",
     "local-persistence-protocol.md",
+    "syllabus-grounding-protocol.md",
     "evidence-protocol.md",
     "session-receipt-format.md",
 )
@@ -64,6 +65,7 @@ def active_markdown() -> list[Path]:
             SKILLS / "dln-compress" / "evaluations" / "trigger-tests.md",
             DLN_REFS / "local-store-schema.md",
             DLN_REFS / "local-persistence-protocol.md",
+            DLN_REFS / "syllabus-grounding-protocol.md",
             DLN_REFS / "evidence-protocol.md",
             DLN_REFS / "session-receipt-format.md",
             DLN_REFS / "sync-protocol.md",
@@ -100,6 +102,13 @@ def test_phase_skills_link_shared_local_contracts_and_operations() -> None:
         assert "retry" in text.casefold() or "retries" in text.casefold()
         assert "session_completed" in text
         assert "Session Receipt" in text
+        assert "state.grounding" in text
+        assert "decision_event_id" in text
+        assert "assertion_ids" in text
+        assert "supplemental" in text
+        assert "unresolved" in text
+        assert "approved_update_pending" in text
+        assert "pending-source" in text
         assert "merge-protocol.md" not in text
         assert "merge-payload-schema.md" not in text
 
@@ -116,6 +125,24 @@ def test_orchestrator_uses_context_routing_local_cli_and_receipt() -> None:
     assert "sole canonical summary" in text
     assert "spacing was not measured" in text
     assert "stable across retries" in text
+    for runtime_token in ("uv run", "--project", "--python 3.10.20", "--frozen"):
+        assert runtime_token in text
+    assert 'python3 "${CLAUDE_PLUGIN_ROOT}/scripts/dln-store.py"' in text
+    assert "UV_PROJECT_ENVIRONMENT" in text
+    for token in (
+        "prepare-syllabus",
+        "syllabus-content",
+        "propose-syllabus",
+        "decide-syllabus",
+        "state.grounding",
+        "transient attachment",
+        "do not patch `profile.syllabus`",
+        "ungrounded curriculum",
+        "both new and existing domains",
+        "approved_update_pending",
+        "pending-source proposals",
+    ):
+        assert token in text
 
 
 def test_syllabus_agent_is_return_only_and_has_no_remote_write_tool() -> None:
@@ -123,8 +150,12 @@ def test_syllabus_agent_is_return_only_and_has_no_remote_write_tool() -> None:
     frontmatter = text.split("---", 2)[1]
     assert "Notion" not in frontmatter
     assert "notion-" not in frontmatter.casefold()
+    assert "tools: []" in frontmatter
     assert "profile_patch" in text
     assert '"research_availability"' in text
+    assert '"grounding_status": "ungrounded"' in text
+    assert "never document-derived" in text
+    assert "do not accept attachments" in text.casefold()
     assert "parent owns all persistence" in text.casefold()
 
 
@@ -135,9 +166,13 @@ def test_internal_compressor_cannot_create_learning_claims_or_artifacts() -> Non
         "do not infer or decide proficiency",
         "do not alter, summarize, or compress the learner's pedagogical model",
         "do not produce a learner-facing summary or artifact",
+        "do not drop, rename, or flatten `state.grounding`",
+        "do not present legacy ungrounded topics as citable",
     ):
         assert phrase in text
     assert "dln-store context" in text
+    for token in ("planning_topics", "assertion_ids", "citable", "approved_update_pending"):
+        assert token in text
 
 
 def test_shared_contracts_cover_storage_evidence_and_receipt_boundaries() -> None:
@@ -158,8 +193,63 @@ def test_shared_contracts_cover_storage_evidence_and_receipt_boundaries() -> Non
         assert token in schema
 
     persistence = read(DLN_REFS / "local-persistence-protocol.md")
-    for token in ("--expected-revision", "Exit `3`", "Retry once", "doctor --recover"):
+    for runtime_token in ("uv run", "--project", "--python 3.10.20", "--frozen"):
+        assert runtime_token in persistence
+    for token in (
+        "--expected-revision",
+        "Exit `3`",
+        "Retry once",
+        "doctor --recover",
+        "prepare-syllabus",
+        "syllabus-content",
+        "propose-syllabus",
+        "decide-syllabus",
+    ):
         assert token.casefold() in persistence.casefold()
+
+    storage = read(DUNK / "LOCAL_STORAGE.md")
+    for runtime_token in (
+        "uv sync",
+        "uv run",
+        "--project",
+        "--python 3.10.20",
+        "--frozen",
+        "pypdf.__version__ == '6.14.2'",
+    ):
+        assert runtime_token in storage
+    for token in (
+        "Obsidian vault",
+        ".DS_Store",
+        ".locks/",
+        "doctor --domain-id",
+        "import-legacy-ks",
+        "--root <path>",
+        "rebuild` once per existing domain",
+    ):
+        assert token in storage
+    for document in (persistence, storage):
+        assert "UV_PROJECT_ENVIRONMENT" in document
+        assert 'python3 "$STORE" validate' in document
+        assert "CLAUDE_PLUGIN_ROOT}/scripts/.venv" not in document
+        for command in document.replace("\\\n", " ").splitlines():
+            if "uv run" not in command:
+                continue
+            assert "prepare-syllabus" in command or "import pypdf" in command, command
+
+    grounding = read(DLN_REFS / "syllabus-grounding-protocol.md")
+    for token in (
+        "prepare-syllabus",
+        "syllabus-content",
+        "propose-syllabus",
+        "decide-syllabus",
+        "decision_required",
+        "decision_event_id",
+        "ambiguous",
+        "supplement",
+        "never learner evidence",
+    ):
+        assert token in grounding
+    assert "st5201x" not in grounding.casefold()
 
     evidence = read(DLN_REFS / "evidence-protocol.md")
     for operation in ("acquire", "discriminate", "relate", "abstract", "predict"):
@@ -169,6 +259,7 @@ def test_shared_contracts_cover_storage_evidence_and_receipt_boundaries() -> Non
 
     receipt = read(DLN_REFS / "session-receipt-format.md")
     for heading in (
+        "Course Grounding",
         "Independent Evidence",
         "Supported Performance",
         "Prediction Error and Model Revision",
@@ -194,3 +285,5 @@ def test_trigger_evaluations_use_current_stage_names() -> None:
         text = read(SKILLS / skill / "evaluations" / "trigger-tests.md")
         assert contract["stage"] in text
         assert "generated session receipt" in text.casefold()
+        assert "approved course grounding" in text.casefold()
+        assert "assertion" in text.casefold()

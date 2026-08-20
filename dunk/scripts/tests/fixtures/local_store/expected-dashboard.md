@@ -9,6 +9,11 @@
 - **Generation:** 0
 - **Next review:** not scheduled
 
+## Course Grounding
+
+- **Status:** `ungrounded`
+- **Source:** unknown; legacy planning topics are ungrounded and non-citable
+
 ## Evidence
 
 | Subject | Status | Latest independent | Latest supported | Retrieval | Transfer |

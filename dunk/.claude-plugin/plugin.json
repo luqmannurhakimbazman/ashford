@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dunk",
-  "version": "2.0.0",
-  "description": "Local-first, DLN-inspired tutoring with evidence-driven learning records and Obsidian-readable Markdown",
+  "version": "2.2.0",
+  "description": "Local-first DLN tutoring with portable authoritative PDF/HTML syllabus grounding and evidence-driven records",
   "author": {
     "name": "Luqman Nurhakim"
   },
@@ -13,7 +13,8 @@
     "local-first",
     "obsidian",
     "evidence",
-    "dln"
+    "dln",
+    "syllabus-grounding"
   ],
   "userConfig": {
     "exa_api_key": {

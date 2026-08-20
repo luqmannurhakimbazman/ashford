@@ -28,12 +28,12 @@
     {
       "name": "dunk",
       "source": "./dunk",
-      "description": "Local-first, DLN-inspired tutoring with evidence-driven learning records and Obsidian-readable Markdown",
+      "description": "Local-first DLN tutoring with portable authoritative PDF/HTML syllabus grounding and evidence-driven records",
       "repository": "https://github.com/luqmannurhakimbazman/ashford",
       "license": "MIT",
-      "keywords": ["learning", "local-first", "obsidian", "evidence", "dln"],
+      "keywords": ["learning", "local-first", "obsidian", "evidence", "dln", "syllabus-grounding"],
       "category": "education",
-      "tags": ["education", "local-first", "obsidian"]
+      "tags": ["education", "local-first", "obsidian", "syllabus"]
     }
   ]
 }

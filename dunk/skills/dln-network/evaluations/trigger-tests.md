@@ -50,3 +50,7 @@
 ### T11: Completion
 **Context:** Session ends.
 **Expected:** Generated Session Receipt is the sole canonical summary.
+
+### T12: Approved course grounding
+**Context:** An approved syllabus planning topic informs a prediction task.
+**Expected:** Cites the active decision via `decision_event_id` and backing settled assertion IDs, discloses unresolved claims and supplemental material, never treats source decisions or coverage as prediction evidence, and does not invoke prepare/propose/decide.

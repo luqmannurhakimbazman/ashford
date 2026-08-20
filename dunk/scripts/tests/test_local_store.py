@@ -83,9 +83,12 @@ def test_init_exact_layout_and_context_list(tmp_path: Path) -> None:
     assert sorted(path.name for path in directory.iterdir()) == [
         "dashboard.md",
         "events.jsonl",
+        "prepared",
         "profile.yaml",
         "sessions",
+        "sources",
         "state.json",
+        "syllabus",
     ]
     assert directory.joinpath("sessions").is_dir()
     assert directory.joinpath("events.jsonl").read_bytes() == b""

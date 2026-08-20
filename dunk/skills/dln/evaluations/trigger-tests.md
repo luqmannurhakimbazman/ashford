@@ -53,3 +53,27 @@
 ### T12: Persistence failure
 **Context:** Local commit returns schema, recovery, or repeated stale-revision failure.
 **Expected:** Stops persistent writes, reports unsaved structured events, and never falls back to prose-as-state.
+
+### T13: Generic local PDF syllabus
+**Input:** "Teach me from this syllabus." A readable text-layer PDF path is available.
+**Expected:** Runs `prepare-syllabus`, reads verified `syllabus-content`, obtains bounded proposals, runs `propose-syllabus`, collects a complete learner decision, runs `decide-syllabus`, reloads context, and does not patch `profile.syllabus`.
+
+### T14: Attachment without byte channel
+**Input:** "Use the attached syllabus." The host exposes only a transient preview and no readable byte channel.
+**Expected:** Makes no grounding claim and offers a readable local path, explicit HTTPS consent, or a separately labeled ungrounded curriculum.
+
+### T15: HTTPS consent and redirects
+**Input:** "Use https://example.edu/syllabus.html." No network consent has been given.
+**Expected:** Requests explicit network consent; it requests separate redirect consent before `--allow-redirects` and never uses ambient proxy/auth or a query-bearing URL.
+
+### T16: Ambiguous generic layout
+**Context:** Prepared text contains an ambiguous two-column week/milestone layout.
+**Expected:** Proposes it as `ambiguous`, refuses acceptance until corrected/deferred/rejected, and never invents layout meaning.
+
+### T17: Existing-domain HTML registration
+**Input:** "Add this HTML syllabus to my existing domain." A readable path is available.
+**Expected:** Loads `context`, completes prepare/content/propose/decide at retained revisions, ignores scripts/styles/templates/subresources, reloads context, and only then routes teaching.
+
+### T18: Pending authoritative update
+**Context:** `state.grounding.status` is `approved_update_pending`.
+**Expected:** Presents the pending proposal/decision work while keeping only prior `active_source`/`active_decision` authoritative; pending proposals and supplements are not cited or taught as settled.

@@ -6,7 +6,14 @@ from copy import deepcopy
 from datetime import date, datetime
 from typing import Any
 
-from .schema import ValidationError, sha256_bytes, validate_event, validate_profile
+from .grounding import GroundingTimeline, reduce_grounding_timeline
+from .schema import (
+    RESERVED_SYLLABUS_EVENT_KINDS,
+    ValidationError,
+    sha256_bytes,
+    validate_event,
+    validate_profile,
+)
 
 OUTCOME_LABEL = {
     "pass": "independent-pass",
@@ -60,9 +67,14 @@ def project_state(
     *,
     profile_bytes: bytes,
     events_bytes: bytes,
+    timeline: GroundingTimeline | None = None,
+    prepared_documents: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Validate references and reduce sources to a byte-stable state object."""
     validate_profile(profile)
+    grounding_timeline = (
+        timeline if timeline is not None else reduce_grounding_timeline(events, prepared_documents)
+    )
     event_index: dict[str, dict[str, Any]] = {}
     event_generation: dict[str, int] = {}
     session_identities: dict[str, str] = {}
@@ -351,6 +363,12 @@ def project_state(
                 archive["self_reported_outcome"] = event["self_reported_outcome"]
             archived_exams.append(archive)
 
+        elif kind in RESERVED_SYLLABUS_EVENT_KINDS:
+            # Syllabus authority is reduced separately by reduce_grounding_timeline over the
+            # whole log, so it is deliberately not generation-scoped: a later domain_reset
+            # restarts learning evidence without clearing registered sources or approvals.
+            pass
+
         elif kind == "legacy_snapshot_imported":
             legacy_imports.append(
                 {
@@ -392,6 +410,9 @@ def project_state(
     else:
         calibration = {"count": 0, "status": "not-measured"}
 
+    grounding_state = grounding_timeline.projected_state(profile["syllabus"])
+    projected_syllabus = [topic["label"] for topic in grounding_state["planning_topics"]]
+
     return {
         "archived_exams": archived_exams,
         "calibration": calibration,
@@ -402,6 +423,7 @@ def project_state(
         "exam": deepcopy(profile.get("exam", {})),
         "generation": generation,
         "goal": profile["goal"],
+        "grounding": grounding_state,
         "legacy_imports": legacy_imports,
         "next_action": next_action,
         "next_review_date": next_review_date,
@@ -414,5 +436,5 @@ def project_state(
         },
         "stage": stage,
         "subjects": subject_list,
-        "syllabus": deepcopy(profile["syllabus"]),
+        "syllabus": projected_syllabus,
     }

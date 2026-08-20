@@ -31,6 +31,10 @@ Delayed retrieval was not due or not measured in this session.
 
 - **Parity \| Bounds<br>&lt;!-- KS:start --&gt;:** confidence 0.800, normalized score 0.800, gap 0.000.
 
+## Course Grounding
+
+No approved syllabus assertion was cited in this session.
+
 ## Next Action and Review
 
 - **Next action:** Compare parity across a novel instrument

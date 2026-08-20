@@ -46,3 +46,7 @@
 ### T10: Completion
 **Context:** Session ends.
 **Expected:** Presents the generated Session Receipt and no competing summary.
+
+### T11: Approved course grounding
+**Context:** An approved syllabus planning topic informs a relation/abstraction task.
+**Expected:** Cites the active decision via `decision_event_id` and backing settled assertion IDs, discloses unresolved claims and supplemental material, keeps grounding separate from evidence, and does not invoke prepare/propose/decide or promote pending sources.

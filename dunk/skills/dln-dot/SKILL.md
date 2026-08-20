@@ -16,6 +16,7 @@ description: >
 
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/local-store-schema.md`
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/local-persistence-protocol.md`
+- `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/syllabus-grounding-protocol.md`
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/evidence-protocol.md`
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/session-receipt-format.md`
 - `@${CLAUDE_PLUGIN_ROOT}/skills/dln/references/sync-protocol.md`
@@ -44,7 +45,10 @@ Use syllabus and state only for planning:
 - prioritize subjects with no independent evidence or independent partial/fail;
 - distinguish supported-only performance from independent performance;
 - run a due delayed retrieval before new teaching;
-- use `profile.syllabus` for coverage planning, never as proof of learning.
+- when `state.grounding.status` is `approved` or `approved_update_pending`, select course work only from the prior active decision's `state.grounding.planning_topics`, retain its backing assertion IDs, and exclude every pending-source assertion;
+- describe every deferred or ambiguous document claim as unresolved;
+- label textbook, web, or model additions absent from the approved bundle as supplemental;
+- use legacy `profile.syllabus` only as ungrounded, non-citable coverage planning, never as proof of learning.
 
 ## Session loop
 
@@ -69,7 +73,8 @@ Each assessment includes:
 - subject `{id,label,type}`;
 - `operation: acquire | discriminate`;
 - honest `novelty`, `evidence_mode`, `outcome`, and `assistance`;
-- score/confidence/retrieval/response time only when actually measured.
+- score/confidence/retrieval/response time only when actually measured;
+- when approved syllabus assertions informed the task or teaching, `grounding` with the active `decision_event_id` and used settled `assertion_ids`; include the same grounding on `session_completed`.
 
 Typical tasks:
 
@@ -96,6 +101,10 @@ If the gate fails, keep stage `acquire`, explain the exact evidence gap, and cho
 ## Exam-aware behavior
 
 Exam configuration changes task selection and surface format only. Match the declared exam format when useful, mark a repeated past question honestly, and never weaken independent-evidence requirements because time is short. Record response time only with an explicit reliable timer.
+
+## Intake boundary
+
+This phase consumes only active decided grounding. It must not prepare, propose, decide, fetch, extract, or promote supplements/pending authoritative sources. Source decisions are separate from learner evidence and mastery.
 
 ## Completion
 
